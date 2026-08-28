@@ -40,12 +40,18 @@ final class Perxel_UI {
 	 *
 	 * @param string $type success|warning|error|info.
 	 * @param string $html Trusted message HTML.
-	 * @param array  $args ['dismissible' => bool].
+	 * @param array  $args ['dismissible' => bool, 'inline' => bool]. `inline`
+	 *               keeps WP from hoisting the notice up to `.wp-header-end`;
+	 *               use it for notices rendered inside a card or section.
 	 * @return string
 	 */
 	public static function notice( $type, $html, $args = array() ) {
 		$type  = in_array( $type, array( 'success', 'warning', 'error', 'info' ), true ) ? $type : 'info';
 		$class = 'notice notice-' . $type . ' pxui-notice';
+
+		if ( ! empty( $args['inline'] ) ) {
+			$class .= ' inline';
+		}
 
 		if ( ! empty( $args['dismissible'] ) ) {
 			$class .= ' is-dismissible';

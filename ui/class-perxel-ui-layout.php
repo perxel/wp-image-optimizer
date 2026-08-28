@@ -35,12 +35,14 @@ final class Perxel_UI_Layout {
 	private static $ctx = array();
 
 	/**
-	 * Open the layout: .wrap -> header -> shell -> sidebar -> <main> -> <h1>.
+	 * Open the layout: .wrap -> shell -> sidebar (sticky brand bar) ->
+	 * <main> (sticky title bar).
 	 *
 	 * Keys in $args: `title`, `plugin`, `version`, `current` (active slug),
 	 * `menu` (`[ group_label => [ page_slug => link_label ] ]`, '' group = no
 	 * heading), `base` (admin file for sidebar links, default admin.php),
-	 * `links` (`[ label => url ]` shown top-right), `wrap_class`, `text_domain`.
+	 * `links` (`[ label => url ]` shown in the main title bar), `wrap_class`,
+	 * `text_domain`.
 	 * See ui/README.md.
 	 *
 	 * @param array $args Layout options.
@@ -67,17 +69,17 @@ final class Perxel_UI_Layout {
 
 		echo '<div class="' . esc_attr( $wrap_class ) . '">';
 
-		include __DIR__ . '/partials/header.php';
-
 		echo '<div class="pxui-shell">';
 
 		include __DIR__ . '/partials/sidebar.php';
 
 		echo '<main class="pxui-main">';
 
-		if ( '' !== (string) $d['title'] ) {
-			echo '<h1 class="pxui-title">' . esc_html( $d['title'] ) . '</h1>';
-		}
+		include __DIR__ . '/partials/main-bar.php';
+
+		// WP hoists every .notice to sit after this marker; without it they land
+		// inside the sticky title bar.
+		echo '<hr class="wp-header-end">';
 	}
 
 	/**
@@ -86,12 +88,11 @@ final class Perxel_UI_Layout {
 	public static function close() {
 		$d = self::$ctx;
 
-		echo '</main>'; // .pxui-main
-		echo '</div>';  // .pxui-shell
-
 		include __DIR__ . '/partials/footer.php';
 
-		echo '</div>'; // .wrap
+		echo '</main>'; // .pxui-main
+		echo '</div>';  // .pxui-shell
+		echo '</div>';  // .wrap
 
 		self::$ctx = array();
 	}

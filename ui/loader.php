@@ -83,7 +83,7 @@ if ( ! class_exists( 'Perxel_UI_Loader' ) ) {
 			require $win['dir'] . '/class-perxel-ui.php';
 			require $win['dir'] . '/class-perxel-ui-layout.php';
 
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG && is_admin() ) {
+			if ( is_admin() ) {
 				require $win['dir'] . '/showcase/class-perxel-ui-showcase.php';
 				Perxel_UI_Showcase::init();
 			}

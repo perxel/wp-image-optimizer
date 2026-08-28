@@ -11,7 +11,7 @@ In the plugin's main file, after its own constants:
 
 ```php
 require_once __DIR__ . '/ui/loader.php';
-Perxel_UI_Loader::register( '0.1.0', __DIR__ . '/ui', plugins_url( 'ui', __FILE__ ) );
+Perxel_UI_Loader::register( '0.2.0', __DIR__ . '/ui', plugins_url( 'ui', __FILE__ ) );
 ```
 
 In each admin-page callback:
@@ -59,15 +59,15 @@ Perxel_UI_Layout::close();
 
 | Method | Purpose |
 | --- | --- |
-| `open( array $args )` | `.wrap` → header → shell → sidebar → `<main>` → `<h1>`. Args: `title`, `plugin`, `version`, `menu`, `current`, `base`, `links`, `wrap_class`, `text_domain`. |
-| `close()` | Closes what `open()` opened, plus the footer. |
+| `open( array $args )` | `.wrap` → shell → sidebar (sticky brand bar: `plugin` + `version`) → `<main>` (sticky title bar: `<h1>` + `links`). Args: `title`, `plugin`, `version`, `menu`, `current`, `base`, `links`, `wrap_class`, `text_domain`. |
+| `close()` | Renders the footer inside `<main>`, then closes what `open()` opened. |
 
 `Perxel_UI` (each returns an HTML string — `echo` it)
 
 | Method | Purpose |
 | --- | --- |
 | `enqueue()` | Registers the kit CSS/JS under the shared `perxel-ui` handle. |
-| `notice( $type, $html, $args )` | `success\|warning\|error\|info`, on WP `.notice`. |
+| `notice( $type, $html, $args )` | `success\|warning\|error\|info`, on WP `.notice`. `$args`: `dismissible`, `inline` (stay put instead of being hoisted to `.wp-header-end`). |
 | `panel( $args )` | The one headline block per screen. `status`: `success\|warning\|error\|info\|action`; `icon`, `title`, `body`, `actions`, `progress`. |
 | `progress_bar( $pct, $args )` | Standalone bar. |
 | `stat_grid( $tiles )` | Tile: `label`, `value`, `sub`, `bar` (0-100\|null), `tone` (`good\|warn\|bad`). |
@@ -97,8 +97,9 @@ echo Perxel_UI::panel( $args ); // phpcs:ignore WordPress.Security.EscapeOutput.
 
 ## Showcase
 
-With `WP_DEBUG` on, **Tools → Perxel UI** renders every component in the real
-layout. Not shipped behaviour — just the dev review surface.
+**Tools → Perxel UI** renders every component in the real layout. Always
+registered in the admin (visible to `manage_options`) — the review surface after
+any `ui/` change.
 
 ## Constraints
 

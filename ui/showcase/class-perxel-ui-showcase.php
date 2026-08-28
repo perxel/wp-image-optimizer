@@ -3,7 +3,7 @@
  * Perxel shared admin UI — component showcase.
  *
  * A hidden admin page ( Tools > "Perxel UI" ) that renders every component in
- * the real layout. Registered only when WP_DEBUG is on. This is the review
+ * the real layout. Always registered in the admin. This is the review
  * surface: change a component, reload this page, see it everywhere.
  *
  * @package Perxel_UI
@@ -134,9 +134,9 @@ final class Perxel_UI_Showcase {
 		);
 
 		echo '<h2>Notices</h2>';
-		echo Perxel_UI::notice( 'success', 'Saved.' );
-		echo Perxel_UI::notice( 'warning', '12 items failed. <button class="button button-small">Retry</button>' );
-		echo Perxel_UI::notice( 'error', 'Something is wrong.' );
+		echo Perxel_UI::notice( 'success', 'Saved.', array( 'inline' => true ) );
+		echo Perxel_UI::notice( 'warning', '12 items failed. <button class="button button-small">Retry</button>', array( 'inline' => true ) );
+		echo Perxel_UI::notice( 'error', 'Something is wrong.', array( 'inline' => true ) );
 
 		echo '<h2>Card</h2>';
 		echo Perxel_UI::card(

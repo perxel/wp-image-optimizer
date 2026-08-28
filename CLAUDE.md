@@ -56,8 +56,8 @@ into each Perxel plugin. It is NOT specific to this plugin.
   promote to `ui/` when a second plugin needs it.
 - Public API: `Perxel_UI_Layout::open()/close()`, `Perxel_UI::notice/panel/
   progress_bar/stat_grid/card/spec_table/danger_zone`. Details in `ui/README.md`.
-- With `WP_DEBUG` on, **Tools → Perxel UI** is a component showcase — the review
-  surface after any `ui/` change.
+- **Tools → Perxel UI** is a component showcase (always registered for
+  `manage_options`) — the review surface after any `ui/` change.
 
 ## Admin screens
 
