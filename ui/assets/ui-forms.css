@@ -1,0 +1,172 @@
+/**
+ * Perxel shared admin UI — forms layer.
+ *
+ * Loaded right after ui.css (same handle family, depends on `perxel-ui`).
+ * Everything here relies on the tokens declared on `.pxui-wrap` in ui.css.
+ *
+ * Covers: the row-group settings list, native form controls restyled
+ * (checkbox → iOS toggle, radio → filled dot), and the loading spinner.
+ */
+
+/* ------------------------------------------------------------------ *
+ * Row group — iOS-style settings list. Each group is an optional title
+ * above a rounded card of rows; the card is the only element that carries
+ * a shadow. Each row is a flex line: label left, content right — text, a
+ * toggle, a <select> or a button.
+ * ------------------------------------------------------------------ */
+
+.pxui-rows {
+    max-width:var(--pxui-maxw);
+    margin:0 0 var(--pxui-s6);
+    display:flex;
+    flex-direction:column;
+    gap:var(--pxui-s6);
+}
+
+.pxui-rows__title {
+    margin:0 0 var(--pxui-s2);
+    padding-left:var(--pxui-s2);
+    font-size:11px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    color:var(--pxui-fg-muted);
+}
+
+.pxui-rows__card {
+    background:#f9f9f9;
+    border-radius:var(--pxui-radius);
+    overflow:hidden;
+}
+
+.pxui-row {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:var(--pxui-s4);
+    min-height:44px;
+    padding:var(--pxui-s1) var(--pxui-s4);
+    font-size:13px;
+}
+
+.pxui-row + .pxui-row { border-top:1px solid #eee; }
+
+.pxui-row__label { flex:0 1 auto; min-width:0; color:var(--pxui-fg); }
+.pxui-row__sub { display:block; margin-top:2px; font-size:12px; color:var(--pxui-fg-muted); }
+
+.pxui-row__content {
+    flex:0 1 auto;
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+    gap:var(--pxui-s2);
+    text-align:right;
+    color:var(--pxui-fg-muted);
+    font-variant-numeric:tabular-nums;
+}
+
+/* Inner controls stay flat — the wrapper owns the only shadow. */
+.pxui-row__content .button,
+.pxui-row__content select,
+.pxui-row__content input { box-shadow:none; }
+
+.pxui-row--good .pxui-row__content { color:var(--pxui-good); font-weight:600; }
+.pxui-row--warn .pxui-row__content { color:var(--pxui-warn); font-weight:600; }
+.pxui-row--bad .pxui-row__content { color:var(--pxui-bad); font-weight:600; }
+
+/* ------------------------------------------------------------------ *
+ * Form controls — checkbox renders as an iOS toggle, radio as a filled
+ * dot, both in the brand accent. Scoped to `.pxui-wrap`.
+ * ------------------------------------------------------------------ */
+
+.pxui-wrap input[type="checkbox"],
+.pxui-wrap input[type="radio"] {
+    -webkit-appearance:none;
+    appearance:none;
+    position:relative;
+    flex:none;
+    margin:0 var(--pxui-s2) 0 0;
+    border:1px solid var(--pxui-border);
+    background:#fff;
+    box-shadow:none;
+    cursor:pointer;
+    transition:background .15s ease, border-color .15s ease;
+}
+
+.pxui-wrap input[type="checkbox"]:checked,
+.pxui-wrap input[type="radio"]:checked { border-color:var(--pxui-accent); background:var(--pxui-accent); }
+
+.pxui-wrap input[type="checkbox"]:focus-visible,
+.pxui-wrap input[type="radio"]:focus-visible { outline:2px solid var(--pxui-accent); outline-offset:2px; }
+
+.pxui-wrap input[type="checkbox"]:disabled,
+.pxui-wrap input[type="radio"]:disabled { opacity:.5; cursor:default; }
+
+/* Checkbox → iOS toggle: pill track, sliding knob. */
+.pxui-wrap input[type="checkbox"] {
+    width:38px;
+    height:22px;
+    border:none;
+    border-radius:var(--pxui-radius-pill);
+    background:var(--pxui-border);
+    vertical-align:middle;
+}
+
+.pxui-wrap input[type="checkbox"]::before {
+    content:"";
+    position:absolute;
+    top:2px;
+    left:2px;
+    width:18px;
+    height:18px;
+    margin:0;
+    border-radius:50%;
+    background:#fff;
+    box-shadow:0 1px 2px rgba(0, 0, 0, .25);
+    transition:transform .15s ease;
+}
+
+.pxui-wrap input[type="checkbox"]:checked::before { transform:translateX(16px); }
+
+/* Radio → filled dot. */
+.pxui-wrap input[type="radio"] {
+    width:18px;
+    height:18px;
+    border-radius:50%;
+    vertical-align:text-bottom;
+}
+
+.pxui-wrap input[type="radio"]:checked::before {
+    content:"";
+    position:absolute;
+    top:4px;
+    left:4px;
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:#fff;
+}
+
+/* ------------------------------------------------------------------ *
+ * Spinner — inline loading state
+ * ------------------------------------------------------------------ */
+
+.pxui-spinner {
+    display:inline-block;
+    width:16px;
+    height:16px;
+    border:2px solid var(--pxui-border);
+    border-top-color:var(--pxui-accent);
+    border-radius:50%;
+    vertical-align:middle;
+    animation:pxui-spin .6s linear infinite;
+}
+
+@keyframes pxui-spin {
+    to { transform:rotate(360deg); }
+}
+
+@media (prefers-reduced-motion:reduce) {
+    .pxui-spinner { animation-duration:2s; }
+}

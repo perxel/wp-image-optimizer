@@ -8,8 +8,8 @@
  *
  * Escaping contract:
  *   - Structural markup and the `title` / `label` fields are escaped here.
- *   - `body`, `actions`, `value`, `sub` are treated as trusted HTML — the
- *     caller is responsible for escaping their dynamic parts.
+ *   - `body`, `actions`, `value`, `content`, `sub` are treated as trusted HTML
+ *     — the caller is responsible for escaping their dynamic parts.
  *
  * @package Perxel_UI
  */
@@ -24,7 +24,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class Perxel_UI {
 
 	/**
-	 * Enqueue the kit stylesheet + script (shared handle, deduped by WP).
+	 * Enqueue the kit stylesheets (ui.css + ui-forms.css) and script
+	 * (shared handles, deduped by WP).
 	 */
 	public static function enqueue() {
 		if ( ! defined( 'PERXEL_UI_URL' ) ) {
@@ -32,6 +33,7 @@ final class Perxel_UI {
 		}
 
 		wp_enqueue_style( 'perxel-ui', PERXEL_UI_URL . '/assets/ui.css', array(), PERXEL_UI_VERSION );
+		wp_enqueue_style( 'perxel-ui-forms', PERXEL_UI_URL . '/assets/ui-forms.css', array( 'perxel-ui' ), PERXEL_UI_VERSION );
 		wp_enqueue_script( 'perxel-ui', PERXEL_UI_URL . '/assets/ui.js', array(), PERXEL_UI_VERSION, true );
 	}
 
@@ -208,25 +210,101 @@ final class Perxel_UI {
 	}
 
 	/**
-	 * A read-only key/value diagnostics table.
+	 * An iOS-style grouped settings list: one or more groups, each an optional
+	 * title above a rounded card of flex rows (label left, content right). The
+	 * card is the only shadowed element.
 	 *
-	 * @param array $rows Each: [ 'label', 'value' (trusted HTML), 'tone' ].
+	 * Pass either a flat list of rows (one implicit group) or a list of
+	 * groups: `[ [ 'title' => 'Group', 'rows' => [ row, row ] ], … ]`.
+	 *
+	 * Each row: `[ 'label' => plain text, 'sub' => trusted HTML (secondary
+	 * line under the label), 'content' => trusted HTML (text, a toggle(), a
+	 * <select> or a button), 'tone' => good|warn|bad ]`.
+	 *
+	 * @param array $groups Flat row list, or a list of groups.
 	 * @return string
 	 */
-	public static function spec_table( $rows ) {
-		$out = '<table class="pxui-spec"><tbody>';
+	public static function rows( $groups ) {
+		$groups = (array) $groups;
 
-		foreach ( (array) $rows as $r ) {
-			$tone = isset( $r['tone'] ) && in_array( $r['tone'], array( 'good', 'warn', 'bad' ), true ) ? ' class="pxui-spec--' . $r['tone'] . '"' : '';
-			$out .= '<tr' . $tone . '>';
-			$out .= '<th scope="row">' . esc_html( isset( $r['label'] ) ? $r['label'] : '' ) . '</th>';
-			$out .= '<td>' . ( isset( $r['value'] ) ? $r['value'] : '' ) . '</td>';
-			$out .= '</tr>';
+		// Flat row list → wrap in a single untitled group.
+		if ( ! isset( $groups[0]['rows'] ) ) {
+			$groups = array( array( 'rows' => $groups ) );
 		}
 
-		$out .= '</tbody></table>';
+		$out = '<div class="pxui-rows">';
+
+		foreach ( $groups as $group ) {
+			$out .= '<div class="pxui-rows__group">';
+
+			if ( ! empty( $group['title'] ) ) {
+				$out .= '<p class="pxui-rows__title">' . esc_html( $group['title'] ) . '</p>';
+			}
+
+			$out .= '<div class="pxui-rows__card">';
+
+			foreach ( (array) ( isset( $group['rows'] ) ? $group['rows'] : array() ) as $r ) {
+				$tone = isset( $r['tone'] ) && in_array( $r['tone'], array( 'good', 'warn', 'bad' ), true ) ? ' pxui-row--' . $r['tone'] : '';
+
+				$out .= '<div class="pxui-row' . $tone . '">';
+				$out .= '<span class="pxui-row__label">' . esc_html( isset( $r['label'] ) ? $r['label'] : '' );
+
+				if ( ! empty( $r['sub'] ) ) {
+					$out .= '<span class="pxui-row__sub">' . $r['sub'] . '</span>';
+				}
+
+				$out .= '</span>';
+				$out .= '<span class="pxui-row__content">' . ( isset( $r['content'] ) ? $r['content'] : '' ) . '</span>';
+				$out .= '</div>';
+			}
+
+			$out .= '</div></div>';
+		}
+
+		$out .= '</div>';
 
 		return $out;
+	}
+
+	/**
+	 * A toggle — a checkbox, which the kit CSS renders as an iOS switch.
+	 * Handy as row `content`; a plain `<input type="checkbox">` inside
+	 * `.pxui-wrap` renders identically.
+	 *
+	 * @param array $args [ 'name', 'checked' (bool), 'value', 'id', 'form',
+	 *              'label' (accessible name) ].
+	 * @return string
+	 */
+	public static function toggle( $args = array() ) {
+		$d = array_merge(
+			array(
+				'name'    => '',
+				'checked' => false,
+				'value'   => '1',
+				'id'      => '',
+				'form'    => '',
+				'label'   => '',
+			),
+			$args
+		);
+
+		$attr  = $d['name'] ? ' name="' . esc_attr( $d['name'] ) . '"' : '';
+		$attr .= $d['id'] ? ' id="' . esc_attr( $d['id'] ) . '"' : '';
+		$attr .= $d['form'] ? ' form="' . esc_attr( $d['form'] ) . '"' : '';
+		$attr .= ' value="' . esc_attr( $d['value'] ) . '"';
+		$attr .= $d['checked'] ? ' checked' : '';
+		$attr .= $d['label'] ? ' aria-label="' . esc_attr( $d['label'] ) . '"' : '';
+
+		return '<input type="checkbox"' . $attr . ' />';
+	}
+
+	/**
+	 * An inline loading spinner.
+	 *
+	 * @return string
+	 */
+	public static function spinner() {
+		return '<span class="pxui-spinner" role="status" aria-label="Loading"></span>';
 	}
 
 	/**

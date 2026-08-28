@@ -41,8 +41,11 @@ final class Perxel_UI_Layout {
 	 * Keys in $args: `title`, `plugin`, `version`, `current` (active slug),
 	 * `menu` (`[ group_label => [ page_slug => link_label ] ]`, '' group = no
 	 * heading), `base` (admin file for sidebar links, default admin.php),
-	 * `links` (`[ label => url ]` shown in the main title bar), `wrap_class`,
-	 * `text_domain`.
+	 * `links` (`[ label => url ]` shown right in the footer), `author`
+	 * (`[ 'name' => string, 'url' => string ]` shown left in the footer),
+	 * `actions` (trusted HTML — buttons pinned to the right of the title bar; the
+	 * house home for a page's Save button, wired to its form with the HTML5
+	 * `form` attribute), `wrap_class`, `text_domain`.
 	 * See ui/README.md.
 	 *
 	 * @param array $args Layout options.
@@ -57,6 +60,8 @@ final class Perxel_UI_Layout {
 				'current'     => '',
 				'base'        => 'admin.php',
 				'links'       => array(),
+				'author'      => array(),
+				'actions'     => '',
 				'wrap_class'  => '',
 				'text_domain' => 'default',
 			),

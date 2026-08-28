@@ -46,7 +46,8 @@ into each Perxel plugin. It is NOT specific to this plugin.
   `PERXEL_UI_VERSION` (in `loader.php`) when the kit changes — separately from the
   plugin version.
 - **Server-rendered PHP + minimal vanilla JS. No build step.** `ui/assets/ui.css`
-  stays under ~600 lines: tokens aliased to wp-admin CSS vars, components layered
+  stays under ~600 lines: neutral tokens aliased to wp-admin CSS vars, the accent
+  fixed to the Perxel brand blue (`--pxui-brand` `#082ae5`), components layered
   on native `.wrap` / `.button` / `.notice` / `.form-table`.
 - Prefixes inside `ui/`: `Perxel_UI` / `perxel_ui` / `PERXEL_UI` / `pxui-`.
   Kit files are plain (no namespace), loaded only by `loader.php`.
@@ -71,7 +72,9 @@ shows in WP's menu):
   `location.reload()`), Recalculate and Retry-failed.
 - **Settings** (`views/settings.php`) — environment, conversion settings (plain
   form POST → `admin_post_perxel_image_optimizer_save_settings` → `Settings::update()`),
-  serving toggle + self-test, savings estimate, danger zone.
+  serving toggle + self-test, savings estimate, danger zone. The "Save settings"
+  button sits in the sticky title bar (`layout_args`' `actions`), wired to
+  `#pxio-settings-form` via the HTML5 `form` attribute.
 
 House UX rule: dead-simple, 1–2 steps to run the function; keep configuration on
 its own page so a client can be told "go here, click this, done". One primary

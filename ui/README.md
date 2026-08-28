@@ -59,8 +59,8 @@ Perxel_UI_Layout::close();
 
 | Method | Purpose |
 | --- | --- |
-| `open( array $args )` | `.wrap` → shell → sidebar (sticky brand bar: `plugin` + `version`) → `<main>` (sticky title bar: `<h1>` + `links`). Args: `title`, `plugin`, `version`, `menu`, `current`, `base`, `links`, `wrap_class`, `text_domain`. |
-| `close()` | Renders the footer inside `<main>`, then closes what `open()` opened. |
+| `open( array $args )` | `.wrap` → shell → sidebar (sticky brand bar: `plugin` + `version`) → `<main>` (sticky title bar: `<h1>` + `actions`). Args: `title`, `plugin`, `version`, `menu`, `current`, `base`, `links`, `author`, `actions`, `wrap_class`, `text_domain`. `actions` is trusted HTML pinned to the right of the title bar — the house home for a page's Save button; wire it to the page's `<form>` with the HTML5 `form="<form-id>"` attribute (`get_submit_button( $text, 'primary', 'submit', false, array( 'form' => 'my-form' ) )`). `author` (`[ 'name' => …, 'url' => … ]`) shows left in the footer; `links` (`[ label => url ]`) show right. |
+| `close()` | Renders the footer (`author` left, `links` right) inside `<main>`, then closes what `open()` opened. |
 
 `Perxel_UI` (each returns an HTML string — `echo` it)
 
@@ -72,14 +72,16 @@ Perxel_UI_Layout::close();
 | `progress_bar( $pct, $args )` | Standalone bar. |
 | `stat_grid( $tiles )` | Tile: `label`, `value`, `sub`, `bar` (0-100\|null), `tone` (`good\|warn\|bad`). |
 | `card( $args )` | `title`, `body`, `actions`, `id`, `class`. |
-| `spec_table( $rows )` | Row: `label`, `value`, `tone`. Read-only diagnostics. |
+| `rows( $groups )` | iOS-style grouped settings list. Flat row list, or groups `[ 'title' => …, 'rows' => [ … ] ]` — optional title above a rounded card of rows (the card is the only shadowed element). Row: `label` left, `content` right (text, `toggle()`, a `<select>`, a button), plus `sub`, `tone` (`good\|warn\|bad`). |
+| `toggle( $args )` | A checkbox the kit renders as an iOS switch. `name`, `checked`, `value`, `id`, `form`, `label`. A bare `<input type="checkbox">` in `.pxui-wrap` looks identical. |
+| `spinner()` | Inline CSS loading spinner (`.pxui-spinner`). |
 | `danger_zone( $html, $args )` | Red-bordered wrapper for destructive actions. |
 
 ### Escaping contract
 
 The helpers escape their own structural markup and the `title` / `label` fields.
-`body`, `actions`, `value`, `sub` are treated as **trusted HTML** — the caller
-escapes their dynamic parts. At the call site:
+`body`, `actions`, `value`, `content`, `sub` are treated as **trusted HTML** —
+the caller escapes their dynamic parts. At the call site:
 
 ```php
 echo Perxel_UI::panel( $args ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Perxel_UI escapes internally.
@@ -88,7 +90,7 @@ echo Perxel_UI::panel( $args ); // phpcs:ignore WordPress.Security.EscapeOutput.
 ## What belongs in `ui/`
 
 - **In `ui/`:** anything another Perxel plugin could plausibly reuse — layout,
-  notices, panels, stat tiles, cards, spec tables, the danger zone, tokens.
+  notices, panels, stat tiles, cards, row groups, the danger zone, tokens.
 - **In the plugin:** anything specific to that plugin's domain (its own widgets,
   domain-specific tables). Plugin CSS/JS may be inline or in the plugin's own
   `assets/`.
@@ -104,7 +106,11 @@ any `ui/` change.
 ## Constraints
 
 - Server-rendered PHP + a few lines of vanilla JS. No build step, no framework.
-- `assets/ui.css` stays under ~600 lines. Past that, you're fighting wp-admin
-  instead of using it.
+- Two stylesheets, both enqueued by `Perxel_UI::enqueue()`:
+  `assets/ui.css` (tokens, layout, surface treatment, display components) and
+  `assets/ui-forms.css` (row groups, form controls, spinner — it reads the
+  tokens `ui.css` declares, so it loads second and depends on `perxel-ui`).
+  Each stays around ~500 lines. Past that, you're fighting wp-admin instead of
+  using it.
 - Kit files are plain (no namespace) and loaded by `loader.php`, never by a
   plugin's autoloader. Prefixes: `Perxel_UI`, `perxel_ui`, `PERXEL_UI`, `pxui`.

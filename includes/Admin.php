@@ -124,16 +124,45 @@ class Admin {
 	 */
 
 	/**
+	 * The plugin's own file header (Name / Author / Author URI / Plugin URI),
+	 * read once. `Version` stays on the constant — it is the canonical runtime
+	 * source and avoids a file read.
+	 *
+	 * @return array
+	 */
+	private function plugin_header() {
+		static $header = null;
+
+		if ( null === $header ) {
+			$header = get_file_data(
+				PERXEL_IMAGE_OPTIMIZER_FILE,
+				array(
+					'name'       => 'Plugin Name',
+					'plugin_uri' => 'Plugin URI',
+					'author'     => 'Author',
+					'author_uri' => 'Author URI',
+				),
+				'plugin'
+			);
+		}
+
+		return $header;
+	}
+
+	/**
 	 * Layout args for Perxel_UI_Layout::open().
 	 *
 	 * @param string $current Active page slug.
 	 * @param string $title   Page title.
+	 * @param array  $extra   Extra keys merged over the defaults (e.g. `actions`).
 	 * @return array
 	 */
-	private function layout_args( $current, $title ) {
-		return array(
+	private function layout_args( $current, $title, $extra = array() ) {
+		$header = $this->plugin_header();
+
+		return array_merge( array(
 			'title'       => $title,
-			'plugin'      => __( 'Perxel Image Optimizer', 'perxel-image-optimizer' ),
+			'plugin'      => $header['name'],
 			'version'     => PERXEL_IMAGE_OPTIMIZER_VERSION,
 			'base'        => 'upload.php',
 			'wrap_class'  => 'perxel-image-optimizer',
@@ -145,10 +174,14 @@ class Admin {
 				),
 			),
 			'links'       => array(
-				__( 'Docs', 'perxel-image-optimizer' ) => 'https://github.com/perxel/wp-image-optimizer',
+				__( 'Docs', 'perxel-image-optimizer' ) => $header['plugin_uri'],
+			),
+			'author'      => array(
+				'name' => $header['author'],
+				'url'  => $header['author_uri'],
 			),
 			'text_domain' => 'perxel-image-optimizer',
-		);
+		), $extra );
 	}
 
 	/**
@@ -243,7 +276,21 @@ class Admin {
 			return;
 		}
 
-		\Perxel_UI_Layout::open( $this->layout_args( self::PAGE_SETTINGS, __( 'Settings', 'perxel-image-optimizer' ) ) );
+		$save = get_submit_button(
+			__( 'Save settings', 'perxel-image-optimizer' ),
+			'primary',
+			'submit',
+			false,
+			array( 'form' => 'pxio-settings-form' )
+		);
+
+		\Perxel_UI_Layout::open(
+			$this->layout_args(
+				self::PAGE_SETTINGS,
+				__( 'Settings', 'perxel-image-optimizer' ),
+				array( 'actions' => $save )
+			)
+		);
 		include PERXEL_IMAGE_OPTIMIZER_DIR . 'includes/views/settings.php';
 		\Perxel_UI_Layout::close();
 	}

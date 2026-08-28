@@ -33,132 +33,165 @@ if ( $updated ) {
 	echo Perxel_UI::notice( 'success', esc_html__( 'Settings saved.', 'perxel-image-optimizer' ), array( 'dismissible' => true ) );
 }
 
-/* --- Environment ------------------------------------------------------ */
+/* --- Environment --------------------------------------------------- */
 
-echo '<h2>' . esc_html__( 'Environment', 'perxel-image-optimizer' ) . '</h2>';
-echo Perxel_UI::spec_table(
+echo Perxel_UI::rows(
 	array(
 		array(
-			'label' => __( 'WebP encoding', 'perxel-image-optimizer' ),
-			'value' => $env['webp_encode']
-				? esc_html__( 'Available', 'perxel-image-optimizer' )
-				: esc_html__( 'Unavailable — conversion disabled', 'perxel-image-optimizer' ),
-			'tone'  => $env['webp_encode'] ? 'good' : 'bad',
-		),
-		array(
-			'label' => __( 'Engine', 'perxel-image-optimizer' ),
-			'value' => esc_html( $engine ) . ( ! empty( $env['imagick_lossless'] ) ? ' · ' . esc_html__( 'PNG lossless available', 'perxel-image-optimizer' ) : '' ),
-		),
-		array(
-			'label' => __( 'PHP', 'perxel-image-optimizer' ),
-			'value' => esc_html( $env['php_version'] ),
-		),
-		array(
-			'label' => __( 'Memory limit', 'perxel-image-optimizer' ),
-			'value' => esc_html( $env['memory_limit_raw'] ),
-		),
-		array(
-			'label' => __( 'Max execution time', 'perxel-image-optimizer' ),
-			'value' => esc_html( $env['max_execution'] . 's' )
-				. ( $env['set_time_limit'] ? '' : ' · ' . esc_html__( 'set_time_limit blocked', 'perxel-image-optimizer' ) ),
-			'tone'  => $env['set_time_limit'] ? null : 'warn',
-		),
-		array(
-			'label' => __( 'Server', 'perxel-image-optimizer' ),
-			'value' => $env['is_apache'] ? 'Apache / LiteSpeed' : esc_html__( 'Other (fallback serving)', 'perxel-image-optimizer' ),
-		),
-		array(
-			'label' => __( '.htaccess', 'perxel-image-optimizer' ),
-			'value' => $env['htaccess_writable']
-				? esc_html__( 'Writable', 'perxel-image-optimizer' )
-				: esc_html__( 'Not writable', 'perxel-image-optimizer' ),
-			'tone'  => $env['htaccess_writable'] ? null : 'warn',
-		),
-		array(
-			'label' => __( 'Free disk', 'perxel-image-optimizer' ),
-			'value' => null === $env['free_disk']
-				? esc_html__( 'unknown', 'perxel-image-optimizer' )
-				: '~' . esc_html( size_format( (int) $env['free_disk'] ) ),
+			'title' => __( 'Environment', 'perxel-image-optimizer' ),
+			'rows'  => array(
+				array(
+					'label'   => __( 'WebP encoding', 'perxel-image-optimizer' ),
+					'content' => $env['webp_encode']
+						? esc_html__( 'Available', 'perxel-image-optimizer' )
+						: esc_html__( 'Unavailable — conversion disabled', 'perxel-image-optimizer' ),
+					'tone'    => $env['webp_encode'] ? 'good' : 'bad',
+				),
+				array(
+					'label'   => __( 'Engine', 'perxel-image-optimizer' ),
+					'content' => esc_html( $engine ) . ( ! empty( $env['imagick_lossless'] ) ? ' · ' . esc_html__( 'PNG lossless available', 'perxel-image-optimizer' ) : '' ),
+				),
+				array(
+					'label'   => __( 'PHP', 'perxel-image-optimizer' ),
+					'content' => esc_html( $env['php_version'] ),
+				),
+				array(
+					'label'   => __( 'Memory limit', 'perxel-image-optimizer' ),
+					'content' => esc_html( $env['memory_limit_raw'] ),
+				),
+				array(
+					'label'   => __( 'Max execution time', 'perxel-image-optimizer' ),
+					'content' => esc_html( $env['max_execution'] . 's' )
+						. ( $env['set_time_limit'] ? '' : ' · ' . esc_html__( 'set_time_limit blocked', 'perxel-image-optimizer' ) ),
+					'tone'    => $env['set_time_limit'] ? null : 'warn',
+				),
+				array(
+					'label'   => __( 'Server', 'perxel-image-optimizer' ),
+					'content' => $env['is_apache'] ? 'Apache / LiteSpeed' : esc_html__( 'Other (fallback serving)', 'perxel-image-optimizer' ),
+				),
+				array(
+					'label'   => __( '.htaccess', 'perxel-image-optimizer' ),
+					'content' => $env['htaccess_writable']
+						? esc_html__( 'Writable', 'perxel-image-optimizer' )
+						: esc_html__( 'Not writable', 'perxel-image-optimizer' ),
+					'tone'    => $env['htaccess_writable'] ? null : 'warn',
+				),
+				array(
+					'label'   => __( 'Free disk', 'perxel-image-optimizer' ),
+					'content' => null === $env['free_disk']
+						? esc_html__( 'unknown', 'perxel-image-optimizer' )
+						: '~' . esc_html( size_format( (int) $env['free_disk'] ) ),
+				),
+			),
 		),
 	)
 );
 
-/* --- Conversion ----------------------------------------------------- */
+/* --- Conversion --------------------------------------------------- */
 
-echo '<h2>' . esc_html__( 'Conversion', 'perxel-image-optimizer' ) . '</h2>';
+$size_toggles = '';
+foreach ( (array) $snap['sizes'] as $name ) {
+	$is_on         = in_array( '*', $sizes, true ) || in_array( $name, $sizes, true );
+	$size_toggles .= '<label class="pxio-size"><input type="checkbox" name="sizes[]" value="'
+		. esc_attr( $name ) . '"' . checked( $is_on, true, false ) . ' /> ' . esc_html( $name ) . '</label>';
+}
 ?>
-<form class="pxui-section" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+<form id="pxio-settings-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 	<input type="hidden" name="action" value="perxel_image_optimizer_save_settings" />
-	<?php wp_nonce_field( 'perxel_image_optimizer_settings' ); ?>
+	<?php
+	wp_nonce_field( 'perxel_image_optimizer_settings' );
 
-	<div class="pxui-field">
-		<label for="pxio-jq"><?php esc_html_e( 'JPEG → WebP quality', 'perxel-image-optimizer' ); ?></label>
-		<input type="range" id="pxio-jq" name="jpeg_quality" min="40" max="100" value="<?php echo esc_attr( $cfg['jpeg_quality'] ); ?>" data-pxio-output="pxio-jq-o" />
-		<output id="pxio-jq-o"><?php echo esc_html( $cfg['jpeg_quality'] ); ?></output>
-	</div>
-
-	<div class="pxui-field">
-		<label for="pxio-pq"><?php esc_html_e( 'PNG → WebP quality', 'perxel-image-optimizer' ); ?></label>
-		<input type="range" id="pxio-pq" name="png_quality" min="40" max="100" value="<?php echo esc_attr( $cfg['png_quality'] ); ?>" data-pxio-output="pxio-pq-o" />
-		<output id="pxio-pq-o"><?php echo esc_html( $cfg['png_quality'] ); ?></output>
-		<label style="flex:none;margin-left:16px;">
-			<input type="checkbox" name="convert_png" value="1" <?php checked( $cfg['convert_png'] ); ?> />
-			<?php esc_html_e( 'Convert PNG files', 'perxel-image-optimizer' ); ?>
-		</label>
-	</div>
-
-	<div class="pxui-field pxui-field--stack">
-		<label><?php esc_html_e( 'Sizes to convert', 'perxel-image-optimizer' ); ?></label>
-		<span>
-			<?php foreach ( (array) $snap['sizes'] as $name ) : ?>
-				<?php $checked = in_array( '*', $sizes, true ) || in_array( $name, $sizes, true ); ?>
-				<label style="display:inline-block;margin:4px 16px 4px 0;">
-					<input type="checkbox" name="sizes[]" value="<?php echo esc_attr( $name ); ?>" <?php checked( $checked ); ?> />
-					<?php echo esc_html( $name ); ?>
-				</label>
-			<?php endforeach; ?>
-		</span>
-	</div>
-
-	<div class="pxui-field">
-		<label for="pxio-mp"><?php esc_html_e( 'Skip images larger than', 'perxel-image-optimizer' ); ?></label>
-		<input type="number" id="pxio-mp" name="skip_megapixels" min="1" max="200" value="<?php echo esc_attr( $cfg['skip_megapixels'] ); ?>" />
-		<?php esc_html_e( 'megapixels', 'perxel-image-optimizer' ); ?>
-	</div>
-
-	<div class="pxui-field">
-		<label><?php esc_html_e( 'New uploads', 'perxel-image-optimizer' ); ?></label>
-		<label style="flex:none;">
-			<input type="checkbox" name="convert_on_upload" value="1" <?php checked( $cfg['convert_on_upload'] ); ?> />
-			<?php esc_html_e( 'Convert new uploads automatically', 'perxel-image-optimizer' ); ?>
-		</label>
-	</div>
-
-	<?php submit_button( __( 'Save settings', 'perxel-image-optimizer' ) ); ?>
+	echo Perxel_UI::rows(
+		array(
+			array(
+				'title' => __( 'Conversion', 'perxel-image-optimizer' ),
+				'rows'  => array(
+					array(
+						'label'   => __( 'JPEG → WebP quality', 'perxel-image-optimizer' ),
+						'content' => '<input type="range" id="pxio-jq" name="jpeg_quality" min="40" max="100" value="'
+							. esc_attr( $cfg['jpeg_quality'] ) . '" data-pxio-output="pxio-jq-o" /> <output id="pxio-jq-o">'
+							. esc_html( $cfg['jpeg_quality'] ) . '</output>',
+					),
+					array(
+						'label'   => __( 'PNG → WebP quality', 'perxel-image-optimizer' ),
+						'content' => '<input type="range" id="pxio-pq" name="png_quality" min="40" max="100" value="'
+							. esc_attr( $cfg['png_quality'] ) . '" data-pxio-output="pxio-pq-o" /> <output id="pxio-pq-o">'
+							. esc_html( $cfg['png_quality'] ) . '</output>',
+					),
+					array(
+						'label'   => __( 'Convert PNG files', 'perxel-image-optimizer' ),
+						'sub'     => esc_html__( 'Otherwise only JPEG files are converted.', 'perxel-image-optimizer' ),
+						'content' => Perxel_UI::toggle(
+							array(
+								'name'    => 'convert_png',
+								'checked' => $cfg['convert_png'],
+								'label'   => __( 'Convert PNG files', 'perxel-image-optimizer' ),
+							)
+						),
+					),
+					array(
+						'label'   => __( 'Sizes to convert', 'perxel-image-optimizer' ),
+						'content' => '<span class="pxio-sizes">' . $size_toggles . '</span>',
+					),
+					array(
+						'label'   => __( 'Skip images larger than', 'perxel-image-optimizer' ),
+						'content' => '<input type="number" id="pxio-mp" name="skip_megapixels" min="1" max="200" value="'
+							. esc_attr( $cfg['skip_megapixels'] ) . '" /> ' . esc_html__( 'megapixels', 'perxel-image-optimizer' ),
+					),
+					array(
+						'label'   => __( 'Convert new uploads automatically', 'perxel-image-optimizer' ),
+						'sub'     => esc_html__( 'Convert each image as it is uploaded.', 'perxel-image-optimizer' ),
+						'content' => Perxel_UI::toggle(
+							array(
+								'name'    => 'convert_on_upload',
+								'checked' => $cfg['convert_on_upload'],
+								'label'   => __( 'Convert new uploads automatically', 'perxel-image-optimizer' ),
+							)
+						),
+					),
+				),
+			),
+		)
+	);
+	// "Save settings" lives in the sticky title bar (Admin::render_settings), wired here via the form id.
+	?>
 </form>
 
 <?php
-/* --- Serving -------------------------------------------------------- */
+/* --- Serving ----------------------------------------------------- */
 
-echo '<h2 id="serving">' . esc_html__( 'Serving', 'perxel-image-optimizer' ) . '</h2>';
+$serve_status = esc_html__( 'Status:', 'perxel-image-optimizer' ) . ' '
+	. esc_html( isset( $serve_mode[ $srv['mode'] ] ) ? $serve_mode[ $srv['mode'] ] : $srv['mode'] );
 ?>
-<div class="pxui-section">
-	<div class="pxui-field">
-		<label style="flex:none;">
-			<input type="checkbox" id="pxio-serve" <?php checked( $cfg['serve'] ); ?> />
-			<?php esc_html_e( 'Serve WebP to browsers that support it', 'perxel-image-optimizer' ); ?>
-		</label>
-		<span class="pxui-muted">
-			<?php
-			echo esc_html__( 'Status:', 'perxel-image-optimizer' ) . ' ';
-			echo esc_html( isset( $serve_mode[ $srv['mode'] ] ) ? $serve_mode[ $srv['mode'] ] : $srv['mode'] );
-			?>
-		</span>
-	</div>
-	<p>
-		<button type="button" class="button button-small" id="pxio-selftest"><?php esc_html_e( 'Run self-test', 'perxel-image-optimizer' ); ?></button>
-		<span id="pxio-selftest-out" class="pxui-muted"></span>
-	</p>
+<div id="serving">
+	<?php
+	echo Perxel_UI::rows(
+		array(
+			array(
+				'title' => __( 'Serving', 'perxel-image-optimizer' ),
+				'rows'  => array(
+					array(
+						'label'   => __( 'Serve WebP to supported browsers', 'perxel-image-optimizer' ),
+						'sub'     => $serve_status,
+						'content' => Perxel_UI::toggle(
+							array(
+								'id'      => 'pxio-serve',
+								'checked' => $cfg['serve'],
+								'label'   => __( 'Serve WebP to supported browsers', 'perxel-image-optimizer' ),
+							)
+						),
+					),
+					array(
+						'label'   => __( 'Self-test', 'perxel-image-optimizer' ),
+						'content' => '<button type="button" class="button button-small" id="pxio-selftest">'
+							. esc_html__( 'Run self-test', 'perxel-image-optimizer' )
+							. '</button> <span id="pxio-selftest-out" class="pxui-muted"></span>',
+					),
+				),
+			),
+		)
+	);
+	?>
 	<details>
 		<summary><?php esc_html_e( 'Managed .htaccess block', 'perxel-image-optimizer' ); ?></summary>
 		<pre class="pxio-block"><?php echo esc_html( $srv['rules_preview'] ); ?></pre>

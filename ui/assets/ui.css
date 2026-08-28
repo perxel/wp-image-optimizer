@@ -7,8 +7,10 @@
  */
 
 .pxui-wrap {
-    --pxui-accent:var(--wp-admin-theme-color, #2271b1);
-    --pxui-accent-dark:var(--wp-admin-theme-color-darker-10, #135e96);
+    /* Perxel brand blue — fixed, not aliased to the admin colour scheme. */
+    --pxui-brand:#082ae5;
+    --pxui-accent:var(--pxui-brand);
+    --pxui-accent-dark:#0620c9;
 
     --pxui-fg:#1d2327;
     --pxui-fg-muted:#646970;
@@ -16,6 +18,7 @@
     --pxui-bg:#fff;
     --pxui-bg-subtle:#f6f7f7;
 
+    --pxui-brand-bg:#eef0fd;
     --pxui-good:#007017;
     --pxui-good-bg:#edfaef;
     --pxui-warn:#8a6d00;
@@ -30,7 +33,16 @@
     --pxui-s6:24px;
     --pxui-s8:32px;
 
-    --pxui-radius:4px;
+    /* Surface treatment — iOS/macOS style: soft radius, near-white hairline
+     * border, warm off-white fill, diffuse shadow instead of a hard edge.
+     * Shared by the sidebar, panels, notices, stat tiles, cards, danger zone. */
+    --pxui-radius:8px;
+    --pxui-radius-lg:16px;
+    --pxui-radius-pill:100px;
+    --pxui-surface:#fffafa;
+    --pxui-surface-border:1px solid #ffdfdf;
+    --pxui-shadow:0 0 5px 0 rgba(0, 0, 0, .08);
+    --pxui-shadow-lg:0 0 10px 10px rgba(0, 0, 0, .02);
     --pxui-maxw:960px;
 }
 
@@ -41,9 +53,9 @@
 .pxui-wrap {
     margin-right:20px;
 
-    box-shadow:0 0 10px 10px rgba(0, 0, 0, .02);
-    border-radius:30px; padding:10px;
-    background:#fff;
+    box-shadow:var(--pxui-shadow-lg);
+    border-radius:30px; padding:10px 30px 10px 10px;
+    background:var(--pxui-bg);
     border:1px solid #dcdcdc;
 }
 
@@ -57,7 +69,7 @@
     top:32px;
     z-index:10;
     display:flex;
-    align-items:baseline;
+    align-items:center;
     justify-content:space-between;
     flex-wrap:wrap;
     gap:var(--pxui-s1) var(--pxui-s3);
@@ -68,19 +80,21 @@
     padding:var(--pxui-s3);
     background:rgba(255,255,255,.2);
     backdrop-filter:blur(5px);
+    border-radius:20px 20px 0 0;
 }
 
 .pxui-main__bar {
-    margin:0 0 var(--pxui-s4);
+    margin:-10px 0 var(--pxui-s4);
     padding:var(--pxui-s3) 0;
-    background:rgba(255,255,255,.2);
+    background:rgba(255,255,255,.8);
     backdrop-filter:blur(5px);
+    border-radius:0 20px 0 0;
 }
 
 .pxui-brand {
     font-size:15px;
     font-weight:600;
-    color:var(--pxui-fg);
+    color:var(--pxui-brand);
 }
 
 .pxui-version {
@@ -89,12 +103,40 @@
     font-variant-numeric:tabular-nums;
 }
 
-.pxui-main__links {
-    font-size:12px;
+.pxui-main__actions {
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:var(--pxui-s2);
 }
 
-.pxui-main__links a {
-    margin-left:var(--pxui-s3);
+/* ------------------------------------------------------------------ *
+ * Buttons — pill corners + brand-blue primary
+ * ------------------------------------------------------------------ */
+
+.pxui-wrap .button,
+.pxui-wrap .button-primary,
+.pxui-wrap .button-secondary {
+    border-radius:var(--pxui-radius-pill);
+    padding-left:14px;
+    padding-right:14px;
+}
+
+.pxui-wrap .button.button-small {
+    padding-left:10px;
+    padding-right:10px;
+}
+
+.pxui-wrap .button-primary {
+    background:var(--pxui-accent);
+    border-color:var(--pxui-accent);
+}
+
+.pxui-wrap .button-primary:hover,
+.pxui-wrap .button-primary:focus {
+    background:var(--pxui-accent-dark);
+    border-color:var(--pxui-accent-dark);
+    color:#fff;
 }
 
 /* ------------------------------------------------------------------ *
@@ -112,9 +154,9 @@
     width:180px;
 
     border-radius:20px; padding:10px;
-    background:#fffafa;
-    border:1px solid #fff;
-    box-shadow:0 0 5px 0 rgba(0,0,0,.1);
+    background:var(--pxui-surface);
+    border:1px solid #eeeaff;
+    box-shadow:var(--pxui-shadow);
 }
 
 .pxui-sidebar__group {
@@ -170,12 +212,23 @@
 }
 
 .pxui-footer {
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:space-between;
+    gap:var(--pxui-s1) var(--pxui-s4);
     margin-top:var(--pxui-s8);
     padding-top:var(--pxui-s3);
     border-top:1px solid var(--pxui-border);
-    max-width:var(--pxui-maxw);
     font-size:12px;
     color:var(--pxui-fg-muted);
+}
+
+.pxui-footer__links a {
+    margin-left:var(--pxui-s3);
+}
+
+.pxui-footer__links a:first-child {
+    margin-left:0;
 }
 
 @media screen and (max-width:782px) {
@@ -201,14 +254,32 @@
 }
 
 /* ------------------------------------------------------------------ *
+ * Notice — WP `.notice`, restyled as a soft rounded card
+ * ------------------------------------------------------------------ */
+
+.pxui-wrap .pxui-notice {
+    border:var(--pxui-surface-border);
+    border-left:var(--pxui-surface-border);
+    border-radius:var(--pxui-radius-lg);
+    box-shadow:var(--pxui-shadow);
+    margin:0 0 var(--pxui-s3);
+    padding:var(--pxui-s2) var(--pxui-s4);
+    background:var(--pxui-surface);
+}
+
+.pxui-wrap .pxui-notice.notice-success { background:var(--pxui-good-bg); }
+.pxui-wrap .pxui-notice.notice-warning { background:var(--pxui-warn-bg); }
+.pxui-wrap .pxui-notice.notice-error { background:var(--pxui-bad-bg); }
+
+/* ------------------------------------------------------------------ *
  * Panel â€” the headline block
  * ------------------------------------------------------------------ */
 
 .pxui-panel {
-    background:var(--pxui-bg);
-    border:1px solid var(--pxui-border);
-    border-left-width:4px;
-    border-radius:var(--pxui-radius);
+    background:var(--pxui-surface);
+    border:var(--pxui-surface-border);
+    border-radius:var(--pxui-radius-lg);
+    box-shadow:var(--pxui-shadow);
     margin:0 0 var(--pxui-s6);
 }
 
@@ -250,14 +321,15 @@
     align-items:center;
 }
 
-.pxui-panel--action { border-left-color:var(--pxui-accent); }
-.pxui-panel--success { border-left-color:var(--pxui-good); }
+/* State — carried by the fill tint + icon colour, no accent rule needed. */
+.pxui-panel--action { background:var(--pxui-brand-bg); }
+.pxui-panel--action .pxui-panel__icon { color:var(--pxui-accent); }
+.pxui-panel--success { background:var(--pxui-good-bg); }
 .pxui-panel--success .pxui-panel__icon { color:var(--pxui-good); }
-.pxui-panel--warning { border-left-color:var(--pxui-warn); }
+.pxui-panel--warning { background:var(--pxui-warn-bg); }
 .pxui-panel--warning .pxui-panel__icon { color:var(--pxui-warn); }
-.pxui-panel--error { border-left-color:var(--pxui-bad); }
+.pxui-panel--error { background:var(--pxui-bad-bg); }
 .pxui-panel--error .pxui-panel__icon { color:var(--pxui-bad); }
-.pxui-panel--info { border-left-color:var(--pxui-border); }
 
 /* ------------------------------------------------------------------ *
  * Progress bar
@@ -271,7 +343,8 @@
     margin:var(--pxui-s3) 0 var(--pxui-s1);
 }
 
-.pxui-progress__fill {
+.pxui-progress__fill,
+.pxui-stat__bar > span {
     display:block;
     height:100%;
     background:var(--pxui-accent);
@@ -296,10 +369,11 @@
 }
 
 .pxui-stat {
-    background:var(--pxui-bg);
-    border:1px solid var(--pxui-border);
-    border-radius:var(--pxui-radius);
-    padding:var(--pxui-s3) var(--pxui-s4);
+    background:var(--pxui-surface);
+    border:var(--pxui-surface-border);
+    border-radius:var(--pxui-radius-lg);
+    box-shadow:var(--pxui-shadow);
+    padding:var(--pxui-s4);
 }
 
 .pxui-stat__label {
@@ -332,13 +406,6 @@
     overflow:hidden;
 }
 
-.pxui-stat__bar > span {
-    display:block;
-    height:100%;
-    background:var(--pxui-accent);
-    transition:width .3s ease;
-}
-
 .pxui-stat--good .pxui-stat__value { color:var(--pxui-good); }
 .pxui-stat--warn .pxui-stat__value { color:var(--pxui-warn); }
 .pxui-stat--bad .pxui-stat__value { color:var(--pxui-bad); }
@@ -348,9 +415,10 @@
  * ------------------------------------------------------------------ */
 
 .pxui-card {
-    background:var(--pxui-bg);
-    border:1px solid var(--pxui-border);
-    border-radius:var(--pxui-radius);
+    background:var(--pxui-surface);
+    border:var(--pxui-surface-border);
+    border-radius:var(--pxui-radius-lg);
+    box-shadow:var(--pxui-shadow);
     padding:var(--pxui-s4) var(--pxui-s6);
     margin:0 0 var(--pxui-s6);
 }
@@ -371,38 +439,8 @@
     align-items:center;
 }
 
-/* ------------------------------------------------------------------ *
- * Spec table
- * ------------------------------------------------------------------ */
-
-.pxui-spec {
-    border-collapse:collapse;
-    width:100%;
-    max-width:620px;
-    font-size:13px;
-}
-
-.pxui-spec th,
-.pxui-spec td {
-    text-align:left;
-    padding:var(--pxui-s2) var(--pxui-s3) var(--pxui-s2) 0;
-    border-bottom:1px solid var(--pxui-bg-subtle);
-    vertical-align:baseline;
-}
-
-.pxui-spec th {
-    font-weight:400;
-    color:var(--pxui-fg-muted);
-    width:200px;
-}
-
-.pxui-spec td {
-    font-variant-numeric:tabular-nums;
-}
-
-.pxui-spec--good td { color:var(--pxui-good); font-weight:600; }
-.pxui-spec--warn td { color:var(--pxui-warn); font-weight:600; }
-.pxui-spec--bad td { color:var(--pxui-bad); font-weight:600; }
+/* Row groups, form controls (checkbox → toggle, radio) and the spinner live
+ * in a second sheet, ui-forms.css — loaded right after this one. */
 
 /* ------------------------------------------------------------------ *
  * Danger zone
@@ -410,7 +448,8 @@
 
 .pxui-danger {
     border:1px solid var(--pxui-bad);
-    border-radius:var(--pxui-radius);
+    border-radius:var(--pxui-radius-lg);
+    box-shadow:var(--pxui-shadow);
     padding:var(--pxui-s4) var(--pxui-s6);
     margin:var(--pxui-s8) 0 var(--pxui-s6);
     background:var(--pxui-bad-bg);

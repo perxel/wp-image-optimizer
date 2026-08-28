@@ -1,9 +1,24 @@
 /* Perxel Image Optimizer — plugin-specific admin styles.
  *
- * The layout, panels, stat grid, cards, spec table and danger zone come from
+ * The layout, panels, stat grid, cards, row groups and danger zone come from
  * the shared kit (ui/assets/ui.css). Only image-optimizer-specific bits live
  * here.
  */
+
+/* "Sizes to convert" — toggle list inside a settings row */
+.perxel-image-optimizer .pxio-sizes {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 4px 14px;
+}
+
+.perxel-image-optimizer .pxio-size {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	white-space: nowrap;
+}
 
 /* Estimate-savings sample grid (Settings page) */
 .perxel-image-optimizer .pxw-stats {

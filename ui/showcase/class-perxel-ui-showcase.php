@@ -71,6 +71,13 @@ final class Perxel_UI_Showcase {
 				),
 				'current' => self::SLUG,
 				'base'    => 'tools.php',
+				'links'   => array( 'Docs' => 'https://github.com/perxel/wp-image-optimizer' ),
+				'author'  => array(
+					'name' => 'Perxel',
+					'url'  => 'https://perxel.com',
+				),
+				'actions' => '<button type="button" class="button">Secondary</button> '
+					. '<button type="button" class="button button-primary">Save changes</button>',
 			)
 		);
 
@@ -147,25 +154,64 @@ final class Perxel_UI_Showcase {
 			)
 		);
 
-		echo '<h2>Spec table</h2>';
-		echo Perxel_UI::spec_table(
+		echo '<h2>Row groups</h2>';
+		echo Perxel_UI::rows(
 			array(
 				array(
-					'label' => 'WebP encoding',
-					'value' => 'Imagick',
-					'tone'  => 'good',
+					'title' => 'Environment',
+					'rows'  => array(
+						array(
+							'label'   => 'WebP encoding',
+							'content' => 'Imagick',
+							'tone'    => 'good',
+						),
+						array(
+							'label'   => 'PHP',
+							'content' => PHP_VERSION,
+						),
+						array(
+							'label'   => '.htaccess',
+							'content' => 'not writable',
+							'tone'    => 'bad',
+						),
+					),
 				),
 				array(
-					'label' => 'PHP',
-					'value' => PHP_VERSION,
-				),
-				array(
-					'label' => '.htaccess',
-					'value' => 'not writable',
-					'tone'  => 'bad',
+					'title' => 'Conversion',
+					'rows'  => array(
+						array(
+							'label'   => 'Convert new uploads',
+							'sub'     => 'Runs on every media upload.',
+							'content' => Perxel_UI::toggle(
+								array(
+									'checked' => true,
+									'label'   => 'Convert new uploads',
+								)
+							),
+						),
+						array(
+							'label'   => 'PNG handling',
+							'content' => '<select><option>Keep PNG</option><option>Convert to WebP</option></select>',
+						),
+						array(
+							'label'   => 'Re-scan the library',
+							'content' => '<button type="button" class="button button-small">Re-scan</button>',
+						),
+						array(
+							'label'   => 'Rebuilding…',
+							'content' => Perxel_UI::spinner(),
+						),
+					),
 				),
 			)
 		);
+
+		echo '<h2>Form controls</h2>';
+		echo '<p class="pxui-field"><label><input type="checkbox" checked /> Checkbox renders as a toggle</label></p>';
+		echo '<p class="pxui-field">'
+			. '<label><input type="radio" name="pxui-demo" checked /> Radio one</label> &nbsp; '
+			. '<label><input type="radio" name="pxui-demo" /> Radio two</label></p>';
+		echo '<p class="pxui-field"><button type="button" class="button">' . Perxel_UI::spinner() . ' Working</button></p>';
 
 		echo '<h2>Danger zone</h2>';
 		echo Perxel_UI::danger_zone(
