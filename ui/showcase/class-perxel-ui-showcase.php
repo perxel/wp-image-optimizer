@@ -2,9 +2,12 @@
 /**
  * Perxel shared admin UI — component showcase.
  *
- * A hidden admin page ( Tools > "Perxel UI" ) that renders every component in
- * the real layout. Always registered in the admin. This is the review
- * surface: change a component, reload this page, see it everywhere.
+ * Renders every component in the real layout — the review surface: change a
+ * component, reload this page, see it everywhere. By default it self-registers
+ * as a hidden page under Tools ("Perxel UI"). A plugin that would rather host
+ * the showcase as one of its own screens defines `PERXEL_UI_SHOWCASE_HOSTED`
+ * before the kit boots (suppressing the Tools page) and echoes
+ * `Perxel_UI_Showcase::body()` between its own layout open/close.
  *
  * @package Perxel_UI
  */
@@ -21,9 +24,14 @@ final class Perxel_UI_Showcase {
 	const SLUG = 'perxel-ui-showcase';
 
 	/**
-	 * Hook registration.
+	 * Hook registration. Skipped when a plugin hosts the showcase itself
+	 * (`PERXEL_UI_SHOWCASE_HOSTED`) — no Tools page in that case.
 	 */
 	public static function init() {
+		if ( defined( 'PERXEL_UI_SHOWCASE_HOSTED' ) && PERXEL_UI_SHOWCASE_HOSTED ) {
+			return;
+		}
+
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'assets' ) );
 	}
@@ -54,7 +62,7 @@ final class Perxel_UI_Showcase {
 	}
 
 	/**
-	 * Render the showcase.
+	 * Render the standalone Tools page (kit-hosted).
 	 */
 	public static function render() {
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -81,6 +89,17 @@ final class Perxel_UI_Showcase {
 			)
 		);
 
+		self::body();
+
+		Perxel_UI_Layout::close();
+	}
+
+	/**
+	 * Echo just the component showcase — every component in document order, no
+	 * layout wrapper. A plugin hosting the showcase as one of its own screens
+	 * calls this between its own `Perxel_UI_Layout::open()` / `close()`.
+	 */
+	public static function body() {
 		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- Perxel_UI escapes internally; static demo strings.
 
 		echo '<h2>Progress bar</h2>';
@@ -276,7 +295,5 @@ final class Perxel_UI_Showcase {
 		);
 
 		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
-
-		Perxel_UI_Layout::close();
 	}
 }

@@ -46,6 +46,7 @@ spl_autoload_register(
  * Shared Perxel admin UI. Standalone, versioned independently of this plugin;
  * see ui/README.md. Overwriting the ui/ folder cannot break plugin behaviour.
  */
+define( 'PERXEL_UI_SHOWCASE_HOSTED', true ); // We host the kit showcase as our 3rd screen; see Admin::render_ui().
 require_once __DIR__ . '/ui/loader.php';
 Perxel_UI_Loader::register( '0.11.0', __DIR__ . '/ui', plugins_url( 'ui', __FILE__ ) );
 

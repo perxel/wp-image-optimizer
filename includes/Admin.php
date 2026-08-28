@@ -9,16 +9,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Admin pages, asset loading, and Media-library integration.
  *
- * Two screens, both under Media, both rendered inside the shared Perxel UI
- * layout (see ui/):
+ * Screens under Media, all rendered inside the shared Perxel UI layout (see ui/):
  *   - Status   ( upload.php?page=perxel-image-optimizer )          — the glance + the run button.
  *   - Settings ( upload.php?page=perxel-image-optimizer-settings ) — environment, config, serving, cleanup.
- * Only "Status" shows in WP's Media menu; the sidebar links the two.
+ *   - Perxel UI ( upload.php?page=perxel-image-optimizer-ui )      — the ui/ kit showcase, maintainer-only.
+ * Only "Status" shows in WP's Media menu; the sidebar links the rest.
  */
 class Admin {
 
 	const PAGE          = 'perxel-image-optimizer';
 	const PAGE_SETTINGS = 'perxel-image-optimizer-settings';
+	const PAGE_UI       = 'perxel-image-optimizer-ui';
 
 	/**
 	 * Hooks.
@@ -61,17 +62,51 @@ class Admin {
 
 		remove_submenu_page( 'upload.php', self::PAGE_SETTINGS );
 
-		// Own the browser <title> for both screens — "Site • Page • Plugin".
-		// Settings is off the menu, so WP would otherwise leave its tab blank.
-		if ( class_exists( 'Perxel_UI_Layout' ) ) {
-			\Perxel_UI_Layout::set_page_titles(
-				array(
-					self::PAGE          => __( 'Status', 'perxel-image-optimizer' ),
-					self::PAGE_SETTINGS => __( 'Settings', 'perxel-image-optimizer' ),
-				),
-				__( 'Image Optimization', 'perxel-image-optimizer' )
+		$titles = array(
+			self::PAGE          => __( 'Status', 'perxel-image-optimizer' ),
+			self::PAGE_SETTINGS => __( 'Settings', 'perxel-image-optimizer' ),
+		);
+
+		// The shared UI kit's component showcase, hosted here as a hidden third
+		// screen for the maintainer only (the kit's own Tools page is suppressed
+		// via PERXEL_UI_SHOWCASE_HOSTED).
+		if ( self::can_see_showcase() ) {
+			add_submenu_page(
+				'upload.php',
+				'Perxel UI',
+				'Perxel UI',
+				'manage_options',
+				self::PAGE_UI,
+				array( $this, 'render_ui' )
 			);
+			remove_submenu_page( 'upload.php', self::PAGE_UI );
+			$titles[ self::PAGE_UI ] = __( 'Perxel UI', 'perxel-image-optimizer' );
 		}
+
+		// Own the browser <title> for the hidden screens — "Site • Page • Plugin".
+		// They are off the menu, so WP would otherwise leave the tab blank.
+		if ( class_exists( 'Perxel_UI_Layout' ) ) {
+			\Perxel_UI_Layout::set_page_titles( $titles, __( 'Image Optimization', 'perxel-image-optimizer' ) );
+		}
+	}
+
+	/**
+	 * Whether the current user may see the bundled UI-kit showcase — the
+	 * maintainer only, by login or account email.
+	 *
+	 * @return bool
+	 */
+	private static function can_see_showcase() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return false;
+		}
+
+		$user = wp_get_current_user();
+
+		return $user && (
+			'phucbm' === $user->user_login
+			|| 'phucbm.dev@gmail.com' === strtolower( (string) $user->user_email )
+		);
 	}
 
 	/**
@@ -83,6 +118,7 @@ class Admin {
 		$page_hooks = array(
 			'media_page_' . self::PAGE,
 			'media_page_' . self::PAGE_SETTINGS,
+			'media_page_' . self::PAGE_UI,
 		);
 
 		$on_page  = in_array( $hook, $page_hooks, true );
@@ -173,6 +209,15 @@ class Admin {
 	private function layout_args( $current, $title, $extra = array() ) {
 		$header = $this->plugin_header();
 
+		$pages = array(
+			self::PAGE          => __( 'Status', 'perxel-image-optimizer' ),
+			self::PAGE_SETTINGS => __( 'Settings', 'perxel-image-optimizer' ),
+		);
+
+		if ( self::can_see_showcase() ) {
+			$pages[ self::PAGE_UI ] = __( 'Perxel UI', 'perxel-image-optimizer' );
+		}
+
 		return array_merge( array(
 			'title'       => $title,
 			'plugin'      => $header['name'],
@@ -180,12 +225,7 @@ class Admin {
 			'base'        => 'upload.php',
 			'wrap_class'  => 'perxel-image-optimizer',
 			'current'     => $current,
-			'menu'        => array(
-				'' => array(
-					self::PAGE          => __( 'Status', 'perxel-image-optimizer' ),
-					self::PAGE_SETTINGS => __( 'Settings', 'perxel-image-optimizer' ),
-				),
-			),
+			'menu'        => array( '' => $pages ),
 			'links'       => array(
 				__( 'Docs', 'perxel-image-optimizer' ) => $header['plugin_uri'],
 			),
@@ -229,6 +269,19 @@ class Admin {
 
 		\Perxel_UI_Layout::open( $this->layout_args( self::PAGE, __( 'Status', 'perxel-image-optimizer' ) ) );
 		include PERXEL_IMAGE_OPTIMIZER_DIR . 'includes/views/status.php';
+		\Perxel_UI_Layout::close();
+	}
+
+	/**
+	 * Render the bundled UI-kit component showcase (maintainer-only third screen).
+	 */
+	public function render_ui() {
+		if ( ! self::can_see_showcase() || ! $this->ui_ready() || ! class_exists( 'Perxel_UI_Showcase' ) ) {
+			return;
+		}
+
+		\Perxel_UI_Layout::open( $this->layout_args( self::PAGE_UI, __( 'Perxel UI', 'perxel-image-optimizer' ) ) );
+		\Perxel_UI_Showcase::body();
 		\Perxel_UI_Layout::close();
 	}
 

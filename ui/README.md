@@ -105,6 +105,11 @@ echo Perxel_UI::rows( $groups ); // phpcs:ignore WordPress.Security.EscapeOutput
 registered in the admin (visible to `manage_options`) — the review surface after
 any `ui/` change.
 
+A plugin can host the showcase as one of its own screens instead: define
+`PERXEL_UI_SHOWCASE_HOSTED` (truthy, before the kit boots) to suppress the Tools
+page, then echo `Perxel_UI_Showcase::body()` between your own
+`Perxel_UI_Layout::open()` / `close()`.
+
 ## Constraints
 
 - Server-rendered PHP + a few lines of vanilla JS. No build step, no framework.

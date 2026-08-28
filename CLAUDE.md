@@ -52,13 +52,15 @@ into each Perxel plugin. It is NOT specific to this plugin.
 - Prefixes inside `ui/`: `Perxel_UI` / `perxel_ui` / `PERXEL_UI` / `pxui-`.
   Kit files are plain (no namespace), loaded only by `loader.php`.
 - **What belongs in `ui/`:** anything another Perxel plugin could reuse (layout,
-  panel, stat grid, notices, cards, spec table, danger zone). Plugin-specific
+  row groups, stat grid, notices, cards, progress bar). Plugin-specific
   styling/markup stays in `assets/` or inline. Grey area → start plugin-local,
   promote to `ui/` when a second plugin needs it.
-- Public API: `Perxel_UI_Layout::open()/close()`, `Perxel_UI::notice/panel/
-  progress_bar/stat_grid/card/spec_table/danger_zone`. Details in `ui/README.md`.
-- **Tools → Perxel UI** is a component showcase (always registered for
-  `manage_options`) — the review surface after any `ui/` change.
+- Public API: `Perxel_UI_Layout::open()/close()`, `Perxel_UI::notice/
+  progress_bar/stat_grid/card/rows/toggle/checkbox_group/code/spinner`. Details
+  in `ui/README.md`.
+- The **Perxel UI** showcase page (the review surface after any `ui/` change) is
+  registered by the plugin as its third screen, visible only to `phucbm` /
+  `phucbm.dev@gmail.com`.
 
 ## Admin screens
 

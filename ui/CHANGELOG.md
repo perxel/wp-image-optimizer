@@ -13,6 +13,10 @@ additive only (see `README.md` → "Versioning").
   adopting plugin must move off both calls before taking this copy.
 - `.pxui-progress` is unchanged and stays — `progress_bar()` and the stat-tile
   bars still use it.
+- Showcase: `Perxel_UI_Showcase::body()` echoes just the component list with no
+  layout wrapper, so a plugin can host the showcase as one of its own screens.
+  Defining `PERXEL_UI_SHOWCASE_HOSTED` (truthy, before the kit boots) suppresses
+  the kit's own Tools → "Perxel UI" page. Default behaviour is unchanged.
 
 ## 0.10.0
 
