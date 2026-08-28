@@ -217,6 +217,10 @@ final class Perxel_UI {
 	 * Pass either a flat list of rows (one implicit group) or a list of
 	 * groups: `[ [ 'title' => 'Group', 'rows' => [ row, row ] ], … ]`.
 	 *
+	 * A group with `'danger' => true` is styled as a destructive zone — red
+	 * title, red hairline card, buttons in the warning colour — the grouped-row
+	 * replacement for `danger_zone()`.
+	 *
 	 * Each row: `[ 'label' => plain text, 'sub' => trusted HTML (secondary
 	 * line under the label), 'content' => trusted HTML (text, a toggle(), a
 	 * <select> or a button), 'tone' => good|warn|bad ]`.
@@ -241,7 +245,8 @@ final class Perxel_UI {
 		$out = '<div class="pxui-rows">';
 
 		foreach ( $groups as $group ) {
-			$out .= '<div class="pxui-rows__group">';
+			$danger = ! empty( $group['danger'] );
+			$out   .= '<div class="pxui-rows__group' . ( $danger ? ' pxui-rows__group--danger' : '' ) . '">';
 
 			if ( ! empty( $group['title'] ) ) {
 				$out .= '<p class="pxui-rows__title">' . esc_html( $group['title'] ) . '</p>';

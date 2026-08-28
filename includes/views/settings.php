@@ -206,17 +206,30 @@ $serve_status = esc_html__( 'Status:', 'perxel-image-optimizer' ) . ' '
 <?php
 /* --- Danger zone ------------------------------------------------- */
 
-echo Perxel_UI::danger_zone(
-	'<p>'
-	. '<button type="button" class="button" id="pxio-purge" data-pxui-confirm="'
-	. esc_attr__( 'Delete every .webp file under uploads and reset all plugin data?', 'perxel-image-optimizer' ) . '">'
-	. esc_html__( 'Remove all WebP files', 'perxel-image-optimizer' ) . '</button> '
-	. '<button type="button" class="button" id="pxio-htaccess-rm">'
-	. esc_html__( 'Remove .htaccess block', 'perxel-image-optimizer' ) . '</button>'
-	. '</p>'
-	. '<p id="pxio-purge-out" class="pxui-muted"></p>'
-	. '<p class="pxui-muted">' . esc_html__( 'Deleting the plugin does not undo these.', 'perxel-image-optimizer' ) . '</p>'
+echo Perxel_UI::rows(
+	array(
+		array(
+			'title'  => __( 'Danger zone', 'perxel-image-optimizer' ),
+			'danger' => true,
+			'rows'   => array(
+				array(
+					'label'   => __( 'Remove all WebP files', 'perxel-image-optimizer' ),
+					'sub'     => esc_html__( 'Deletes every .webp file under uploads and resets all plugin data. Deleting the plugin does not undo this.', 'perxel-image-optimizer' ),
+					'content' => '<button type="button" class="button" id="pxio-purge" data-pxui-confirm="'
+						. esc_attr__( 'Delete every .webp file under uploads and reset all plugin data?', 'perxel-image-optimizer' ) . '">'
+						. esc_html__( 'Remove files', 'perxel-image-optimizer' ) . '</button>',
+				),
+				array(
+					'label'   => __( 'Remove .htaccess block', 'perxel-image-optimizer' ),
+					'sub'     => esc_html__( 'Deletes the managed WebP rewrite rules from .htaccess. Deleting the plugin does not undo this.', 'perxel-image-optimizer' ),
+					'content' => '<button type="button" class="button" id="pxio-htaccess-rm">'
+						. esc_html__( 'Remove block', 'perxel-image-optimizer' ) . '</button>',
+				),
+			),
+		),
+	)
 );
+echo '<p id="pxio-purge-out" class="pxui-muted"></p>';
 
 /* --- Environment --------------------------------------------------- */
 

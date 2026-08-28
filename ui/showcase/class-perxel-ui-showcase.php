@@ -263,7 +263,29 @@ final class Perxel_UI_Showcase {
 			. '<label><input type="radio" name="pxui-demo" /> Radio two</label></p>';
 		echo '<p class="pxui-field"><button type="button" class="button">' . Perxel_UI::spinner() . ' Working</button></p>';
 
-		echo '<h2>Danger zone</h2>';
+		echo '<h2>Danger row group</h2>';
+		echo Perxel_UI::rows(
+			array(
+				array(
+					'title'  => 'Danger zone',
+					'danger' => true,
+					'rows'   => array(
+						array(
+							'label'   => 'Remove all WebP files',
+							'sub'     => 'Deletes every .webp file and resets plugin data.',
+							'content' => '<button type="button" class="button" data-pxui-confirm="Really?">Remove files</button>',
+						),
+						array(
+							'label'   => 'Remove .htaccess block',
+							'sub'     => 'Deletes the managed rewrite rules.',
+							'content' => '<button type="button" class="button">Remove block</button>',
+						),
+					),
+				),
+			)
+		);
+
+		echo '<h2>Danger zone (wrapper)</h2>';
 		echo Perxel_UI::danger_zone(
 			'<p><button class="button" data-pxui-confirm="Really?">Remove everything</button></p>'
 		);

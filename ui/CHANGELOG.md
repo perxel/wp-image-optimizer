@@ -3,6 +3,15 @@
 Versioned independently of any plugin. Within a major version, changes are
 additive only (see `README.md` → "Versioning").
 
+## 0.7.0
+
+- `Perxel_UI::rows()` groups take `'danger' => true` — the group renders as a
+  destructive zone: red uppercase title, red hairline card over the warning
+  tint, buttons in the warning colour. The grouped-row equivalent of
+  `danger_zone()`, so a screen's cleanup section matches its other settings
+  groups. New hook: `.pxui-rows__group--danger`. `danger_zone()` is unchanged.
+  Additive — existing groups render exactly as before.
+
 ## 0.6.0
 
 - `Perxel_UI::code( $text, $args )` — a read-only preformatted block for config
