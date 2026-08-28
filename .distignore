@@ -1,0 +1,22 @@
+# Files and folders that must NOT ship in the installable build.
+
+/.git
+/.github
+/.idea
+/bin
+/dist
+/node_modules
+/vendor
+/tests
+
+.distignore
+.gitignore
+.editorconfig
+CLAUDE.md
+README.md
+composer.json
+composer.lock
+phpcs.xml.dist
+phpunit.xml.dist
+package.json
+package-lock.json

@@ -1,0 +1,48 @@
+name: Release
+
+# When you publish a GitHub Release this workflow builds the installable plugin
+# zip (bin/build-zip.sh — committed files minus .distignore) and attaches it to
+# that release. Nothing is committed back to the repo.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build and attach the zip to"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  zip:
+    name: Attach plugin zip to release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+
+      - name: Check version matches the tag
+        run: |
+          TAG="${{ github.event.release.tag_name || github.event.inputs.tag }}"
+          TAG="${TAG#v}"
+          VER="$(grep -oE "Version:[[:space:]]*[0-9.]+" perxel-image-optimizer.php | grep -oE "[0-9.]+")"
+          echo "tag=$TAG  plugin version=$VER"
+          if [ "$TAG" != "$VER" ]; then
+            echo "::error::Tag ($TAG) does not match the plugin Version header ($VER). Bump the version before tagging."
+            exit 1
+          fi
+
+      - name: Build zip
+        run: bin/build-zip.sh
+
+      - name: Upload to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+          files: dist/perxel-image-optimizer.zip
+          fail_on_unmatched_files: true
