@@ -3,6 +3,44 @@
 Versioned independently of any plugin. Within a major version, changes are
 additive only (see `README.md` → "Versioning").
 
+## 0.6.0
+
+- `Perxel_UI::code( $text, $args )` — a read-only preformatted block for config
+  snippets, generated rules or log output. Scrolls sideways instead of
+  wrapping; optional `label` caption, `id`. Text is escaped. New hooks:
+  `.pxui-code`, `.pxui-code__label`.
+- `Perxel_UI::rows()` gains a disclosure row: a row with a `summary` key renders
+  as a native `<details>` styled as a row — summary text where the label sits, a
+  chevron in the content slot, `details` (trusted HTML) revealing full-width
+  below on click. Also takes `sub`, `open`, `tone`. No JS. New hooks:
+  `.pxui-row--disclosure`, `.pxui-row__summary`, `.pxui-row__chevron`,
+  `.pxui-row__reveal`.
+  Additive — new method, new opt-in row shape, new CSS; existing rows unchanged.
+
+## 0.5.0
+
+- `Perxel_UI::checkbox_group( $args )` — a "pick several" list for a settings
+  row, rendered as selectable **pills**. Each option keeps a real hidden
+  `<input type="checkbox">` (form state, keyboard, a11y); the pill is the
+  control — hairline border at rest, brand fill when selected. Flows inline
+  and wraps. `options` is `value => label` or an array per option (`value`,
+  `label`, `sub` — a muted second line under the label, `checked`); `name`
+  (auto-appends `[]`), `form`, `selected`. New hooks: `.pxui-checks`,
+  `.pxui-check`, `.pxui-check__label`, `.pxui-check__sub`.
+- New `.pxui-checkbox` class — add it to an `<input type="checkbox">` to opt
+  out of the iOS-toggle default and get a real square box with a brand tick.
+- Additive — new method + CSS, nothing else changes.
+
+## 0.4.0
+
+- Layout: the page content between `Perxel_UI_Layout::open()` and `close()` is
+  now wrapped in `<div class="pxui-main__body">` — everything inside `<main>`
+  except the sticky title bar and the footer. Gives screens a single content
+  scope to target (padding, max-width, scroll containment) without reaching the
+  bar or footer. The `wp-header-end` marker sits just inside it, so hoisted
+  `.notice` elements still land in the content flow. Additive — new hook
+  `.pxui-main__body`; `open()/close()` signature unchanged.
+
 ## 0.3.0
 
 - Row-content `<select>` (`.pxui-row__content select`) now renders as a quiet

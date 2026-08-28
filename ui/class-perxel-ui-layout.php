@@ -82,6 +82,8 @@ final class Perxel_UI_Layout {
 
 		include __DIR__ . '/partials/main-bar.php';
 
+		echo '<div class="pxui-main__body">';
+
 		// WP hoists every .notice to sit after this marker; without it they land
 		// inside the sticky title bar.
 		echo '<hr class="wp-header-end">';
@@ -92,6 +94,8 @@ final class Perxel_UI_Layout {
 	 */
 	public static function close() {
 		$d = self::$ctx;
+
+		echo '</div>'; // .pxui-main__body
 
 		include __DIR__ . '/partials/footer.php';
 

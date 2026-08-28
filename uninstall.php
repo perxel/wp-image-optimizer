@@ -29,8 +29,6 @@ foreach ( $options as $option ) {
 	delete_option( $option );
 }
 
-delete_transient( 'perxel_image_optimizer_sample' );
-
 // Per-attachment status meta (new + pre-1.0 key).
 $wpdb->query(
 	"DELETE FROM {$wpdb->postmeta} WHERE meta_key IN ( '_perxel_image_optimizer', '_perxel_webp' )"

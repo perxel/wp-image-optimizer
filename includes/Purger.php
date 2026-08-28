@@ -122,6 +122,5 @@ class Purger {
 		Metrics::reset();
 		Runner::reset();
 		delete_option( self::OPTION );
-		delete_transient( Scanner::SAMPLE_TRANSIENT );
 	}
 }

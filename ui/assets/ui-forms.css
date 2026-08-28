@@ -16,7 +16,6 @@
  * ------------------------------------------------------------------ */
 
 .pxui-rows {
-    max-width:var(--pxui-maxw);
     margin:0 0 var(--pxui-s6);
     display:flex;
     flex-direction:column;
@@ -95,6 +94,44 @@
 .pxui-row--warn .pxui-row__content { color:var(--pxui-warn); font-weight:600; }
 .pxui-row--bad .pxui-row__content { color:var(--pxui-bad); font-weight:600; }
 
+/* Disclosure row — a native <details>. The <summary> is the row line (label
+   left, chevron right); the reveal drops full-width below. */
+.pxui-row--disclosure { display:block; padding:0; }
+
+.pxui-row__summary {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:var(--pxui-s4);
+    min-height:44px;
+    padding:var(--pxui-s1) var(--pxui-s4);
+    list-style:none;
+    cursor:pointer;
+}
+
+.pxui-row__summary::-webkit-details-marker { display:none; }
+.pxui-row__summary:focus-visible { outline:2px solid var(--pxui-accent); outline-offset:-2px; }
+
+.pxui-row__chevron {
+    display:block;
+    width:7px;
+    height:7px;
+    border-right:2px solid var(--pxui-fg-muted);
+    border-bottom:2px solid var(--pxui-fg-muted);
+    transform:rotate(-45deg);
+    transition:transform .15s ease;
+}
+
+.pxui-row--disclosure[open] .pxui-row__chevron { transform:rotate(45deg); }
+
+.pxui-row__reveal {
+    padding:0 var(--pxui-s4) var(--pxui-s3);
+}
+
+@media (prefers-reduced-motion:reduce) {
+    .pxui-row__chevron { transition:none; }
+}
+
 /* ------------------------------------------------------------------ *
  * Form controls — checkbox renders as an iOS toggle, radio as a filled
  * dot, both in the brand accent. Scoped to `.pxui-wrap`.
@@ -167,6 +204,89 @@
     border-radius:50%;
     background:#fff;
 }
+
+/* ------------------------------------------------------------------ *
+ * Real checkbox — opt back out of the iOS toggle. Add `.pxui-checkbox`
+ * to an `<input type="checkbox">` for a square box with a brand tick.
+ * ------------------------------------------------------------------ */
+
+.pxui-wrap input[type="checkbox"].pxui-checkbox {
+    width:18px;
+    height:18px;
+    margin:0;
+    flex:none;
+    border:1px solid var(--pxui-border);
+    border-radius:5px;
+    background:#fff;
+    vertical-align:text-bottom;
+}
+
+.pxui-wrap input[type="checkbox"].pxui-checkbox::before { display:none; }
+
+.pxui-wrap input[type="checkbox"].pxui-checkbox:checked {
+    border-color:var(--pxui-accent);
+    background:var(--pxui-accent)
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E")
+        center / 12px no-repeat;
+}
+
+/* ------------------------------------------------------------------ *
+ * Checkbox group — a "pick several" list rendered as selectable pills.
+ * The real `<input type="checkbox">` stays in the DOM (form state,
+ * keyboard, a11y) but is visually hidden; the pill is the control —
+ * hairline border at rest, brand fill when its checkbox is checked.
+ * Flows inline and wraps; sits happily as `.pxui-row__content`.
+ * ------------------------------------------------------------------ */
+
+.pxui-checks {
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+    gap:var(--pxui-s2);
+}
+
+.pxui-check {
+    display:inline-flex;
+    flex-direction:column;
+    gap:1px;
+    padding:6px var(--pxui-s3);
+    border:1px solid var(--pxui-border);
+    border-radius:var(--pxui-radius-pill);
+    background:var(--pxui-bg);
+    line-height:1.3;
+    text-align:left;
+    cursor:pointer;
+    transition:border-color .12s ease, background-color .12s ease;
+}
+
+.pxui-check:hover { border-color:var(--pxui-fg-muted); }
+
+.pxui-check:has(input:checked) {
+    border-color:var(--pxui-accent);
+    background:var(--pxui-brand-bg);
+}
+
+.pxui-check:has(input:focus-visible) {
+    outline:2px solid var(--pxui-accent);
+    outline-offset:2px;
+}
+
+/* Visually hide the checkbox — the pill carries the state. */
+.pxui-wrap .pxui-checks input[type="checkbox"] {
+    position:absolute;
+    width:1px;
+    height:1px;
+    margin:-1px;
+    padding:0;
+    border:0;
+    opacity:0;
+    pointer-events:none;
+}
+
+.pxui-check__label { font-weight:600; color:var(--pxui-fg); }
+.pxui-check:has(input:checked) .pxui-check__label { color:var(--pxui-accent-dark); }
+
+.pxui-check__sub { font-size:12px; color:var(--pxui-fg-muted); }
 
 /* ------------------------------------------------------------------ *
  * Spinner — inline loading state

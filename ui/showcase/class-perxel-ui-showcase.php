@@ -194,6 +194,33 @@ final class Perxel_UI_Showcase {
 							'content' => '<select><option>Keep PNG</option><option>Convert to WebP</option></select>',
 						),
 						array(
+							'label'   => 'Sizes to convert',
+							'sub'     => 'A "pick several" list — real checkboxes, not toggles.',
+							'content' => Perxel_UI::checkbox_group(
+								array(
+									'name'     => 'demo_sizes',
+									'selected' => array( 'full', 'medium' ),
+									'options'  => array(
+										array(
+											'value' => 'full',
+											'label' => 'full',
+											'sub'   => 'the full-size uploaded image',
+										),
+										array(
+											'value' => 'thumbnail',
+											'label' => 'thumbnail',
+											'sub'   => 'cropped to 150 × 150 px',
+										),
+										array(
+											'value' => 'medium',
+											'label' => 'medium',
+											'sub'   => 'up to 300 × 300 px',
+										),
+									),
+								)
+							),
+						),
+						array(
 							'label'   => 'Re-scan the library',
 							'content' => '<button type="button" class="button button-small">Re-scan</button>',
 						),
@@ -201,13 +228,36 @@ final class Perxel_UI_Showcase {
 							'label'   => 'Rebuilding…',
 							'content' => Perxel_UI::spinner(),
 						),
+						array(
+							'summary' => 'Managed .htaccess block',
+							'sub'     => 'A disclosure row — click to reveal.',
+							'details' => Perxel_UI::code( "# BEGIN Perxel Image Optimizer\n<IfModule mod_rewrite.c>\n  RewriteEngine On\n  RewriteCond %{HTTP_ACCEPT} image/webp\n  RewriteCond %{REQUEST_FILENAME}.webp -f\n  RewriteRule ^(.+)\\.(jpe?g|png)$ $1.$2.webp [T=image/webp,L]\n</IfModule>\n# END Perxel Image Optimizer" ),
+						),
 					),
 				),
 			)
 		);
 
+		echo '<h2>Code block</h2>';
+		echo Perxel_UI::code(
+			"$ composer run lint\n$ composer run build\n→ dist/perxel-image-optimizer.zip",
+			array( 'label' => 'Build output' )
+		);
+
 		echo '<h2>Form controls</h2>';
 		echo '<p class="pxui-field"><label><input type="checkbox" checked /> Checkbox renders as a toggle</label></p>';
+		echo '<p class="pxui-field"><label><input type="checkbox" class="pxui-checkbox" checked /> With <code>.pxui-checkbox</code> — a real square box</label></p>';
+		echo '<p class="pxui-field">Checkbox group: ' . Perxel_UI::checkbox_group(
+			array(
+				'name'     => 'demo_group',
+				'selected' => array( 'a', 'c' ),
+				'options'  => array(
+					'a' => 'Alpha',
+					'b' => 'Beta',
+					'c' => 'Gamma',
+				),
+			)
+		) . '</p>';
 		echo '<p class="pxui-field">'
 			. '<label><input type="radio" name="pxui-demo" checked /> Radio one</label> &nbsp; '
 			. '<label><input type="radio" name="pxui-demo" /> Radio two</label></p>';

@@ -204,6 +204,12 @@
     min-width:0;
 }
 
+.pxui-main__body {
+    min-width:0;
+
+    max-width:var(--pxui-maxw);
+}
+
 .pxui-title {
     margin:0;
     padding:0;
@@ -437,6 +443,34 @@
     flex-wrap:wrap;
     gap:var(--pxui-s2);
     align-items:center;
+}
+
+/* ------------------------------------------------------------------ *
+ * Code block — read-only preformatted output (config, rules, logs)
+ * ------------------------------------------------------------------ */
+
+.pxui-code__label {
+    display:block;
+    margin-bottom:var(--pxui-s1);
+    font-size:11px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    color:var(--pxui-fg-muted);
+}
+
+.pxui-code {
+    margin:0;
+    padding:var(--pxui-s3);
+    overflow-x:auto;
+    background:var(--pxui-bg-subtle);
+    border:1px solid var(--pxui-border);
+    border-radius:var(--pxui-radius);
+    font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size:12px;
+    line-height:1.5;
+    color:var(--pxui-fg);
+    white-space:pre;
 }
 
 /* Row groups, form controls (checkbox → toggle, radio) and the spinner live

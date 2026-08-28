@@ -5,67 +5,6 @@
  * here.
  */
 
-/* "Sizes to convert" — toggle list inside a settings row */
-.perxel-image-optimizer .pxio-sizes {
-	display: flex;
-	flex-wrap: wrap;
-	justify-content: flex-end;
-	gap: 4px 14px;
-}
-
-.perxel-image-optimizer .pxio-size {
-	display: inline-flex;
-	align-items: center;
-	gap: 4px;
-	white-space: nowrap;
-}
-
-/* Estimate-savings sample grid (Settings page) */
-.perxel-image-optimizer .pxw-stats {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 8px 28px;
-	font-size: 13px;
-	margin-bottom: 10px;
-}
-
-.perxel-image-optimizer .pxw-stats b { font-weight: 600; }
-
-.perxel-image-optimizer .pxw-samples {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 10px;
-	margin-top: 10px;
-}
-
-.perxel-image-optimizer .pxw-samples figure {
-	margin: 0;
-	width: 130px;
-	font-size: 11px;
-	text-align: center;
-}
-
-.perxel-image-optimizer .pxw-samples img {
-	width: 130px;
-	height: 90px;
-	object-fit: cover;
-	border: 1px solid #dcdcde;
-	border-radius: 3px;
-	display: block;
-}
-
-/* Managed .htaccess block preview (Settings page) */
-.perxel-image-optimizer .pxio-block {
-	display: block;
-	white-space: pre;
-	overflow-x: auto;
-	padding: 12px;
-	margin: 8px 0 0;
-	background: #f6f7f7;
-	font-size: 11px;
-	line-height: 1.5;
-}
-
 /* Media library column + attachment detail */
 .perxel-image-optimizer-cell { display: inline-block; }
 .column-perxel_image_optimizer { width: 160px; }

@@ -2,7 +2,7 @@
  *
  * Both screens are server-rendered by PHP. This script only drives the
  * interactive parts: the conversion run loop, Recalculate, Retry failed, and
- * the Settings-page actions (serve toggle, self-test, estimate, cleanup).
+ * the Settings-page actions (serve toggle, cleanup).
  * All state rendering stays in PHP — most actions finish with location.reload().
  */
 ( function () {
@@ -158,30 +158,6 @@
 			post( 'perxel_image_optimizer_serve', { on: e.target.checked ? 1 : 0 } ).then( reload );
 		} );
 
-		on( 'pxio-selftest', 'click', function ( e ) {
-			var out = byId( 'pxio-selftest-out' );
-			out.textContent = 'testing…';
-			post( 'perxel_image_optimizer_status', {} ).then( function ( res ) {
-				var sm = res.json && res.json.data && res.json.data.sample;
-				if ( ! sm || ! sm.samples || ! sm.samples.length ) {
-					out.textContent = 'Run an estimate first.';
-					return;
-				}
-				fetch( sm.samples[ 0 ].url, { headers: { Accept: 'image/webp,*/*' }, cache: 'no-store' } )
-					.then( function ( r ) {
-						var ct = r.headers.get( 'content-type' ) || '';
-						out.textContent = ct.indexOf( 'webp' ) > -1 ? 'got image/webp ✓' : 'got ' + ct + ' — serving not active for this request';
-					} )
-					.catch( function () { out.textContent = 'request failed'; } );
-			} );
-		} );
-
-		on( 'pxio-sample', 'click', function ( e ) {
-			e.target.disabled = true;
-			e.target.textContent = 'Running…';
-			post( 'perxel_image_optimizer_sample', {} ).then( reload );
-		} );
-
 		on( 'pxio-purge', 'click', function () {
 			var out = byId( 'pxio-purge-out' );
 			out.textContent = 'Building file list…';
@@ -206,7 +182,7 @@
 
 	document.addEventListener( 'DOMContentLoaded', function () {
 		if ( byId( 'pxio-headline' ) ) { bindStatus(); }
-		if ( byId( 'pxio-serve' ) || byId( 'pxio-sample' ) ) { bindSettings(); }
+		if ( byId( 'pxio-serve' ) || byId( 'pxio-purge' ) ) { bindSettings(); }
 	} );
 
 	window.addEventListener( 'beforeunload', function ( e ) {

@@ -19,7 +19,6 @@ class Ajax {
 	public function register() {
 		$map = array(
 			'perxel_image_optimizer_status'      => 'status',
-			'perxel_image_optimizer_sample'      => 'sample',
 			'perxel_image_optimizer_recalc'      => 'recalc',
 			'perxel_image_optimizer_start'       => 'start',
 			'perxel_image_optimizer_resume'      => 'resume',
@@ -48,17 +47,6 @@ class Ajax {
 		$this->guard();
 
 		wp_send_json_success( self::snapshot() );
-	}
-
-	/**
-	 * Run the sample estimate.
-	 */
-	public function sample() {
-		$this->guard();
-
-		$data = Scanner::run_sample( 25 );
-
-		wp_send_json_success( array( 'sample' => $data, 'snapshot' => self::snapshot() ) );
 	}
 
 	/**
@@ -268,7 +256,6 @@ class Ajax {
 			'metrics'     => Metrics::all(),
 			'report'      => Metrics::report(),
 			'summary'     => Scanner::summary(),
-			'sample'      => Scanner::cached_sample(),
 			'run'         => array(
 				'phase'       => $state['phase'],
 				'processed'   => (int) $state['processed'],

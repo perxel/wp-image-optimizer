@@ -221,6 +221,12 @@ final class Perxel_UI {
 	 * line under the label), 'content' => trusted HTML (text, a toggle(), a
 	 * <select> or a button), 'tone' => good|warn|bad ]`.
 	 *
+	 * A row with a `summary` key becomes a disclosure instead: the summary text
+	 * sits where the label goes, a chevron takes the content slot, and `details`
+	 * (trusted HTML) reveals full-width below when the row is clicked. Native
+	 * `<details>` — no JS. `[ 'summary' => plain text, 'sub' => trusted HTML,
+	 * 'details' => trusted HTML, 'open' => bool, 'tone' => good|warn|bad ]`.
+	 *
 	 * @param array $groups Flat row list, or a list of groups.
 	 * @return string
 	 */
@@ -245,6 +251,25 @@ final class Perxel_UI {
 
 			foreach ( (array) ( isset( $group['rows'] ) ? $group['rows'] : array() ) as $r ) {
 				$tone = isset( $r['tone'] ) && in_array( $r['tone'], array( 'good', 'warn', 'bad' ), true ) ? ' pxui-row--' . $r['tone'] : '';
+
+				// Disclosure row: a native <details> styled as a row. The whole
+				// summary line is the click target; the reveal drops below.
+				if ( isset( $r['summary'] ) ) {
+					$out .= '<details class="pxui-row pxui-row--disclosure' . $tone . '"' . ( empty( $r['open'] ) ? '' : ' open' ) . '>';
+					$out .= '<summary class="pxui-row__summary">';
+					$out .= '<span class="pxui-row__label">' . esc_html( $r['summary'] );
+
+					if ( ! empty( $r['sub'] ) ) {
+						$out .= '<span class="pxui-row__sub">' . $r['sub'] . '</span>';
+					}
+
+					$out .= '</span>';
+					$out .= '<span class="pxui-row__content"><span class="pxui-row__chevron" aria-hidden="true"></span></span>';
+					$out .= '</summary>';
+					$out .= '<div class="pxui-row__reveal">' . ( isset( $r['details'] ) ? $r['details'] : '' ) . '</div>';
+					$out .= '</details>';
+					continue;
+				}
 
 				$out .= '<div class="pxui-row' . $tone . '">';
 				$out .= '<span class="pxui-row__label">' . esc_html( isset( $r['label'] ) ? $r['label'] : '' );
@@ -299,12 +324,92 @@ final class Perxel_UI {
 	}
 
 	/**
+	 * A checkbox group — a "pick several" list rendered as selectable pills.
+	 * Each option keeps a real `<input type="checkbox">` in the DOM (form
+	 * state, keyboard, a11y) but hidden; the pill is the control — hairline
+	 * border at rest, brand fill when selected. Flows inline and wraps.
+	 * Handy as row `content`.
+	 *
+	 * Each option is `value => label`, or an array with `value`, `label`,
+	 * `sub` (a muted second line under the label — dimensions, a hint),
+	 * `checked` (overrides `selected`). `label` and `sub` are escaped as
+	 * plain text.
+	 *
+	 * @param array $args [ 'name' ("[]" appended if absent), 'form',
+	 *              'options' => [ value => label | [ … ] ],
+	 *              'selected' => [ value, … ] ].
+	 * @return string
+	 */
+	public static function checkbox_group( $args = array() ) {
+		$d = array_merge(
+			array(
+				'name'     => '',
+				'form'     => '',
+				'options'  => array(),
+				'selected' => array(),
+			),
+			$args
+		);
+
+		$name = (string) $d['name'];
+		if ( '' !== $name && '[]' !== substr( $name, -2 ) ) {
+			$name .= '[]';
+		}
+
+		$name_attr = '' !== $name ? ' name="' . esc_attr( $name ) . '"' : '';
+		$form_attr = $d['form'] ? ' form="' . esc_attr( $d['form'] ) . '"' : '';
+		$selected  = array_map( 'strval', (array) $d['selected'] );
+
+		$out = '<span class="pxui-checks">';
+
+		foreach ( (array) $d['options'] as $key => $opt ) {
+			if ( ! is_array( $opt ) ) {
+				$opt = array( 'label' => $opt );
+			}
+
+			$value   = isset( $opt['value'] ) ? (string) $opt['value'] : (string) $key;
+			$label   = isset( $opt['label'] ) ? $opt['label'] : $value;
+			$sub     = isset( $opt['sub'] ) ? (string) $opt['sub'] : '';
+			$checked = array_key_exists( 'checked', $opt )
+				? (bool) $opt['checked']
+				: in_array( $value, $selected, true );
+
+			$out .= '<label class="pxui-check">'
+				. '<input type="checkbox"' . $name_attr . $form_attr
+				. ' value="' . esc_attr( $value ) . '"' . ( $checked ? ' checked' : '' ) . ' />'
+				. '<span class="pxui-check__label">' . esc_html( $label ) . '</span>'
+				. ( '' !== $sub ? '<span class="pxui-check__sub">' . esc_html( $sub ) . '</span>' : '' )
+				. '</label>';
+		}
+
+		return $out . '</span>';
+	}
+
+	/**
 	 * An inline loading spinner.
 	 *
 	 * @return string
 	 */
 	public static function spinner() {
 		return '<span class="pxui-spinner" role="status" aria-label="Loading"></span>';
+	}
+
+	/**
+	 * A read-only preformatted block — config snippets, generated rules, log
+	 * output. Scrolls sideways rather than wrapping. Reads well inside a
+	 * disclosure row's `details`.
+	 *
+	 * @param string $text Plain text; escaped here.
+	 * @param array  $args [ 'label' => caption above the block, 'id' ].
+	 * @return string
+	 */
+	public static function code( $text, $args = array() ) {
+		$id_attr = ! empty( $args['id'] ) ? ' id="' . esc_attr( $args['id'] ) . '"' : '';
+		$label   = isset( $args['label'] ) && '' !== $args['label']
+			? '<span class="pxui-code__label">' . esc_html( $args['label'] ) . '</span>'
+			: '';
+
+		return $label . '<pre class="pxui-code"' . $id_attr . '>' . esc_html( (string) $text ) . '</pre>';
 	}
 
 	/**
