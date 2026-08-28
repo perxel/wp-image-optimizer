@@ -4,7 +4,7 @@ Tags: webp, images, performance, optimization, media
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 0.0.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,7 +43,7 @@ The `.htaccess` swap is Apache-only. On nginx the plugin rewrites `<img>` tags t
 
 == Changelog ==
 
-= 1.0.0 =
+= 0.0.1 =
 * First standalone release. Renamed from the internal "Perxel WebP" mu-plugin;
   slug, namespace and stored data keys are now `perxel_image_optimizer_*`, with a
   one-time migration from the old `perxel_webp_*` keys on activation.
