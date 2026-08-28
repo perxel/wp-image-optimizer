@@ -42,6 +42,13 @@ spl_autoload_register(
 	}
 );
 
+/**
+ * Shared Perxel admin UI. Standalone, versioned independently of this plugin;
+ * see ui/README.md. Overwriting the ui/ folder cannot break plugin behaviour.
+ */
+require_once __DIR__ . '/ui/loader.php';
+Perxel_UI_Loader::register( '0.1.0', __DIR__ . '/ui', plugins_url( 'ui', __FILE__ ) );
+
 register_activation_hook( __FILE__, array( '\Perxel\ImageOptimizer\Migrator', 'run' ) );
 
 add_action(

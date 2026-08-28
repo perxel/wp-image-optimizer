@@ -24,11 +24,15 @@ page, on shared hosting.
 * Per-attachment Convert / Reconvert / Remove buttons in the Media library.
 * New uploads are converted automatically.
 
+The admin area is two screens under Media > WebP: a **Status** page (the numbers
+plus one button) and a separate **Settings** page (environment, conversion
+options, serving, cleanup).
+
 == Installation ==
 
 1. Upload the `perxel-image-optimizer` folder to `/wp-content/plugins/`.
 2. Activate the plugin through the Plugins screen.
-3. Go to Media > Image Optimizer.
+3. Go to Media > WebP.
 
 == Frequently Asked Questions ==
 
@@ -47,3 +51,7 @@ The `.htaccess` swap is Apache-only. On nginx the plugin rewrites `<img>` tags t
 * First standalone release. Renamed from the internal "Perxel WebP" mu-plugin;
   slug, namespace and stored data keys are now `perxel_image_optimizer_*`, with a
   one-time migration from the old `perxel_webp_*` keys on activation.
+* Admin redesign: the single scrolling page is now a **Status** screen (metrics +
+  one action button) and a separate **Settings** screen, in a shared sidebar
+  layout. Both are server-rendered; JavaScript only drives the conversion run.
+* Bundled `ui/` — a standalone, separately-versioned shared admin-UI kit.

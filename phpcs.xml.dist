@@ -31,6 +31,11 @@
 				<element value="perxel_image_optimizer"/>
 				<element value="PERXEL_IMAGE_OPTIMIZER"/>
 				<element value="Perxel\ImageOptimizer"/>
+				<!-- Shared admin UI kit (ui/), versioned independently. -->
+				<element value="perxel_ui"/>
+				<element value="PERXEL_UI"/>
+				<element value="Perxel_UI"/>
+				<element value="pxui"/>
 			</property>
 		</properties>
 	</rule>
@@ -41,5 +46,23 @@
 				<element value="perxel-image-optimizer"/>
 			</property>
 		</properties>
+	</rule>
+
+	<!--
+		The shared UI kit (ui/) is a standalone, separately-versioned library
+		with its own conventions (see ui/README.md): a fixed loader.php entry
+		point, and view partials that receive a $d array by include scope.
+	-->
+	<rule ref="WordPress.Files.FileName.InvalidClassFileName">
+		<exclude-pattern>/ui/loader.php</exclude-pattern>
+	</rule>
+
+	<!--
+		View templates are include()d inside a method scope, so their local
+		variables are not global despite how they look to a static analyser.
+	-->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound">
+		<exclude-pattern>/ui/partials/*</exclude-pattern>
+		<exclude-pattern>/includes/views/*</exclude-pattern>
 	</rule>
 </ruleset>

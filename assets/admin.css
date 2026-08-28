@@ -1,85 +1,17 @@
-/* Perxel Image Optimizer — admin */
+/* Perxel Image Optimizer — plugin-specific admin styles.
+ *
+ * The layout, panels, stat grid, cards, spec table and danger zone come from
+ * the shared kit (ui/assets/ui.css). Only image-optimizer-specific bits live
+ * here.
+ */
 
-.perxel-image-optimizer .pxw-card {
-	background: #fff;
-	border: 1px solid #dcdcde;
-	border-radius: 4px;
-	padding: 16px 20px;
-	margin: 16px 0;
-	max-width: 900px;
-}
-
-.perxel-image-optimizer .pxw-card h2 {
-	margin-top: 0;
-	font-size: 14px;
-	text-transform: uppercase;
-	letter-spacing: .04em;
-	color: #50575e;
-}
-
-.perxel-image-optimizer .pxw-env {
-	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-	font-size: 12px;
-	line-height: 1.7;
-	color: #3c434a;
-}
-
-.perxel-image-optimizer .pxw-env .bad { color: #b32d2e; font-weight: 600; }
-.perxel-image-optimizer .pxw-env .good { color: #007017; }
-
-.perxel-image-optimizer .pxw-bar {
-	height: 18px;
-	background: #f0f0f1;
-	border-radius: 9px;
-	overflow: hidden;
-	margin: 10px 0;
-}
-
-.perxel-image-optimizer .pxw-bar > span {
-	display: block;
-	height: 100%;
-	background: #2271b1;
-	transition: width .3s ease;
-}
-
-.perxel-image-optimizer .pxw-headline {
-	font-size: 16px;
-	margin: 4px 0 14px;
-}
-
-.perxel-image-optimizer .pxw-headline b { font-size: 20px; color: #007017; }
-
-.perxel-image-optimizer .pxw-card h3 {
-	font-size: 12px;
-	text-transform: uppercase;
-	letter-spacing: .04em;
-	color: #50575e;
-	margin: 18px 0 6px;
-}
-
-.perxel-image-optimizer table.pxw-ledger {
-	border-collapse: collapse;
-	width: 100%;
-	font-size: 13px;
-}
-
-.perxel-image-optimizer table.pxw-ledger th,
-.perxel-image-optimizer table.pxw-ledger td {
-	text-align: left;
-	padding: 5px 12px 5px 0;
-	border-bottom: 1px solid #f0f0f1;
-	vertical-align: baseline;
-}
-
-.perxel-image-optimizer table.pxw-ledger th { font-weight: 400; width: 210px; }
-.perxel-image-optimizer table.pxw-ledger td:nth-child(2) { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
-.perxel-image-optimizer table.pxw-ledger tr.pxw-win td { color: #007017; }
-
+/* Estimate-savings sample grid (Settings page) */
 .perxel-image-optimizer .pxw-stats {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 8px 28px;
 	font-size: 13px;
+	margin-bottom: 10px;
 }
 
 .perxel-image-optimizer .pxw-stats b { font-weight: 600; }
@@ -107,55 +39,22 @@
 	display: block;
 }
 
-.perxel-image-optimizer .pxw-run-live {
-	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-	font-size: 12px;
-	color: #3c434a;
-	margin: 8px 0;
-}
-
-.perxel-image-optimizer .pxw-failures {
-	max-height: 220px;
-	overflow: auto;
-	font-size: 12px;
-}
-
-.perxel-image-optimizer .pxw-failures div { padding: 2px 0; }
-
-.perxel-image-optimizer .pxw-field {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-	margin: 8px 0;
-	font-size: 13px;
-}
-
-.perxel-image-optimizer .pxw-field label { min-width: 190px; }
-
-.perxel-image-optimizer .pxw-sizes label {
-	display: inline-block;
-	min-width: auto;
-	margin-right: 14px;
-}
-
-.perxel-image-optimizer .pxw-danger .button { color: #b32d2e; border-color: #b32d2e; }
-
-.perxel-image-optimizer code.pxw-block {
+/* Managed .htaccess block preview (Settings page) */
+.perxel-image-optimizer .pxio-block {
 	display: block;
 	white-space: pre;
 	overflow-x: auto;
 	padding: 12px;
+	margin: 8px 0 0;
 	background: #f6f7f7;
 	font-size: 11px;
 	line-height: 1.5;
 }
 
-.perxel-image-optimizer .pxw-muted { color: #787c82; }
-.perxel-image-optimizer .pxw-warn { color: #bd6b00; }
-
-/* Media library cell */
+/* Media library column + attachment detail */
 .perxel-image-optimizer-cell { display: inline-block; }
 .column-perxel_image_optimizer { width: 160px; }
+
 .perxel-image-optimizer-attachment .perxel-image-optimizer-sizes {
 	font-size: 11px;
 	color: #787c82;

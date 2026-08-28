@@ -19,17 +19,28 @@ admin page, on shared hosting, with no SSH, no WP-CLI, and no external service.
 1. Copy this folder to `wp-content/plugins/perxel-image-optimizer/` (or install
    the release zip).
 2. Activate **Perxel Image Optimizer** from the Plugins screen.
-3. Open **Media → Image Optimizer**.
+3. Open **Media → WebP**.
 
 Slug `perxel-image-optimizer`, text domain `perxel-image-optimizer`, namespace
 `Perxel\ImageOptimizer\`.
 
-## Admin page
+## Admin
 
-**Media → Image Optimizer.** Environment probe, library metrics, sample-based
-saving + run-time estimate, the conversion runner, failure log, settings, serving
-toggle + self-test, and cleanup (remove all `.webp`, remove the `.htaccess`
-block).
+**Media → WebP** — two screens inside a shared sidebar layout:
+
+- **Status** — the numbers at a glance (library, coverage, bandwidth saved) and a
+  single action: *Convert N images*, or a success state when everything is done.
+- **Settings** — environment probe, conversion settings, serving toggle +
+  self-test, the sample-based saving estimate, and the danger zone (remove all
+  `.webp`, remove the `.htaccess` block).
+
+## Shared admin UI (`ui/`)
+
+`ui/` is a standalone, separately-versioned admin-UI kit (layout + a few
+server-rendered components on top of native wp-admin CSS). It is meant to be
+copied verbatim into other Perxel plugins; overwriting it cannot break plugin
+behaviour or fatal. See [`ui/README.md`](ui/README.md). With `WP_DEBUG` on,
+**Tools → Perxel UI** is a component showcase.
 
 ## Requirements
 

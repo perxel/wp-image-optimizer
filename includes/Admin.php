@@ -7,11 +7,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Admin page, asset loading, and Media-library integration.
+ * Admin pages, asset loading, and Media-library integration.
+ *
+ * Two screens, both under Media, both rendered inside the shared Perxel UI
+ * layout (see ui/):
+ *   - Status   ( upload.php?page=perxel-image-optimizer )          — the glance + the run button.
+ *   - Settings ( upload.php?page=perxel-image-optimizer-settings ) — environment, config, serving, cleanup.
+ * Only "Status" shows in WP's Media menu; the sidebar links the two.
  */
 class Admin {
 
-	const PAGE = 'perxel-image-optimizer';
+	const PAGE          = 'perxel-image-optimizer';
+	const PAGE_SETTINGS = 'perxel-image-optimizer-settings';
 
 	/**
 	 * Hooks.
@@ -19,6 +26,7 @@ class Admin {
 	public function register() {
 		add_action( 'admin_menu', array( $this, 'menu' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'assets' ) );
+		add_action( 'admin_post_perxel_image_optimizer_save_settings', array( $this, 'save_settings' ) );
 
 		// Media library list table.
 		add_filter( 'manage_media_columns', array( $this, 'media_column' ) );
@@ -29,25 +37,42 @@ class Admin {
 	}
 
 	/**
-	 * Add the submenu under Media.
+	 * Register both pages under Media, then hide Settings from the menu.
 	 */
 	public function menu() {
-		add_media_page(
+		add_submenu_page(
+			'upload.php',
 			__( 'WebP', 'perxel-image-optimizer' ),
 			__( 'WebP', 'perxel-image-optimizer' ),
 			'manage_options',
 			self::PAGE,
-			array( $this, 'render' )
+			array( $this, 'render_status' )
 		);
+
+		add_submenu_page(
+			'upload.php',
+			__( 'WebP settings', 'perxel-image-optimizer' ),
+			__( 'WebP settings', 'perxel-image-optimizer' ),
+			'manage_options',
+			self::PAGE_SETTINGS,
+			array( $this, 'render_settings' )
+		);
+
+		remove_submenu_page( 'upload.php', self::PAGE_SETTINGS );
 	}
 
 	/**
-	 * Enqueue assets on our page and on the Media library.
+	 * Enqueue assets on our pages and on the Media library.
 	 *
 	 * @param string $hook Current admin page hook.
 	 */
 	public function assets( $hook ) {
-		$on_page  = ( 'media_page_' . self::PAGE ) === $hook;
+		$page_hooks = array(
+			'media_page_' . self::PAGE,
+			'media_page_' . self::PAGE_SETTINGS,
+		);
+
+		$on_page  = in_array( $hook, $page_hooks, true );
 		$on_media = in_array( $hook, array( 'upload.php', 'post.php' ), true );
 
 		if ( ! $on_page && ! $on_media ) {
@@ -55,72 +80,223 @@ class Admin {
 		}
 
 		$css = PERXEL_IMAGE_OPTIMIZER_DIR . 'assets/admin.css';
-		$js  = PERXEL_IMAGE_OPTIMIZER_DIR . 'assets/admin.js';
+		$ver = file_exists( $css ) ? (string) filemtime( $css ) : PERXEL_IMAGE_OPTIMIZER_VERSION;
 
 		wp_enqueue_style(
 			'perxel-image-optimizer-admin',
 			PERXEL_IMAGE_OPTIMIZER_URL . 'assets/admin.css',
 			array(),
-			file_exists( $css ) ? (string) filemtime( $css ) : PERXEL_IMAGE_OPTIMIZER_VERSION
+			$ver
 		);
 
+		if ( $on_page && class_exists( 'Perxel_UI' ) ) {
+			\Perxel_UI::enqueue();
+		}
+
+		$script = $on_page ? 'assets/admin.js' : 'assets/media.js';
+		$handle = $on_page ? 'perxel-image-optimizer-admin' : 'perxel-image-optimizer-media';
+		$abs    = PERXEL_IMAGE_OPTIMIZER_DIR . $script;
+		$deps   = $on_page && class_exists( 'Perxel_UI' ) ? array( 'perxel-ui' ) : array();
+
 		wp_enqueue_script(
-			'perxel-image-optimizer-admin',
-			PERXEL_IMAGE_OPTIMIZER_URL . 'assets/admin.js',
-			array(),
-			file_exists( $js ) ? (string) filemtime( $js ) : PERXEL_IMAGE_OPTIMIZER_VERSION,
+			$handle,
+			PERXEL_IMAGE_OPTIMIZER_URL . $script,
+			$deps,
+			file_exists( $abs ) ? (string) filemtime( $abs ) : PERXEL_IMAGE_OPTIMIZER_VERSION,
 			true
 		);
 
 		wp_localize_script(
-			'perxel-image-optimizer-admin',
+			$handle,
 			'PerxelImageOptimizer',
 			array(
-				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-				'nonce'   => wp_create_nonce( Ajax::NONCE ),
-				'page'    => $on_page,
+				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
+				'nonce'       => wp_create_nonce( Ajax::NONCE ),
+				'onStatus'    => 'media_page_' . self::PAGE === $hook,
+				'settingsUrl' => admin_url( 'upload.php?page=' . self::PAGE_SETTINGS ),
+				'statusUrl'   => admin_url( 'upload.php?page=' . self::PAGE ),
 			)
 		);
 	}
 
-	/**
-	 * Render the admin page. The heavy lifting is client-side; PHP just prints
-	 * the shell + the initial snapshot.
+	/*
+	 * Shared layout.
 	 */
-	public function render() {
+
+	/**
+	 * Layout args for Perxel_UI_Layout::open().
+	 *
+	 * @param string $current Active page slug.
+	 * @param string $title   Page title.
+	 * @return array
+	 */
+	private function layout_args( $current, $title ) {
+		return array(
+			'title'       => $title,
+			'plugin'      => __( 'Perxel Image Optimizer', 'perxel-image-optimizer' ),
+			'version'     => PERXEL_IMAGE_OPTIMIZER_VERSION,
+			'base'        => 'upload.php',
+			'wrap_class'  => 'perxel-image-optimizer',
+			'current'     => $current,
+			'menu'        => array(
+				'' => array(
+					self::PAGE          => __( 'Status', 'perxel-image-optimizer' ),
+					self::PAGE_SETTINGS => __( 'Settings', 'perxel-image-optimizer' ),
+				),
+			),
+			'links'       => array(
+				__( 'Docs', 'perxel-image-optimizer' ) => 'https://github.com/perxel/wp-image-optimizer',
+			),
+			'text_domain' => 'perxel-image-optimizer',
+		);
+	}
+
+	/**
+	 * True when the shared UI kit failed to load — render a plain fallback.
+	 *
+	 * @return bool
+	 */
+	private function ui_ready() {
+		return class_exists( 'Perxel_UI' ) && class_exists( 'Perxel_UI_Layout' );
+	}
+
+	/*
+	 * Status page.
+	 */
+
+	/**
+	 * Render the Status screen.
+	 */
+	public function render_status() {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
 
-		$env      = Environment::probe();
-		$snapshot = Ajax::snapshot();
+		$snap  = Ajax::snapshot();
+		$state = self::status_state( $snap );
 
-		?>
-		<div class="wrap perxel-image-optimizer" id="perxel-image-optimizer-app">
-			<h1><?php esc_html_e( 'Perxel Image Optimizer', 'perxel-image-optimizer' ); ?></h1>
-			<p class="description">
-				<?php esc_html_e( 'Convert the media library to WebP and serve it via .htaccess. Runs entirely from this page — nothing happens in the background.', 'perxel-image-optimizer' ); ?>
-			</p>
+		if ( ! $this->ui_ready() ) {
+			echo '<div class="wrap"><h1>' . esc_html__( 'Perxel Image Optimizer', 'perxel-image-optimizer' ) . '</h1>';
+			echo '<div class="notice notice-error"><p>' . esc_html__( 'The shared Perxel UI library could not be loaded.', 'perxel-image-optimizer' ) . '</p></div></div>';
+			return;
+		}
 
-			<?php if ( ! $env['webp_encode'] ) : ?>
-				<div class="notice notice-error">
-					<p>
-						<strong><?php esc_html_e( 'This host cannot encode WebP.', 'perxel-image-optimizer' ); ?></strong>
-						<?php esc_html_e( 'Neither GD nor Imagick reports WebP support. Conversion is disabled. Ask the host to enable WebP in PHP’s GD or Imagick build.', 'perxel-image-optimizer' ); ?>
-					</p>
-				</div>
-			<?php endif; ?>
-
-			<div id="perxel-image-optimizer-root" data-snapshot="<?php echo esc_attr( wp_json_encode( $snapshot ) ); ?>">
-				<noscript><?php esc_html_e( 'JavaScript is required.', 'perxel-image-optimizer' ); ?></noscript>
-			</div>
-		</div>
-		<?php
+		\Perxel_UI_Layout::open( $this->layout_args( self::PAGE, __( 'Status', 'perxel-image-optimizer' ) ) );
+		include PERXEL_IMAGE_OPTIMIZER_DIR . 'includes/views/status.php';
+		\Perxel_UI_Layout::close();
 	}
 
-	/* --------------------------------------------------------------------- *
-	 * Media library list table
-	 * --------------------------------------------------------------------- */
+	/**
+	 * Which headline state the Status page is in.
+	 *
+	 * @param array $snap Ajax::snapshot().
+	 * @return string cannot_convert|stale|paused|running|work|serve_off|done
+	 */
+	public static function status_state( array $snap ) {
+		if ( empty( $snap['environment']['webp_encode'] ) ) {
+			return 'cannot_convert';
+		}
+
+		$run = $snap['run'];
+
+		if ( ! empty( $run['running'] ) ) {
+			return 'running';
+		}
+
+		if ( ! empty( $run['stale'] ) ) {
+			return 'stale';
+		}
+
+		if ( (int) $run['remaining'] > 0 && (int) $run['processed'] > 0 ) {
+			return 'paused';
+		}
+
+		if ( (int) $snap['summary']['pending'] > 0 ) {
+			return 'work';
+		}
+
+		if ( empty( $snap['settings']['serve'] ) && (int) $snap['report']['converted_files'] > 0 ) {
+			return 'serve_off';
+		}
+
+		return 'done';
+	}
+
+	/*
+	 * Settings page.
+	 */
+
+	/**
+	 * Render the Settings screen.
+	 */
+	public function render_settings() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		$snap    = Ajax::snapshot();
+		$updated = isset( $_GET['updated'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only flash flag from our own redirect.
+
+		if ( ! $this->ui_ready() ) {
+			echo '<div class="wrap"><h1>' . esc_html__( 'Perxel Image Optimizer', 'perxel-image-optimizer' ) . '</h1>';
+			echo '<div class="notice notice-error"><p>' . esc_html__( 'The shared Perxel UI library could not be loaded.', 'perxel-image-optimizer' ) . '</p></div></div>';
+			return;
+		}
+
+		\Perxel_UI_Layout::open( $this->layout_args( self::PAGE_SETTINGS, __( 'Settings', 'perxel-image-optimizer' ) ) );
+		include PERXEL_IMAGE_OPTIMIZER_DIR . 'includes/views/settings.php';
+		\Perxel_UI_Layout::close();
+	}
+
+	/**
+	 * Persist the conversion settings form (admin-post, not AJAX).
+	 */
+	public function save_settings() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You are not allowed to do this.', 'perxel-image-optimizer' ) );
+		}
+
+		check_admin_referer( 'perxel_image_optimizer_settings' );
+
+		$all_sizes = array_merge( array( 'full' ), get_intermediate_image_sizes() );
+		$posted    = isset( $_POST['sizes'] ) ? array_map( 'sanitize_key', (array) wp_unslash( $_POST['sizes'] ) ) : array();
+		$sizes     = array_values( array_intersect( $all_sizes, $posted ) );
+
+		// All sizes ticked -> store the wildcard so new sizes are covered too.
+		if ( count( $sizes ) === count( $all_sizes ) ) {
+			$sizes = array( '*' );
+		}
+
+		$jpeg_quality    = isset( $_POST['jpeg_quality'] ) ? absint( $_POST['jpeg_quality'] ) : 80;
+		$png_quality     = isset( $_POST['png_quality'] ) ? absint( $_POST['png_quality'] ) : 88;
+		$skip_megapixels = isset( $_POST['skip_megapixels'] ) ? absint( $_POST['skip_megapixels'] ) : 25;
+
+		Settings::update(
+			array(
+				'jpeg_quality'      => $jpeg_quality,
+				'png_quality'       => $png_quality,
+				'convert_png'       => ! empty( $_POST['convert_png'] ),
+				'convert_on_upload' => ! empty( $_POST['convert_on_upload'] ),
+				'skip_megapixels'   => $skip_megapixels,
+				'sizes'             => $sizes,
+			)
+		);
+
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'    => self::PAGE_SETTINGS,
+					'updated' => '1',
+				),
+				admin_url( 'upload.php' )
+			)
+		);
+		exit;
+	}
+
+	/*
+	 * Media library list table.
+	 */
 
 	/**
 	 * @param array $columns Columns.
@@ -176,9 +352,9 @@ class Admin {
 		$all  = 0;
 
 		foreach ( (array) ( $meta['sizes'] ?? array() ) as $row ) {
-			$all++;
+			++$all;
 			if ( ! empty( $row['ok'] ) ) {
-				$ok++;
+				++$ok;
 				$src  += (int) ( $row['src'] ?? 0 );
 				$webp += (int) ( $row['webp'] ?? 0 );
 			}
@@ -199,13 +375,13 @@ class Admin {
 		);
 	}
 
-	/* --------------------------------------------------------------------- *
-	 * Attachment detail field
-	 * --------------------------------------------------------------------- */
+	/*
+	 * Attachment detail field.
+	 */
 
 	/**
-	 * @param array    $fields     Attachment form fields.
-	 * @param \WP_Post  $post      Attachment post.
+	 * @param array    $fields Attachment form fields.
+	 * @param \WP_Post $post   Attachment post.
 	 * @return array
 	 */
 	public function attachment_field( $fields, $post ) {
