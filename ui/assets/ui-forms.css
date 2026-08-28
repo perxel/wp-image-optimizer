@@ -71,6 +71,26 @@
 .pxui-row__content select,
 .pxui-row__content input { box-shadow:none; }
 
+/* A <select> as row content reads as the row's value: no chrome at rest,
+   border + full-contrast text on hover, brand outline on focus. */
+.pxui-row__content select {
+    border-color:transparent;
+    background-color:transparent;
+    color:var(--pxui-fg-muted);
+    transition:border-color .12s ease, color .12s ease, background-color .12s ease;
+}
+
+.pxui-row__content select:hover {
+    border-color:var(--pxui-border);
+    color:var(--pxui-fg);
+}
+
+.pxui-row__content select:focus {
+    border-color:var(--pxui-accent);
+    background-color:var(--pxui-bg);
+    color:var(--pxui-fg);
+}
+
 .pxui-row--good .pxui-row__content { color:var(--pxui-good); font-weight:600; }
 .pxui-row--warn .pxui-row__content { color:var(--pxui-warn); font-weight:600; }
 .pxui-row--bad .pxui-row__content { color:var(--pxui-bad); font-weight:600; }

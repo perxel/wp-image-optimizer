@@ -11,7 +11,7 @@ In the plugin's main file, after its own constants:
 
 ```php
 require_once __DIR__ . '/ui/loader.php';
-Perxel_UI_Loader::register( '0.2.0', __DIR__ . '/ui', plugins_url( 'ui', __FILE__ ) );
+Perxel_UI_Loader::register( '0.3.0', __DIR__ . '/ui', plugins_url( 'ui', __FILE__ ) );
 ```
 
 In each admin-page callback:

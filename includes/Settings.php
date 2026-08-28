@@ -13,6 +13,9 @@ class Settings {
 
 	const OPTION = 'perxel_image_optimizer_settings';
 
+	/** Quality steps offered in the admin (WebP encoder quality / effort). */
+	const QUALITY_STEPS = array( 60, 70, 80, 90 );
+
 	/**
 	 * Default settings.
 	 *
@@ -22,7 +25,7 @@ class Settings {
 		return array(
 			'disabled'          => false, // soft kill switch
 			'jpeg_quality'      => 80,
-			'png_quality'       => 88,
+			'png_quality'       => 90,
 			'convert_png'       => true,
 			'sizes'             => array( '*' ), // '*' = every registered size + full
 			'convert_on_upload' => true,
@@ -69,10 +72,10 @@ class Settings {
 		$clean   = $current;
 
 		if ( isset( $input['jpeg_quality'] ) ) {
-			$clean['jpeg_quality'] = self::clamp_quality( $input['jpeg_quality'] );
+			$clean['jpeg_quality'] = self::snap_quality( $input['jpeg_quality'] );
 		}
 		if ( isset( $input['png_quality'] ) ) {
-			$clean['png_quality'] = self::clamp_quality( $input['png_quality'] );
+			$clean['png_quality'] = self::snap_quality( $input['png_quality'] );
 		}
 		if ( isset( $input['skip_megapixels'] ) ) {
 			$clean['skip_megapixels'] = max( 1, min( 200, (int) $input['skip_megapixels'] ) );
@@ -130,6 +133,25 @@ class Settings {
 	 */
 	private static function clamp_quality( $value ) {
 		return max( 1, min( 100, (int) $value ) );
+	}
+
+	/**
+	 * Snap an arbitrary quality value to the nearest step the admin offers.
+	 *
+	 * @param mixed $value Raw quality.
+	 * @return int
+	 */
+	public static function snap_quality( $value ) {
+		$value = self::clamp_quality( $value );
+		$best  = self::QUALITY_STEPS[0];
+
+		foreach ( self::QUALITY_STEPS as $step ) {
+			if ( abs( $step - $value ) < abs( $best - $value ) ) {
+				$best = $step;
+			}
+		}
+
+		return $best;
 	}
 
 	/**

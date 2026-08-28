@@ -3,6 +3,14 @@
 Versioned independently of any plugin. Within a major version, changes are
 additive only (see `README.md` → "Versioning").
 
+## 0.3.0
+
+- Row-content `<select>` (`.pxui-row__content select`) now renders as a quiet
+  "ghost" control: transparent border/background and muted text at rest, so it
+  reads as the row's value; hairline border + full-contrast text on hover,
+  brand-accent border on focus. Tokens only, no new markup hooks. Additive —
+  a `<select>` passed as row `content` picks it up automatically.
+
 ## 0.2.0
 
 - Showcase page (**Tools → Perxel UI**) is now always registered in the admin

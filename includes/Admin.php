@@ -315,7 +315,7 @@ class Admin {
 		}
 
 		$jpeg_quality    = isset( $_POST['jpeg_quality'] ) ? absint( $_POST['jpeg_quality'] ) : 80;
-		$png_quality     = isset( $_POST['png_quality'] ) ? absint( $_POST['png_quality'] ) : 88;
+		$png_quality     = isset( $_POST['png_quality'] ) ? absint( $_POST['png_quality'] ) : 90;
 		$skip_megapixels = isset( $_POST['skip_megapixels'] ) ? absint( $_POST['skip_megapixels'] ) : 25;
 
 		Settings::update(

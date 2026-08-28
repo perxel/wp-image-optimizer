@@ -27,6 +27,35 @@ $serve_mode = array(
 	'off'      => __( 'Off', 'perxel-image-optimizer' ),
 );
 
+/**
+ * Named WebP quality steps. The label carries the guidance so the row needs
+ * no long help text; the stored value is snapped to one of these keys.
+ */
+$quality_steps  = array(
+	60 => __( 'Smallest files (60)', 'perxel-image-optimizer' ),
+	70 => __( 'Smaller files (70)', 'perxel-image-optimizer' ),
+	80 => __( 'Recommended (80)', 'perxel-image-optimizer' ),
+	90 => __( 'Best quality (90)', 'perxel-image-optimizer' ),
+);
+$quality_select = static function ( $id, $name, $current ) use ( $quality_steps ) {
+	$current = (int) $current;
+	$keys    = array_keys( $quality_steps );
+	$sel     = $keys[0];
+	foreach ( $keys as $step ) {
+		if ( abs( $step - $current ) < abs( $sel - $current ) ) {
+			$sel = $step;
+		}
+	}
+
+	$out = '<select id="' . esc_attr( $id ) . '" name="' . esc_attr( $name ) . '">';
+	foreach ( $quality_steps as $value => $text ) {
+		$out .= '<option value="' . esc_attr( $value ) . '"' . selected( $sel, $value, false ) . '>'
+			. esc_html( $text ) . '</option>';
+	}
+
+	return $out . '</select>';
+};
+
 // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- Perxel_UI escapes structure; values escaped inline below.
 
 if ( $updated ) {
@@ -108,15 +137,14 @@ foreach ( (array) $snap['sizes'] as $name ) {
 				'rows'  => array(
 					array(
 						'label'   => __( 'JPEG → WebP quality', 'perxel-image-optimizer' ),
-						'content' => '<input type="range" id="pxio-jq" name="jpeg_quality" min="40" max="100" value="'
-							. esc_attr( $cfg['jpeg_quality'] ) . '" data-pxio-output="pxio-jq-o" /> <output id="pxio-jq-o">'
-							. esc_html( $cfg['jpeg_quality'] ) . '</output>',
+						'content' => $quality_select( 'pxio-jq', 'jpeg_quality', $cfg['jpeg_quality'] ),
 					),
 					array(
 						'label'   => __( 'PNG → WebP quality', 'perxel-image-optimizer' ),
-						'content' => '<input type="range" id="pxio-pq" name="png_quality" min="40" max="100" value="'
-							. esc_attr( $cfg['png_quality'] ) . '" data-pxio-output="pxio-pq-o" /> <output id="pxio-pq-o">'
-							. esc_html( $cfg['png_quality'] ) . '</output>',
+						'sub'     => ! empty( $env['imagick_lossless'] )
+							? esc_html__( 'PNGs convert losslessly here, so this changes file size only.', 'perxel-image-optimizer' )
+							: '',
+						'content' => $quality_select( 'pxio-pq', 'png_quality', $cfg['png_quality'] ),
 					),
 					array(
 						'label'   => __( 'Convert PNG files', 'perxel-image-optimizer' ),
@@ -131,21 +159,23 @@ foreach ( (array) $snap['sizes'] as $name ) {
 					),
 					array(
 						'label'   => __( 'Sizes to convert', 'perxel-image-optimizer' ),
+						'sub'     => esc_html__( 'Which thumbnail sizes get a WebP copy.', 'perxel-image-optimizer' ),
 						'content' => '<span class="pxio-sizes">' . $size_toggles . '</span>',
 					),
 					array(
 						'label'   => __( 'Skip images larger than', 'perxel-image-optimizer' ),
+						'sub'     => esc_html__( 'Bigger images risk running out of memory, so they are left alone.', 'perxel-image-optimizer' ),
 						'content' => '<input type="number" id="pxio-mp" name="skip_megapixels" min="1" max="200" value="'
 							. esc_attr( $cfg['skip_megapixels'] ) . '" /> ' . esc_html__( 'megapixels', 'perxel-image-optimizer' ),
 					),
 					array(
-						'label'   => __( 'Convert new uploads automatically', 'perxel-image-optimizer' ),
-						'sub'     => esc_html__( 'Convert each image as it is uploaded.', 'perxel-image-optimizer' ),
+						'label'   => __( 'Auto-optimize new uploads', 'perxel-image-optimizer' ),
+						'sub'     => esc_html__( 'Convert each image to WebP as it is uploaded.', 'perxel-image-optimizer' ),
 						'content' => Perxel_UI::toggle(
 							array(
 								'name'    => 'convert_on_upload',
 								'checked' => $cfg['convert_on_upload'],
-								'label'   => __( 'Convert new uploads automatically', 'perxel-image-optimizer' ),
+								'label'   => __( 'Auto-optimize new uploads', 'perxel-image-optimizer' ),
 							)
 						),
 					),

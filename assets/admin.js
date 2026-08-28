@@ -154,13 +154,6 @@
 	/* ---- settings page ------------------------------------------- */
 
 	function bindSettings() {
-		Array.prototype.forEach.call( document.querySelectorAll( '[data-pxio-output]' ), function ( range ) {
-			var out = byId( range.getAttribute( 'data-pxio-output' ) );
-			if ( out ) {
-				range.addEventListener( 'input', function () { out.textContent = range.value; } );
-			}
-		} );
-
 		on( 'pxio-serve', 'change', function ( e ) {
 			post( 'perxel_image_optimizer_serve', { on: e.target.checked ? 1 : 0 } ).then( reload );
 		} );
