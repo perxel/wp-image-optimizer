@@ -47,9 +47,10 @@ spl_autoload_register(
  * see ui/README.md. Overwriting the ui/ folder cannot break plugin behaviour.
  */
 require_once __DIR__ . '/ui/loader.php';
-Perxel_UI_Loader::register( '0.9.0', __DIR__ . '/ui', plugins_url( 'ui', __FILE__ ) );
+Perxel_UI_Loader::register( '0.10.0', __DIR__ . '/ui', plugins_url( 'ui', __FILE__ ) );
 
 register_activation_hook( __FILE__, array( '\Perxel\ImageOptimizer\Migrator', 'run' ) );
+register_deactivation_hook( __FILE__, array( '\Perxel\ImageOptimizer\Serve', 'on_deactivate' ) );
 
 add_action(
 	'plugins_loaded',

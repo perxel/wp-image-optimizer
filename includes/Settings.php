@@ -84,6 +84,10 @@ class Settings {
 		$clean['convert_png']       = ! empty( $input['convert_png'] );
 		$clean['convert_on_upload'] = ! empty( $input['convert_on_upload'] );
 
+		if ( array_key_exists( 'serve', $input ) ) {
+			$clean['serve'] = ! empty( $input['serve'] );
+		}
+
 		if ( array_key_exists( 'sizes', $input ) ) {
 			$clean['sizes'] = self::sanitize_sizes( $input['sizes'] );
 		}
@@ -91,6 +95,13 @@ class Settings {
 		update_option( self::OPTION, $clean, false );
 
 		return $clean;
+	}
+
+	/**
+	 * Wipe stored settings so every key falls back to its default.
+	 */
+	public static function reset() {
+		delete_option( self::OPTION );
 	}
 
 	/**

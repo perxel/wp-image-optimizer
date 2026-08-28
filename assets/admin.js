@@ -1,8 +1,8 @@
 /* Perxel Image Optimizer — admin pages (Status + Settings).
  *
  * Both screens are server-rendered by PHP. This script only drives the
- * interactive parts: the conversion run loop, Recalculate, Retry failed, and
- * the Settings-page actions (serve toggle, cleanup).
+ * interactive parts: the conversion run loop, Recalculate, Retry failed, the
+ * Settings form's dirty-state guard, and the "Remove all WebP files" purge loop.
  * All state rendering stays in PHP — most actions finish with location.reload().
  */
 ( function () {
@@ -153,10 +153,30 @@
 
 	/* ---- settings page ------------------------------------------- */
 
+	var settingsDirty = false;
+
 	function bindSettings() {
-		on( 'pxio-serve', 'change', function ( e ) {
-			post( 'perxel_image_optimizer_serve', { on: e.target.checked ? 1 : 0 } ).then( reload );
-		} );
+		var form = byId( 'pxio-settings-form' );
+		var save = byId( 'pxio-save' );
+
+		// "Save settings" is the one commit point for every field on this page.
+		// Start disabled, enable on the first change, and warn before leaving
+		// with changes still unsaved.
+		if ( form ) {
+			if ( save ) { save.disabled = true; }
+
+			var markDirty = function ( e ) {
+				// The serve toggle sits outside <form> and is tied to it via the
+				// form= attribute, so listen on document and match e.target.form.
+				if ( settingsDirty || ! e.target || e.target.form !== form ) { return; }
+				settingsDirty = true;
+				if ( save ) { save.disabled = false; }
+			};
+			document.addEventListener( 'input', markDirty, true );
+			document.addEventListener( 'change', markDirty, true );
+			// Any form submit on the page (Save, or a danger-zone action) leaves it.
+			document.addEventListener( 'submit', function () { settingsDirty = false; }, true );
+		}
 
 		on( 'pxio-purge', 'click', function () {
 			var out = byId( 'pxio-purge-out' );
@@ -167,14 +187,10 @@
 					post( 'perxel_image_optimizer_purge_step', {} ).then( function ( res ) {
 						var d = res.json.data;
 						out.textContent = 'Deleted ' + d.deleted + ' / ' + ( d.total || total ) + ' (' + bytes( d.bytes ) + ')';
-						if ( d.status === 'running' ) { step(); } else { reload(); }
+						if ( d.status === 'running' ) { step(); } else { settingsDirty = false; reload(); }
 					} );
 				} )();
 			} );
-		} );
-
-		on( 'pxio-htaccess-rm', 'click', function () {
-			post( 'perxel_image_optimizer_htaccess_rm', {} ).then( reload );
 		} );
 	}
 
@@ -182,10 +198,10 @@
 
 	document.addEventListener( 'DOMContentLoaded', function () {
 		if ( byId( 'pxio-headline' ) ) { bindStatus(); }
-		if ( byId( 'pxio-serve' ) || byId( 'pxio-purge' ) ) { bindSettings(); }
+		if ( byId( 'pxio-settings-form' ) || byId( 'pxio-purge' ) ) { bindSettings(); }
 	} );
 
 	window.addEventListener( 'beforeunload', function ( e ) {
-		if ( running ) { e.preventDefault(); e.returnValue = ''; }
+		if ( running || settingsDirty ) { e.preventDefault(); e.returnValue = ''; }
 	} );
 }() );

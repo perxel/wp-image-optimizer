@@ -6,6 +6,7 @@
  *
  * @var array $snap    Perxel\ImageOptimizer\Ajax::snapshot().
  * @var bool  $updated Whether the settings form just saved.
+ * @var bool  $reset   Whether settings were just reset to defaults.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -60,6 +61,8 @@ $quality_select = static function ( $id, $name, $current ) use ( $quality_steps 
 
 if ( $updated ) {
 	echo Perxel_UI::notice( 'success', esc_html__( 'Settings saved.', 'perxel-image-optimizer' ), array( 'dismissible' => true ) );
+} elseif ( $reset ) {
+	echo Perxel_UI::notice( 'success', esc_html__( 'Settings reset to defaults.', 'perxel-image-optimizer' ), array( 'dismissible' => true ) );
 }
 
 /* --- Conversion --------------------------------------------------- */
@@ -173,6 +176,11 @@ foreach ( (array) $snap['sizes'] as $name ) {
 
 $serve_status = esc_html__( 'Status:', 'perxel-image-optimizer' ) . ' '
 	. esc_html( isset( $serve_mode[ $srv['mode'] ] ) ? $serve_mode[ $srv['mode'] ] : $srv['mode'] );
+
+$serve_sub = $serve_status . ' — ' . esc_html__(
+	'On Apache, saving this on adds a rewrite block to your .htaccess file (preview below). Saving it off, or deactivating the plugin, removes the block.',
+	'perxel-image-optimizer'
+);
 ?>
 <div id="serving">
 	<?php
@@ -183,10 +191,11 @@ $serve_status = esc_html__( 'Status:', 'perxel-image-optimizer' ) . ' '
 				'rows'  => array(
 					array(
 						'label'   => __( 'Serve WebP to supported browsers', 'perxel-image-optimizer' ),
-						'sub'     => $serve_status,
+						'sub'     => $serve_sub,
 						'content' => Perxel_UI::toggle(
 							array(
-								'id'      => 'pxio-serve',
+								'name'    => 'serve',
+								'form'    => 'pxio-settings-form',
 								'checked' => $cfg['serve'],
 								'label'   => __( 'Serve WebP to supported browsers', 'perxel-image-optimizer' ),
 							)
@@ -194,6 +203,7 @@ $serve_status = esc_html__( 'Status:', 'perxel-image-optimizer' ) . ' '
 					),
 					array(
 						'summary' => __( 'Managed .htaccess block', 'perxel-image-optimizer' ),
+						'sub'     => esc_html__( 'The exact rules added while serving is on: Apache sends the .webp copy to browsers that accept it, and the original to the rest.', 'perxel-image-optimizer' ),
 						'details' => Perxel_UI::code( $srv['rules_preview'] ),
 					),
 				),
@@ -213,17 +223,22 @@ echo Perxel_UI::rows(
 			'danger' => true,
 			'rows'   => array(
 				array(
-					'label'   => __( 'Remove all WebP files', 'perxel-image-optimizer' ),
-					'sub'     => esc_html__( 'Deletes every .webp file under uploads and resets all plugin data. Deleting the plugin does not undo this.', 'perxel-image-optimizer' ),
-					'content' => '<button type="button" class="button" id="pxio-purge" data-pxui-confirm="'
-						. esc_attr__( 'Delete every .webp file under uploads and reset all plugin data?', 'perxel-image-optimizer' ) . '">'
-						. esc_html__( 'Remove files', 'perxel-image-optimizer' ) . '</button>',
+					'label'   => __( 'Reset settings to defaults', 'perxel-image-optimizer' ),
+					'sub'     => esc_html__( 'Restores every conversion and serving option to its default. Converted files and metrics are kept.', 'perxel-image-optimizer' ),
+					'content' => '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">'
+						. '<input type="hidden" name="action" value="perxel_image_optimizer_reset_settings" />'
+						. wp_nonce_field( 'perxel_image_optimizer_reset_settings', '_wpnonce', true, false )
+						. '<button type="submit" class="button" data-pxui-confirm="'
+						. esc_attr__( 'Reset all settings to their defaults?', 'perxel-image-optimizer' ) . '">'
+						. esc_html__( 'Reset settings', 'perxel-image-optimizer' ) . '</button>'
+						. '</form>',
 				),
 				array(
-					'label'   => __( 'Remove .htaccess block', 'perxel-image-optimizer' ),
-					'sub'     => esc_html__( 'Deletes the managed WebP rewrite rules from .htaccess. Deleting the plugin does not undo this.', 'perxel-image-optimizer' ),
-					'content' => '<button type="button" class="button" id="pxio-htaccess-rm">'
-						. esc_html__( 'Remove block', 'perxel-image-optimizer' ) . '</button>',
+					'label'   => __( 'Remove all WebP files', 'perxel-image-optimizer' ),
+					'sub'     => esc_html__( 'Deletes the .webp copies this plugin created (files named like photo.jpg.webp) and resets all plugin data. Standalone .webp uploads are left alone. Deleting the plugin does not undo this.', 'perxel-image-optimizer' ),
+					'content' => '<button type="button" class="button" id="pxio-purge" data-pxui-confirm="'
+						. esc_attr__( 'Delete every .webp copy this plugin created and reset all plugin data?', 'perxel-image-optimizer' ) . '">'
+						. esc_html__( 'Remove files', 'perxel-image-optimizer' ) . '</button>',
 				),
 			),
 		),
@@ -233,52 +248,52 @@ echo '<p id="pxio-purge-out" class="pxui-muted"></p>';
 
 /* --- Environment --------------------------------------------------- */
 
+/**
+ * One row answers the only question that matters — can this server encode
+ * WebP, and with what — and the disclosure spills the full detail for a
+ * host that needs to diagnose it.
+ */
+$env_ok = ! empty( $env['webp_encode'] );
+
+$env_detail = array(
+	__( 'Engine', 'perxel-image-optimizer' )             => $engine
+		. ( ! empty( $env['imagick_lossless'] ) ? ' - ' . __( 'PNG lossless available', 'perxel-image-optimizer' ) : '' ),
+	__( 'PHP', 'perxel-image-optimizer' )                => $env['php_version'],
+	__( 'Memory limit', 'perxel-image-optimizer' )       => $env['memory_limit_raw'],
+	__( 'Max execution time', 'perxel-image-optimizer' ) => $env['max_execution'] . 's'
+		. ( $env['set_time_limit'] ? '' : ' - ' . __( 'set_time_limit blocked', 'perxel-image-optimizer' ) ),
+	__( 'Server', 'perxel-image-optimizer' )             => $env['is_apache']
+		? 'Apache / LiteSpeed'
+		: __( 'Other (fallback serving)', 'perxel-image-optimizer' ),
+	__( '.htaccess', 'perxel-image-optimizer' )          => $env['htaccess_writable']
+		? __( 'Writable', 'perxel-image-optimizer' )
+		: __( 'Not writable', 'perxel-image-optimizer' ),
+	__( 'Free disk', 'perxel-image-optimizer' )          => null === $env['free_disk']
+		? __( 'unknown', 'perxel-image-optimizer' )
+		: '~' . size_format( (int) $env['free_disk'] ),
+);
+
+$env_pad   = max( array_map( 'strlen', array_keys( $env_detail ) ) ) + 3;
+$env_lines = array();
+foreach ( $env_detail as $env_key => $env_value ) {
+	$env_lines[] = str_pad( $env_key, $env_pad ) . $env_value;
+}
+
 echo Perxel_UI::rows(
 	array(
 		array(
 			'title' => __( 'Environment', 'perxel-image-optimizer' ),
 			'rows'  => array(
 				array(
-					'label'   => __( 'WebP encoding', 'perxel-image-optimizer' ),
-					'content' => $env['webp_encode']
-						? esc_html__( 'Available', 'perxel-image-optimizer' )
-						: esc_html__( 'Unavailable — conversion disabled', 'perxel-image-optimizer' ),
-					'tone'    => $env['webp_encode'] ? 'good' : 'bad',
-				),
-				array(
-					'label'   => __( 'Engine', 'perxel-image-optimizer' ),
-					'content' => esc_html( $engine ) . ( ! empty( $env['imagick_lossless'] ) ? ' · ' . esc_html__( 'PNG lossless available', 'perxel-image-optimizer' ) : '' ),
-				),
-				array(
-					'label'   => __( 'PHP', 'perxel-image-optimizer' ),
-					'content' => esc_html( $env['php_version'] ),
-				),
-				array(
-					'label'   => __( 'Memory limit', 'perxel-image-optimizer' ),
-					'content' => esc_html( $env['memory_limit_raw'] ),
-				),
-				array(
-					'label'   => __( 'Max execution time', 'perxel-image-optimizer' ),
-					'content' => esc_html( $env['max_execution'] . 's' )
-						. ( $env['set_time_limit'] ? '' : ' · ' . esc_html__( 'set_time_limit blocked', 'perxel-image-optimizer' ) ),
-					'tone'    => $env['set_time_limit'] ? null : 'warn',
-				),
-				array(
-					'label'   => __( 'Server', 'perxel-image-optimizer' ),
-					'content' => $env['is_apache'] ? 'Apache / LiteSpeed' : esc_html__( 'Other (fallback serving)', 'perxel-image-optimizer' ),
-				),
-				array(
-					'label'   => __( '.htaccess', 'perxel-image-optimizer' ),
-					'content' => $env['htaccess_writable']
-						? esc_html__( 'Writable', 'perxel-image-optimizer' )
-						: esc_html__( 'Not writable', 'perxel-image-optimizer' ),
-					'tone'    => $env['htaccess_writable'] ? null : 'warn',
-				),
-				array(
-					'label'   => __( 'Free disk', 'perxel-image-optimizer' ),
-					'content' => null === $env['free_disk']
-						? esc_html__( 'unknown', 'perxel-image-optimizer' )
-						: '~' . esc_html( size_format( (int) $env['free_disk'] ) ),
+					'summary' => $env_ok
+						? __( 'WebP conversion is supported', 'perxel-image-optimizer' )
+						: __( 'WebP conversion is not supported', 'perxel-image-optimizer' ),
+					'sub'     => $env_ok
+						/* translators: %s: image engine name, e.g. Imagick or GD 2.3.0. */
+						? esc_html( sprintf( __( 'This server encodes WebP with %s.', 'perxel-image-optimizer' ), $engine ) )
+						: esc_html__( 'No WebP-capable image engine is available on this server, so conversion is disabled.', 'perxel-image-optimizer' ),
+					'icon'    => $env_ok ? 'good' : 'bad',
+					'details' => Perxel_UI::code( implode( "\n", $env_lines ) ),
 				),
 			),
 		),

@@ -7,9 +7,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * "Remove all WebP" — a resumable, chunked delete of every .webp under uploads/.
+ * "Remove all WebP" — a resumable, chunked delete of the .webp copies this
+ * plugin created under uploads/ (siblings named `foo.jpg.webp` / `foo.png.webp`).
+ * Standalone .webp uploads and other plugins' files are left alone.
  */
 class Purger {
+
+	/** Matches the plugin's own output: original name + extension + `.webp`. */
+	const PATTERN = '/\.(jpe?g|png)\.webp$/i';
 
 	const OPTION = 'perxel_image_optimizer_purge';
 	const CHUNK  = 200;
@@ -32,7 +37,7 @@ class Purger {
 
 			foreach ( $iterator as $file ) {
 				/** @var \SplFileInfo $file */
-				if ( $file->isFile() && 'webp' === strtolower( $file->getExtension() ) ) {
+				if ( $file->isFile() && preg_match( self::PATTERN, $file->getPathname() ) ) {
 					$files[] = $file->getPathname();
 				}
 			}

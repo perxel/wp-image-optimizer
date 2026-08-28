@@ -223,13 +223,19 @@ final class Perxel_UI {
 	 *
 	 * Each row: `[ 'label' => plain text, 'sub' => trusted HTML (secondary
 	 * line under the label), 'content' => trusted HTML (text, a toggle(), a
-	 * <select> or a button), 'tone' => good|warn|bad ]`.
+	 * <select> or a button), 'tone' => good|warn|bad, 'icon' => … ]`.
+	 *
+	 * `icon` (any row) puts a fixed square left of the label + sub, centred
+	 * against both: `good|warn|bad` draws a filled status dot (✓ / ! / ✕);
+	 * any other non-empty string is trusted HTML (a dashicon, an `<svg>`, an
+	 * emoji) sized to the same frame.
 	 *
 	 * A row with a `summary` key becomes a disclosure instead: the summary text
 	 * sits where the label goes, a chevron takes the content slot, and `details`
 	 * (trusted HTML) reveals full-width below when the row is clicked. Native
 	 * `<details>` — no JS. `[ 'summary' => plain text, 'sub' => trusted HTML,
-	 * 'details' => trusted HTML, 'open' => bool, 'tone' => good|warn|bad ]`.
+	 * 'details' => trusted HTML, 'open' => bool, 'tone' => good|warn|bad,
+	 * 'icon' => … ]`.
 	 *
 	 * @param array $groups Flat row list, or a list of groups.
 	 * @return string
@@ -257,11 +263,26 @@ final class Perxel_UI {
 			foreach ( (array) ( isset( $group['rows'] ) ? $group['rows'] : array() ) as $r ) {
 				$tone = isset( $r['tone'] ) && in_array( $r['tone'], array( 'good', 'warn', 'bad' ), true ) ? ' pxui-row--' . $r['tone'] : '';
 
+				// Optional leading icon — its own fixed square, left of the
+				// label + sub and centred against both. `icon => good|warn|bad`
+				// draws a filled status dot (✓ / ! / ✕); any other non-empty
+				// string is trusted HTML (a dashicon, an <svg>, an emoji)
+				// dropped into the same frame so every icon lines up.
+				$icon = '';
+				if ( ! empty( $r['icon'] ) ) {
+					$preset = in_array( $r['icon'], array( 'good', 'warn', 'bad' ), true );
+					$icon   = '<span class="pxui-row__icon' . ( $preset ? ' pxui-row__icon--' . $r['icon'] : '' ) . '" aria-hidden="true">'
+						. ( $preset ? '' : $r['icon'] )
+						. '</span>';
+				}
+				$has_icon = '' !== $icon ? ' pxui-row--has-icon' : '';
+
 				// Disclosure row: a native <details> styled as a row. The whole
 				// summary line is the click target; the reveal drops below.
 				if ( isset( $r['summary'] ) ) {
-					$out .= '<details class="pxui-row pxui-row--disclosure' . $tone . '"' . ( empty( $r['open'] ) ? '' : ' open' ) . '>';
+					$out .= '<details class="pxui-row pxui-row--disclosure' . $tone . $has_icon . '"' . ( empty( $r['open'] ) ? '' : ' open' ) . '>';
 					$out .= '<summary class="pxui-row__summary">';
+					$out .= $icon;
 					$out .= '<span class="pxui-row__label">' . esc_html( $r['summary'] );
 
 					if ( ! empty( $r['sub'] ) ) {
@@ -276,7 +297,8 @@ final class Perxel_UI {
 					continue;
 				}
 
-				$out .= '<div class="pxui-row' . $tone . '">';
+				$out .= '<div class="pxui-row' . $tone . $has_icon . '">';
+				$out .= $icon;
 				$out .= '<span class="pxui-row__label">' . esc_html( isset( $r['label'] ) ? $r['label'] : '' );
 
 				if ( ! empty( $r['sub'] ) ) {

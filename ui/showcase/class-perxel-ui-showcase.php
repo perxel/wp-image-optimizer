@@ -161,15 +161,19 @@ final class Perxel_UI_Showcase {
 					'title' => 'Environment',
 					'rows'  => array(
 						array(
+							'icon'    => 'good',
 							'label'   => 'WebP encoding',
+							'sub'     => 'Preset status dot — centred against label + sub.',
 							'content' => 'Imagick',
 							'tone'    => 'good',
 						),
 						array(
+							'icon'    => '<span class="dashicons dashicons-admin-network"></span>',
 							'label'   => 'PHP',
 							'content' => PHP_VERSION,
 						),
 						array(
+							'icon'    => 'bad',
 							'label'   => '.htaccess',
 							'content' => 'not writable',
 							'tone'    => 'bad',
@@ -237,6 +241,12 @@ final class Perxel_UI_Showcase {
 							'summary' => 'Managed .htaccess block',
 							'sub'     => 'A disclosure row — click to reveal.',
 							'details' => Perxel_UI::code( "# BEGIN Perxel Image Optimizer\n<IfModule mod_rewrite.c>\n  RewriteEngine On\n  RewriteCond %{HTTP_ACCEPT} image/webp\n  RewriteCond %{REQUEST_FILENAME}.webp -f\n  RewriteRule ^(.+)\\.(jpe?g|png)$ $1.$2.webp [T=image/webp,L]\n</IfModule>\n# END Perxel Image Optimizer" ),
+						),
+						array(
+							'summary' => 'WebP conversion is supported',
+							'sub'     => 'Disclosure with an icon — the status dot reads pass/fail closed.',
+							'icon'    => 'good',
+							'details' => Perxel_UI::code( "Engine       Imagick - PNG lossless available\nPHP          8.2.0\nMemory limit 256M" ),
 						),
 					),
 				),

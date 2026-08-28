@@ -134,6 +134,48 @@
 .pxui-row--warn .pxui-row__content { color:var(--pxui-warn); font-weight:600; }
 .pxui-row--bad .pxui-row__content { color:var(--pxui-bad); font-weight:600; }
 
+/* Leading row icon — a fixed 20px square before the label, centred against
+   the label + sub. Any glyph (dashicon, <svg>, emoji) is scaled into the
+   frame so rows line up regardless of the icon used. When a row carries one,
+   the label group sits left and the content value is pushed to the right. */
+.pxui-row--has-icon,
+.pxui-row--has-icon .pxui-row__summary { justify-content:flex-start; }
+.pxui-row--has-icon .pxui-row__content { margin-left:auto; }
+
+.pxui-row__icon {
+    flex:0 0 auto;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:20px;
+    height:20px;
+    font-size:16px;
+    line-height:1;
+}
+
+.pxui-row__icon > * { max-width:100%; max-height:100%; }
+.pxui-row__icon .dashicons { width:20px; height:20px; font-size:20px; }
+.pxui-row__icon img,
+.pxui-row__icon svg { display:block; width:auto; height:auto; }
+
+/* Preset status dots — filled circle + glyph in the tone colour. */
+.pxui-row__icon--good,
+.pxui-row__icon--warn,
+.pxui-row__icon--bad {
+    border-radius:50%;
+    color:#fff;
+    font-size:11px;
+    font-weight:700;
+}
+
+.pxui-row__icon--good { background:var(--pxui-good); }
+.pxui-row__icon--warn { background:var(--pxui-warn); }
+.pxui-row__icon--bad  { background:var(--pxui-bad); }
+
+.pxui-row__icon--good::before { content:"\2713"; }
+.pxui-row__icon--warn::before { content:"!"; }
+.pxui-row__icon--bad::before  { content:"\2715"; }
+
 /* Disclosure row — a native <details>. The <summary> is the row line (label
    left, chevron right); the reveal drops full-width below. */
 .pxui-row--disclosure { display:block; padding:0; }

@@ -41,6 +41,11 @@ class Serve {
 	 */
 	public function reconcile() {
 		if ( ! Settings::get( 'serve' ) ) {
+			// Self-heal: if disable() couldn't write the file at the time
+			// (unwritable, backup restore, hand-edit), clear it now.
+			if ( $this->block_present() && Environment::htaccess_writable() ) {
+				$this->remove_block();
+			}
 			$this->set_mode( 'off' );
 			return;
 		}
@@ -118,6 +123,18 @@ class Serve {
 		$this->set_serve_setting( false );
 		$this->remove_block();
 		$this->set_mode( 'off' );
+	}
+
+	/**
+	 * Deactivation hook: drop the managed .htaccess block and cached mode so the
+	 * site stops routing to .webp while the plugin is off. The `serve` setting is
+	 * left untouched — reconcile() re-adds the block on the next admin load if it
+	 * is still on.
+	 */
+	public static function on_deactivate() {
+		$serve = new self();
+		$serve->remove_block();
+		delete_option( self::MODE_OPTION );
 	}
 
 	/**

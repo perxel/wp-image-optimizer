@@ -25,12 +25,10 @@ class Ajax {
 			'perxel_image_optimizer_run_batch'   => 'run_batch',
 			'perxel_image_optimizer_cancel'      => 'cancel',
 			'perxel_image_optimizer_save'        => 'save_settings',
-			'perxel_image_optimizer_serve'       => 'serve_toggle',
 			'perxel_image_optimizer_convert_one' => 'convert_one',
 			'perxel_image_optimizer_remove_one'  => 'remove_one',
 			'perxel_image_optimizer_purge_start' => 'purge_start',
 			'perxel_image_optimizer_purge_step'  => 'purge_step',
-			'perxel_image_optimizer_htaccess_rm' => 'htaccess_remove',
 		);
 
 		foreach ( $map as $action => $method ) {
@@ -124,35 +122,6 @@ class Ajax {
 		}
 
 		Settings::update( is_array( $raw ) ? $raw : array() );
-
-		wp_send_json_success( self::snapshot() );
-	}
-
-	/**
-	 * Toggle serving.
-	 */
-	public function serve_toggle() {
-		$this->guard();
-
-		$on    = ! empty( $_POST['on'] );
-		$serve = new Serve();
-
-		$info = $on ? $serve->enable() : array( 'ok' => true, 'mode' => 'off', 'message' => __( 'Serving disabled.', 'perxel-image-optimizer' ) );
-
-		if ( ! $on ) {
-			$serve->disable();
-		}
-
-		wp_send_json_success( $info + array( 'snapshot' => self::snapshot() ) );
-	}
-
-	/**
-	 * Remove just the .htaccess block, leave the setting alone.
-	 */
-	public function htaccess_remove() {
-		$this->guard();
-
-		( new Serve() )->remove_block();
 
 		wp_send_json_success( self::snapshot() );
 	}

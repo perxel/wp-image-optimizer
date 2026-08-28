@@ -3,6 +3,18 @@
 Versioned independently of any plugin. Within a major version, changes are
 additive only (see `README.md` → "Versioning").
 
+## 0.10.0
+
+- `rows()` rows take an optional `icon` — a fixed 20px square left of the
+  label, centred against the label + sub. `icon => good|warn|bad` draws a
+  filled status dot (✓ / ! / ✕ in the tone colour); any other non-empty
+  string is trusted HTML (a dashicon, an `<svg>`, an emoji) scaled to the
+  same frame so rows line up. Works on plain rows and on disclosure rows.
+  New hooks: `.pxui-row__icon`, `.pxui-row__icon--{good,warn,bad}`,
+  `.pxui-row--has-icon`.
+- Additive — new optional key, extra `<span>` only when `icon` is set; no
+  change to rows without it.
+
 ## 0.9.0
 
 - `Perxel_UI_Layout::set_page_titles( [ slug => page name ], $plugin )` — own the

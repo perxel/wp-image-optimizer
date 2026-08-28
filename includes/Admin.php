@@ -27,6 +27,7 @@ class Admin {
 		add_action( 'admin_menu', array( $this, 'menu' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'assets' ) );
 		add_action( 'admin_post_perxel_image_optimizer_save_settings', array( $this, 'save_settings' ) );
+		add_action( 'admin_post_perxel_image_optimizer_reset_settings', array( $this, 'reset_settings' ) );
 
 		// Media library list table.
 		add_filter( 'manage_media_columns', array( $this, 'media_column' ) );
@@ -279,8 +280,13 @@ class Admin {
 			return;
 		}
 
-		$snap    = Ajax::snapshot();
-		$updated = isset( $_GET['updated'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only flash flag from our own redirect.
+		$snap = Ajax::snapshot();
+
+		// Display-only flash flags set by our own redirects; no nonce to check.
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		$updated = isset( $_GET['updated'] );
+		$reset   = isset( $_GET['reset'] );
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		if ( ! $this->ui_ready() ) {
 			echo '<div class="wrap"><h1>' . esc_html__( 'Perxel Image Optimizer', 'perxel-image-optimizer' ) . '</h1>';
@@ -288,10 +294,12 @@ class Admin {
 			return;
 		}
 
+		// Enabled by default so it still works without JS; admin.js disables it
+		// until a field changes and guards against leaving with unsaved changes.
 		$save = get_submit_button(
 			__( 'Save settings', 'perxel-image-optimizer' ),
 			'primary',
-			'submit',
+			'pxio-save',
 			false,
 			array( 'form' => 'pxio-settings-form' )
 		);
@@ -336,16 +344,45 @@ class Admin {
 				'png_quality'       => $png_quality,
 				'convert_png'       => ! empty( $_POST['convert_png'] ),
 				'convert_on_upload' => ! empty( $_POST['convert_on_upload'] ),
+				'serve'             => ! empty( $_POST['serve'] ),
 				'skip_megapixels'   => $skip_megapixels,
 				'sizes'             => $sizes,
 			)
 		);
+
+		// Sync the .htaccess block / cached mode to the just-saved serve setting.
+		( new Serve() )->reconcile();
 
 		wp_safe_redirect(
 			add_query_arg(
 				array(
 					'page'    => self::PAGE_SETTINGS,
 					'updated' => '1',
+				),
+				admin_url( 'upload.php' )
+			)
+		);
+		exit;
+	}
+
+	/**
+	 * Wipe stored settings back to defaults (admin-post, not AJAX). The serving
+	 * block is reconciled to the default serve setting on the redirect load.
+	 */
+	public function reset_settings() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You are not allowed to do this.', 'perxel-image-optimizer' ) );
+		}
+
+		check_admin_referer( 'perxel_image_optimizer_reset_settings' );
+
+		Settings::reset();
+
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'  => self::PAGE_SETTINGS,
+					'reset' => '1',
 				),
 				admin_url( 'upload.php' )
 			)
