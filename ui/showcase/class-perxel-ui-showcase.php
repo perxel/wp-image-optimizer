@@ -221,6 +221,11 @@ final class Perxel_UI_Showcase {
 							),
 						),
 						array(
+							'label'   => 'Skip images larger than',
+							'sub'     => 'A number input as row content — sized to its value.',
+							'content' => '<input type="number" min="1" max="200" value="24" /> megapixels',
+						),
+						array(
 							'label'   => 'Re-scan the library',
 							'content' => '<button type="button" class="button button-small">Re-scan</button>',
 						),

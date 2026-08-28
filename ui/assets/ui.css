@@ -501,6 +501,14 @@
     color:var(--pxui-bad);
     border-color:var(--pxui-bad);
     background:#fff;
+    transition:color .12s ease, background-color .12s ease, border-color .12s ease;
+}
+
+.pxui-danger .button:hover,
+.pxui-danger .button:focus {
+    color:#fff;
+    background:var(--pxui-bad);
+    border-color:var(--pxui-bad);
 }
 
 /* ------------------------------------------------------------------ *

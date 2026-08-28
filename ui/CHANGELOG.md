@@ -3,6 +3,18 @@
 Versioned independently of any plugin. Within a major version, changes are
 additive only (see `README.md` → "Versioning").
 
+## 0.8.0
+
+- Text and number `<input>`s used as a `rows()` row `content` now get a compact
+  field style — hairline box at rest, muted border on hover, brand ring on
+  focus — to match the `<select>` row-value treatment. Number inputs are sized
+  to their value and right-aligned. New hooks:
+  `.pxui-row__content input[type="text"|"number"|"email"|"url"|"search"]`.
+- Buttons in a danger row group (`.pxui-rows__group--danger`) and in
+  `danger_zone()` fill with the destructive red on hover/focus, instead of
+  falling back to wp-admin's blue `.button` hover.
+- Purely additive — CSS on existing markup; no API change.
+
 ## 0.7.0
 
 - `Perxel_UI::rows()` groups take `'danger' => true` — the group renders as a

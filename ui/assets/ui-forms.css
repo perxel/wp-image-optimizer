@@ -91,6 +91,45 @@
     color:var(--pxui-fg);
 }
 
+/* Text / number inputs as row content — a compact field sized to its value.
+   Hairline box at rest (the value is editable, so it always reads as a field),
+   muted border on hover, brand ring on focus. Same radius as the <select>. */
+.pxui-row__content input[type="text"],
+.pxui-row__content input[type="number"],
+.pxui-row__content input[type="email"],
+.pxui-row__content input[type="url"],
+.pxui-row__content input[type="search"] {
+    min-height:30px;
+    border:1px solid var(--pxui-border);
+    border-radius:var(--pxui-radius);
+    background-color:var(--pxui-bg);
+    color:var(--pxui-fg);
+    transition:border-color .12s ease, box-shadow .12s ease;
+}
+
+.pxui-row__content input[type="number"] {
+    width:6em;
+    text-align:right;
+}
+
+.pxui-row__content input[type="text"]:hover,
+.pxui-row__content input[type="number"]:hover,
+.pxui-row__content input[type="email"]:hover,
+.pxui-row__content input[type="url"]:hover,
+.pxui-row__content input[type="search"]:hover {
+    border-color:var(--pxui-fg-muted);
+}
+
+.pxui-row__content input[type="text"]:focus,
+.pxui-row__content input[type="number"]:focus,
+.pxui-row__content input[type="email"]:focus,
+.pxui-row__content input[type="url"]:focus,
+.pxui-row__content input[type="search"]:focus {
+    border-color:var(--pxui-accent);
+    box-shadow:0 0 0 1px var(--pxui-accent);
+    outline:none;
+}
+
 .pxui-row--good .pxui-row__content { color:var(--pxui-good); font-weight:600; }
 .pxui-row--warn .pxui-row__content { color:var(--pxui-warn); font-weight:600; }
 .pxui-row--bad .pxui-row__content { color:var(--pxui-bad); font-weight:600; }
@@ -140,7 +179,6 @@
 
 .pxui-rows__group--danger .pxui-rows__card {
     background:var(--pxui-bad-bg);
-    border:1px solid var(--pxui-bad);
 }
 
 .pxui-rows__group--danger .pxui-row + .pxui-row,
@@ -152,6 +190,14 @@
     color:var(--pxui-bad);
     border-color:var(--pxui-bad);
     background:#fff;
+    transition:color .12s ease, background-color .12s ease, border-color .12s ease;
+}
+
+.pxui-rows__group--danger .pxui-row__content .button:hover,
+.pxui-rows__group--danger .pxui-row__content .button:focus {
+    color:#fff;
+    background:var(--pxui-bad);
+    border-color:var(--pxui-bad);
 }
 
 /* ------------------------------------------------------------------ *
