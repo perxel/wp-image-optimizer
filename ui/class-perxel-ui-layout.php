@@ -35,6 +35,85 @@ final class Perxel_UI_Layout {
 	private static $ctx = array();
 
 	/**
+	 * Page name per admin page, keyed by its `?page=` slug.
+	 *
+	 * @var array<string,string>
+	 */
+	private static $titles = array();
+
+	/**
+	 * Plugin name appended to every registered page's <title>.
+	 *
+	 * @var string
+	 */
+	private static $titles_plugin = '';
+
+	/**
+	 * Whether the `admin_title` filter has been wired yet.
+	 *
+	 * @var bool
+	 */
+	private static $titles_hooked = false;
+
+	/**
+	 * Own the browser <title> for one or more of the kit's admin pages.
+	 *
+	 * WordPress builds a screen's <title> from its menu entry — "Page ‹ Site —
+	 * WordPress" — and a page kept off the menu with `remove_submenu_page()` (the
+	 * usual pattern for a settings screen reached only from within the UI) loses
+	 * even that, leaving a bare " ‹ Site — WordPress" in the tab. For a kit
+	 * screen the sidebar already carries the wp-admin chrome, so the tab reads as
+	 * `Site • Page • Plugin` instead.
+	 *
+	 * Call on `admin_menu` with the same slugs passed to `add_submenu_page()`.
+	 * Each value is that page's name; `$plugin` is appended to all of them.
+	 * Additive and idempotent — safe to call repeatedly; later keys win.
+	 *
+	 * @param array  $map    `[ page_slug => page name ]`.
+	 * @param string $plugin Plugin name, appended after the page name.
+	 */
+	public static function set_page_titles( array $map, $plugin = '' ) {
+		self::$titles = array_merge( self::$titles, $map );
+
+		if ( '' !== (string) $plugin ) {
+			self::$titles_plugin = (string) $plugin;
+		}
+
+		if ( ! self::$titles_hooked ) {
+			self::$titles_hooked = true;
+			add_filter( 'admin_title', array( __CLASS__, 'filter_admin_title' ) );
+		}
+	}
+
+	/**
+	 * Replace the <title> for a registered page with `Site • Page • Plugin`.
+	 *
+	 * @param string $admin_title Full <title> text WordPress assembled.
+	 * @return string
+	 */
+	public static function filter_admin_title( $admin_title ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only: selecting which registered title to show.
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+
+		if ( '' === $page || ! isset( self::$titles[ $page ] ) ) {
+			return $admin_title;
+		}
+
+		$parts = array_filter(
+			array(
+				trim( (string) get_bloginfo( 'name' ) ),
+				trim( (string) self::$titles[ $page ] ),
+				trim( self::$titles_plugin ),
+			),
+			static function ( $part ) {
+				return '' !== $part;
+			}
+		);
+
+		return implode( ' • ', $parts );
+	}
+
+	/**
 	 * Open the layout: .wrap -> shell -> sidebar (sticky brand bar) ->
 	 * <main> (sticky title bar).
 	 *

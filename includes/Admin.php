@@ -59,6 +59,18 @@ class Admin {
 		);
 
 		remove_submenu_page( 'upload.php', self::PAGE_SETTINGS );
+
+		// Own the browser <title> for both screens — "Site • Page • Plugin".
+		// Settings is off the menu, so WP would otherwise leave its tab blank.
+		if ( class_exists( 'Perxel_UI_Layout' ) ) {
+			\Perxel_UI_Layout::set_page_titles(
+				array(
+					self::PAGE          => __( 'Status', 'perxel-image-optimizer' ),
+					self::PAGE_SETTINGS => __( 'Settings', 'perxel-image-optimizer' ),
+				),
+				__( 'Image Optimization', 'perxel-image-optimizer' )
+			);
+		}
 	}
 
 	/**

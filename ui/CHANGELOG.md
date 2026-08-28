@@ -3,6 +3,18 @@
 Versioned independently of any plugin. Within a major version, changes are
 additive only (see `README.md` → "Versioning").
 
+## 0.9.0
+
+- `Perxel_UI_Layout::set_page_titles( [ slug => page name ], $plugin )` — own the
+  browser `<title>` for the kit's screens. WordPress builds a tab title as
+  "Page ‹ Site — WordPress", and a page hidden with `remove_submenu_page()` (the
+  usual pattern for a settings screen kept off the menu) drops even that, leaving
+  a bare " ‹ Site — WordPress". A kit screen carries the wp-admin chrome in its
+  sidebar, so via the `admin_title` filter the tab instead reads
+  `Site • Page • Plugin`. Call on `admin_menu` with the slugs passed to
+  `add_submenu_page()`.
+- Additive — new static method, no markup or CSS change.
+
 ## 0.8.0
 
 - Text and number `<input>`s used as a `rows()` row `content` now get a compact

@@ -61,6 +61,7 @@ Perxel_UI_Layout::close();
 | --- | --- |
 | `open( array $args )` | `.wrap` → shell → sidebar (sticky brand bar: `plugin` + `version`) → `<main>` (sticky title bar: `<h1>` + `actions`). Args: `title`, `plugin`, `version`, `menu`, `current`, `base`, `links`, `author`, `actions`, `wrap_class`, `text_domain`. `actions` is trusted HTML pinned to the right of the title bar — the house home for a page's Save button; wire it to the page's `<form>` with the HTML5 `form="<form-id>"` attribute (`get_submit_button( $text, 'primary', 'submit', false, array( 'form' => 'my-form' ) )`). `author` (`[ 'name' => …, 'url' => … ]`) shows left in the footer; `links` (`[ label => url ]`) show right. |
 | `close()` | Renders the footer (`author` left, `links` right) inside `<main>`, then closes what `open()` opened. |
+| `set_page_titles( array $map, $plugin = '' )` | `[ page_slug => page name ]` + a plugin name. Own the browser `<title>` for the kit's screens: the tab reads `Site • Page • Plugin` (via the `admin_title` filter) instead of WP's "Page ‹ Site — WordPress", or the bare " ‹ Site — WordPress" a `remove_submenu_page()`d screen is left with. Call on `admin_menu` with the slugs passed to `add_submenu_page()`. Additive, idempotent. |
 
 `Perxel_UI` (each returns an HTML string — `echo` it)
 
