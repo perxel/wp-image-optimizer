@@ -278,66 +278,6 @@
 .pxui-wrap .pxui-notice.notice-error { background:var(--pxui-bad-bg); }
 
 /* ------------------------------------------------------------------ *
- * Panel â€” the headline block
- * ------------------------------------------------------------------ */
-
-.pxui-panel {
-    background:var(--pxui-surface);
-    border:var(--pxui-surface-border);
-    border-radius:var(--pxui-radius-lg);
-    box-shadow:var(--pxui-shadow);
-    margin:0 0 var(--pxui-s6);
-}
-
-.pxui-panel__inner {
-    display:flex;
-    gap:var(--pxui-s3);
-    padding:var(--pxui-s4) var(--pxui-s6);
-}
-
-.pxui-panel__icon {
-    font-size:22px;
-    width:22px;
-    height:22px;
-    flex:0 0 auto;
-    margin-top:2px;
-}
-
-.pxui-panel__content {
-    flex:1 1 auto;
-    min-width:0;
-}
-
-.pxui-panel__title {
-    margin:0;
-    font-size:15px;
-    font-weight:600;
-}
-
-.pxui-panel__body {
-    margin-top:var(--pxui-s1);
-    color:var(--pxui-fg-muted);
-}
-
-.pxui-panel__actions {
-    margin-top:var(--pxui-s3);
-    display:flex;
-    flex-wrap:wrap;
-    gap:var(--pxui-s2);
-    align-items:center;
-}
-
-/* State — carried by the fill tint + icon colour, no accent rule needed. */
-.pxui-panel--action { background:var(--pxui-brand-bg); }
-.pxui-panel--action .pxui-panel__icon { color:var(--pxui-accent); }
-.pxui-panel--success { background:var(--pxui-good-bg); }
-.pxui-panel--success .pxui-panel__icon { color:var(--pxui-good); }
-.pxui-panel--warning { background:var(--pxui-warn-bg); }
-.pxui-panel--warning .pxui-panel__icon { color:var(--pxui-warn); }
-.pxui-panel--error { background:var(--pxui-bad-bg); }
-.pxui-panel--error .pxui-panel__icon { color:var(--pxui-bad); }
-
-/* ------------------------------------------------------------------ *
  * Progress bar
  * ------------------------------------------------------------------ */
 
@@ -473,43 +413,9 @@
     white-space:pre;
 }
 
-/* Row groups, form controls (checkbox → toggle, radio) and the spinner live
- * in a second sheet, ui-forms.css — loaded right after this one. */
-
-/* ------------------------------------------------------------------ *
- * Danger zone
- * ------------------------------------------------------------------ */
-
-.pxui-danger {
-    border:1px solid var(--pxui-bad);
-    border-radius:var(--pxui-radius-lg);
-    box-shadow:var(--pxui-shadow);
-    padding:var(--pxui-s4) var(--pxui-s6);
-    margin:var(--pxui-s8) 0 var(--pxui-s6);
-    background:var(--pxui-bad-bg);
-}
-
-.pxui-danger__title {
-    margin:0 0 var(--pxui-s3);
-    font-size:13px;
-    text-transform:uppercase;
-    letter-spacing:.04em;
-    color:var(--pxui-bad);
-}
-
-.pxui-danger .button {
-    color:var(--pxui-bad);
-    border-color:var(--pxui-bad);
-    background:#fff;
-    transition:color .12s ease, background-color .12s ease, border-color .12s ease;
-}
-
-.pxui-danger .button:hover,
-.pxui-danger .button:focus {
-    color:#fff;
-    background:var(--pxui-bad);
-    border-color:var(--pxui-bad);
-}
+/* Row groups (including the `danger` group treatment), form controls
+ * (checkbox → toggle, radio) and the spinner live in a second sheet,
+ * ui-forms.css — loaded right after this one. */
 
 /* ------------------------------------------------------------------ *
  * Utilities

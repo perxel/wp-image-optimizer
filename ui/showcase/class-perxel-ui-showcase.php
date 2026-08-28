@@ -83,33 +83,8 @@ final class Perxel_UI_Showcase {
 
 		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- Perxel_UI escapes internally; static demo strings.
 
-		echo '<h2>Panel</h2>';
-		echo Perxel_UI::panel(
-			array(
-				'status'  => 'action',
-				'icon'    => 'update',
-				'title'   => '128 items need attention.',
-				'body'    => '<p>Short explanation of what the button does.</p>',
-				'actions' => '<button class="button button-primary button-hero">Do the thing</button>',
-			)
-		);
-		echo Perxel_UI::panel(
-			array(
-				'status' => 'success',
-				'icon'   => 'yes-alt',
-				'title'  => 'Everything is done.',
-			)
-		);
-		echo Perxel_UI::panel(
-			array(
-				'status'   => 'info',
-				'icon'     => 'controls-play',
-				'title'    => 'Working…',
-				'progress' => 62,
-				'body'     => '<p class="pxui-progress__label">1,842 / 4,110 · ETA 4m</p>',
-				'actions'  => '<button class="button">Pause</button>',
-			)
-		);
+		echo '<h2>Progress bar</h2>';
+		echo Perxel_UI::progress_bar( 62, array( 'label' => '1,842 / 4,110 · ETA 4m' ) );
 
 		echo '<h2>Stat grid</h2>';
 		echo Perxel_UI::stat_grid(
@@ -298,11 +273,6 @@ final class Perxel_UI_Showcase {
 					),
 				),
 			)
-		);
-
-		echo '<h2>Danger zone (wrapper)</h2>';
-		echo Perxel_UI::danger_zone(
-			'<p><button class="button" data-pxui-confirm="Really?">Remove everything</button></p>'
 		);
 
 		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped

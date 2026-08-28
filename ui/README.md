@@ -69,8 +69,7 @@ Perxel_UI_Layout::close();
 | --- | --- |
 | `enqueue()` | Registers the kit CSS/JS under the shared `perxel-ui` handle. |
 | `notice( $type, $html, $args )` | `success\|warning\|error\|info`, on WP `.notice`. `$args`: `dismissible`, `inline` (stay put instead of being hoisted to `.wp-header-end`). |
-| `panel( $args )` | The one headline block per screen. `status`: `success\|warning\|error\|info\|action`; `icon`, `title`, `body`, `actions`, `progress`. |
-| `progress_bar( $pct, $args )` | Standalone bar. |
+| `progress_bar( $pct, $args )` | Standalone bar. `$args`: `id`, `label` (trusted HTML caption below). |
 | `stat_grid( $tiles )` | Tile: `label`, `value`, `sub`, `bar` (0-100\|null), `tone` (`good\|warn\|bad`). |
 | `card( $args )` | `title`, `body`, `actions`, `id`, `class`. |
 | `rows( $groups )` | iOS-style grouped settings list. Flat row list, or groups `[ 'title' => …, 'rows' => [ … ] ]` — optional title above a rounded card of rows (the card is the only shadowed element). Row: `label` left, `content` right (text, `toggle()`, a `<select>`, a button), plus `sub`, `tone` (`good\|warn\|bad`), `icon`. `icon` puts a fixed 20px square left of the label + sub (centred against both): `good\|warn\|bad` is a filled ✓/!/✕ status dot, any other string is trusted HTML (dashicon, `<svg>`, emoji) scaled to the frame. A row with a `summary` key is a disclosure instead: native `<details>` styled as a row (summary text left, chevron right), `details` (trusted HTML) revealing full-width below on click; also takes `sub`, `open`, `tone`, `icon`. A group with `'danger' => true` renders as a destructive zone (red title + hairline card, buttons in the warning colour). |
@@ -78,7 +77,6 @@ Perxel_UI_Layout::close();
 | `checkbox_group( $args )` | A "pick several" list rendered as selectable pills (real hidden checkboxes underneath). `options` (`value => label`, or per-option `value`/`label`/`sub` (muted second line)/`checked`), `name` (auto `[]`), `form`, `selected`. Drop in as row `content`. Add `.pxui-checkbox` to a bare `<input type="checkbox">` for a real square box instead of the iOS toggle. |
 | `code( $text, $args )` | Read-only preformatted block (config, rules, logs) — scrolls sideways, doesn't wrap. `$text` escaped; `$args`: `label` (caption), `id`. Reads well as a disclosure row's `details`. |
 | `spinner()` | Inline CSS loading spinner (`.pxui-spinner`). |
-| `danger_zone( $html, $args )` | Red-bordered wrapper for destructive actions. |
 
 ### Escaping contract
 
@@ -87,13 +85,14 @@ The helpers escape their own structural markup and the `title` / `label` fields.
 the caller escapes their dynamic parts. At the call site:
 
 ```php
-echo Perxel_UI::panel( $args ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Perxel_UI escapes internally.
+echo Perxel_UI::rows( $groups ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Perxel_UI escapes internally.
 ```
 
 ## What belongs in `ui/`
 
 - **In `ui/`:** anything another Perxel plugin could plausibly reuse — layout,
-  notices, panels, stat tiles, cards, row groups, the danger zone, tokens.
+  notices, progress bars, stat tiles, cards, row groups (incl. the danger
+  group), tokens.
 - **In the plugin:** anything specific to that plugin's domain (its own widgets,
   domain-specific tables). Plugin CSS/JS may be inline or in the plugin's own
   `assets/`.

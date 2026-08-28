@@ -3,6 +3,17 @@
 Versioned independently of any plugin. Within a major version, changes are
 additive only (see `README.md` → "Versioning").
 
+## 0.11.0
+
+- **Breaking.** `Perxel_UI::panel()` and `Perxel_UI::danger_zone()` are removed,
+  along with their CSS (`.pxui-panel*`, `.pxui-danger*`). The headline block a
+  screen used `panel()` for is now a single-row `rows()` group (icon + label +
+  `sub` + `content`); the standalone `progress_bar()` covers the progress case.
+  Destructive actions use a `rows()` group with `'danger' => true`. Every
+  adopting plugin must move off both calls before taking this copy.
+- `.pxui-progress` is unchanged and stays — `progress_bar()` and the stat-tile
+  bars still use it.
+
 ## 0.10.0
 
 - `rows()` rows take an optional `icon` — a fixed 20px square left of the

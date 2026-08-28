@@ -4,7 +4,7 @@
  *
  * Stateless. Every method returns an HTML string; callers echo it, e.g.
  *
- *     echo Perxel_UI::panel( $args ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Perxel_UI escapes internally.
+ *     echo Perxel_UI::rows( $groups ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Perxel_UI escapes internally.
  *
  * Escaping contract:
  *   - Structural markup and the `title` / `label` fields are escaped here.
@@ -60,61 +60,6 @@ final class Perxel_UI {
 		}
 
 		return '<div class="' . esc_attr( $class ) . '"><p>' . $html . '</p></div>';
-	}
-
-	/**
-	 * The headline panel — one per screen, the "what now" block.
-	 *
-	 * Keys in $args: `status` (success|warning|error|info|action, default info),
-	 * `icon` (dashicon slug), `title` (plain text), `body` (trusted HTML),
-	 * `actions` (trusted HTML), `progress` (0-100, or null for no bar).
-	 *
-	 * @param array $args Panel options.
-	 * @return string
-	 */
-	public static function panel( $args ) {
-		$d = array_merge(
-			array(
-				'status'   => 'info',
-				'icon'     => '',
-				'title'    => '',
-				'body'     => '',
-				'actions'  => '',
-				'progress' => null,
-			),
-			$args
-		);
-
-		$status = in_array( $d['status'], array( 'success', 'warning', 'error', 'info', 'action' ), true ) ? $d['status'] : 'info';
-
-		$out  = '<div class="pxui-panel pxui-panel--' . esc_attr( $status ) . '">';
-		$out .= '<div class="pxui-panel__inner">';
-
-		if ( $d['icon'] ) {
-			$out .= '<span class="pxui-panel__icon dashicons dashicons-' . esc_attr( $d['icon'] ) . '" aria-hidden="true"></span>';
-		}
-
-		$out .= '<div class="pxui-panel__content">';
-
-		if ( '' !== (string) $d['title'] ) {
-			$out .= '<p class="pxui-panel__title">' . esc_html( $d['title'] ) . '</p>';
-		}
-
-		if ( '' !== (string) $d['body'] ) {
-			$out .= '<div class="pxui-panel__body">' . $d['body'] . '</div>';
-		}
-
-		if ( null !== $d['progress'] ) {
-			$out .= self::progress_bar( (int) $d['progress'] );
-		}
-
-		if ( '' !== (string) $d['actions'] ) {
-			$out .= '<div class="pxui-panel__actions">' . $d['actions'] . '</div>';
-		}
-
-		$out .= '</div></div></div>';
-
-		return $out;
 	}
 
 	/**
@@ -218,8 +163,8 @@ final class Perxel_UI {
 	 * groups: `[ [ 'title' => 'Group', 'rows' => [ row, row ] ], … ]`.
 	 *
 	 * A group with `'danger' => true` is styled as a destructive zone — red
-	 * title, red hairline card, buttons in the warning colour — the grouped-row
-	 * replacement for `danger_zone()`.
+	 * title, red hairline card, buttons in the warning colour — for a screen's
+	 * cleanup / destructive-action section.
 	 *
 	 * Each row: `[ 'label' => plain text, 'sub' => trusted HTML (secondary
 	 * line under the label), 'content' => trusted HTML (text, a toggle(), a
@@ -437,18 +382,5 @@ final class Perxel_UI {
 			: '';
 
 		return $label . '<pre class="pxui-code"' . $id_attr . '>' . esc_html( (string) $text ) . '</pre>';
-	}
-
-	/**
-	 * A visually separated "danger zone" wrapper.
-	 *
-	 * @param string $html Trusted HTML (buttons + copy).
-	 * @param array  $args [ 'title' => string ].
-	 * @return string
-	 */
-	public static function danger_zone( $html, $args = array() ) {
-		$title = isset( $args['title'] ) && '' !== $args['title'] ? $args['title'] : 'Danger zone';
-
-		return '<div class="pxui-danger"><h2 class="pxui-danger__title">' . esc_html( $title ) . '</h2>' . $html . '</div>';
 	}
 }

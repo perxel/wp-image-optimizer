@@ -24,108 +24,94 @@ $run_pct   = $total > 0 ? (int) round( $processed / $total * 100 ) : 0;
 $settings_url = admin_url( 'upload.php?page=' . \Perxel\ImageOptimizer\Admin::PAGE_SETTINGS );
 
 /*
- * Headline panel. The run loop in assets/admin.js swaps #pxio-headline in place
- * while converting; every other state is rendered here by PHP.
+ * Headline row. The run loop in assets/admin.js swaps #pxio-headline in place
+ * while converting; every other state is rendered here by PHP as a single-row
+ * group (icon left, headline + explanation, action on the right).
  */
-$panel = '';
+$row = array();
 
 switch ( $state ) {
 
 	case 'cannot_convert':
-		$panel = Perxel_UI::panel(
-			array(
-				'status'  => 'error',
-				'icon'    => 'dismiss',
-				'title'   => __( "This host can't encode WebP.", 'perxel-image-optimizer' ),
-				'body'    => '<p>' . esc_html__( 'Neither GD nor Imagick reports WebP support, so conversion is disabled.', 'perxel-image-optimizer' ) . '</p>',
-				'actions' => '<a class="button" href="' . esc_url( $settings_url ) . '">' . esc_html__( 'Open Settings → Environment', 'perxel-image-optimizer' ) . '</a>',
-			)
+		$row = array(
+			'icon'    => 'bad',
+			'label'   => __( "This host can't encode WebP.", 'perxel-image-optimizer' ),
+			'sub'     => esc_html__( 'Neither GD nor Imagick reports WebP support, so conversion is disabled.', 'perxel-image-optimizer' ),
+			'content' => '<a class="button" href="' . esc_url( $settings_url ) . '">' . esc_html__( 'Open Settings → Environment', 'perxel-image-optimizer' ) . '</a>',
 		);
 		break;
 
 	case 'running':
-		$panel = Perxel_UI::panel(
-			array(
-				'status'   => 'info',
-				'icon'     => 'controls-play',
-				'title'    => __( 'Converting…', 'perxel-image-optimizer' ),
-				'progress' => $run_pct,
-				'body'     => '<p class="pxui-progress__label" id="pxio-run-live">'
-					. esc_html( sprintf( '%d / %d', $processed, $total ) ) . '</p>',
-				'actions'  => '<button type="button" class="button" id="pxio-resume">'
-					. esc_html__( 'Resume in this tab', 'perxel-image-optimizer' ) . '</button>',
-			)
+		$row = array(
+			'icon'    => '<span class="dashicons dashicons-controls-play"></span>',
+			'label'   => __( 'Converting…', 'perxel-image-optimizer' ),
+			'sub'     => Perxel_UI::progress_bar(
+				$run_pct,
+				array( 'label' => '<span id="pxio-run-live">' . esc_html( sprintf( '%d / %d', $processed, $total ) ) . '</span>' )
+			),
+			'content' => '<button type="button" class="button" id="pxio-resume">'
+				. esc_html__( 'Resume in this tab', 'perxel-image-optimizer' ) . '</button>',
 		);
 		break;
 
 	case 'stale':
 	case 'paused':
-		$panel = Perxel_UI::panel(
-			array(
-				'status'  => 'warning',
-				'icon'    => 'backup',
-				'title'   => sprintf(
-					/* translators: 1: processed count, 2: total count. */
-					__( 'A run stopped at %1$d / %2$d.', 'perxel-image-optimizer' ),
-					$processed,
-					$total
-				),
-				'body'    => '<p>' . esc_html__( 'Pick up where it left off, or discard the queue and start fresh.', 'perxel-image-optimizer' ) . '</p>',
-				'actions' => '<button type="button" class="button button-primary" id="pxio-resume">'
-					. esc_html__( 'Resume', 'perxel-image-optimizer' ) . '</button> '
-					. '<button type="button" class="button" id="pxio-discard">'
-					. esc_html__( 'Discard', 'perxel-image-optimizer' ) . '</button>',
-			)
+		$row = array(
+			'icon'    => 'warn',
+			'label'   => sprintf(
+				/* translators: 1: processed count, 2: total count. */
+				__( 'A run stopped at %1$d / %2$d.', 'perxel-image-optimizer' ),
+				$processed,
+				$total
+			),
+			'sub'     => esc_html__( 'Pick up where it left off, or discard the queue and start fresh.', 'perxel-image-optimizer' ),
+			'content' => '<button type="button" class="button button-primary" id="pxio-resume">'
+				. esc_html__( 'Resume', 'perxel-image-optimizer' ) . '</button> '
+				. '<button type="button" class="button" id="pxio-discard">'
+				. esc_html__( 'Discard', 'perxel-image-optimizer' ) . '</button>',
 		);
 		break;
 
 	case 'work':
-		$panel = Perxel_UI::panel(
-			array(
-				'status'  => 'action',
-				'icon'    => 'images-alt2',
-				'title'   => sprintf(
-					/* translators: %d: number of image files. */
-					_n( '%d image file is not WebP yet.', '%d image files are not WebP yet.', $pending, 'perxel-image-optimizer' ),
-					$pending
-				),
-				'actions' => '<button type="button" class="button button-primary button-hero" id="pxio-start">'
-					. esc_html(
-						sprintf(
-							/* translators: %d: number of image files. */
-							_n( 'Convert %d image', 'Convert %d images', $pending, 'perxel-image-optimizer' ),
-							$pending
-						)
+		$row = array(
+			'icon'    => '<span class="dashicons dashicons-images-alt2"></span>',
+			'label'   => sprintf(
+				/* translators: %d: number of image files. */
+				_n( '%d image file is not WebP yet.', '%d image files are not WebP yet.', $pending, 'perxel-image-optimizer' ),
+				$pending
+			),
+			'content' => '<button type="button" class="button button-primary" id="pxio-start">'
+				. esc_html(
+					sprintf(
+						/* translators: %d: number of image files. */
+						_n( 'Convert %d image', 'Convert %d images', $pending, 'perxel-image-optimizer' ),
+						$pending
 					)
-					. '</button>',
-			)
+				)
+				. '</button>',
 		);
 		break;
 
 	case 'serve_off':
-		$panel = Perxel_UI::panel(
-			array(
-				'status'  => 'warning',
-				'icon'    => 'visibility',
-				'title'   => __( 'WebP files exist but are not being served.', 'perxel-image-optimizer' ),
-				'actions' => '<a class="button button-primary" href="' . esc_url( $settings_url . '#serving' ) . '">'
-					. esc_html__( 'Enable serving', 'perxel-image-optimizer' ) . '</a>',
-			)
+		$row = array(
+			'icon'    => 'warn',
+			'label'   => __( 'WebP files exist but are not being served.', 'perxel-image-optimizer' ),
+			'content' => '<a class="button button-primary" href="' . esc_url( $settings_url . '#serving' ) . '">'
+				. esc_html__( 'Enable serving', 'perxel-image-optimizer' ) . '</a>',
 		);
 		break;
 
 	default: // done.
-		$panel = Perxel_UI::panel(
-			array(
-				'status'  => 'success',
-				'icon'    => 'yes-alt',
-				'title'   => __( 'All images are converted and served as WebP.', 'perxel-image-optimizer' ),
-				'actions' => '<button type="button" class="button" id="pxio-start">'
-					. esc_html__( 'Re-run anyway', 'perxel-image-optimizer' ) . '</button>',
-			)
+		$row = array(
+			'icon'    => 'good',
+			'label'   => __( 'All images are converted and served as WebP.', 'perxel-image-optimizer' ),
+			'content' => '<button type="button" class="button" id="pxio-start">'
+				. esc_html__( 'Re-run anyway', 'perxel-image-optimizer' ) . '</button>',
 		);
 		break;
 }
+
+$panel = Perxel_UI::rows( array( array( 'rows' => array( $row ) ) ) );
 
 // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- Perxel_UI escapes structure; dynamic values escaped above.
 

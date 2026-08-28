@@ -61,13 +61,17 @@
 		var head = byId( 'pxio-headline' );
 		if ( ! head ) { return; }
 		head.innerHTML =
-			'<div class="pxui-panel pxui-panel--info"><div class="pxui-panel__inner">' +
-			'<span class="pxui-panel__icon dashicons dashicons-controls-play" aria-hidden="true"></span>' +
-			'<div class="pxui-panel__content">' +
-			'<p class="pxui-panel__title">Converting…</p>' +
+			'<div class="pxui-rows"><div class="pxui-rows__group"><div class="pxui-rows__card">' +
+			'<div class="pxui-row pxui-row--has-icon">' +
+			'<span class="pxui-row__icon" aria-hidden="true"><span class="dashicons dashicons-controls-play"></span></span>' +
+			'<span class="pxui-row__label">Converting…' +
+			'<span class="pxui-row__sub">' +
 			'<div class="pxui-progress"><span class="pxui-progress__fill" style="width:0%"></span></div>' +
-			'<p class="pxui-progress__label" id="pxio-run-live">Starting…</p>' +
-			'<div class="pxui-panel__actions"><button type="button" class="button" id="pxio-pause">Pause</button></div>' +
+			'<div class="pxui-progress__label"><span id="pxio-run-live">Starting…</span></div>' +
+			'</span>' +
+			'</span>' +
+			'<span class="pxui-row__content"><button type="button" class="button" id="pxio-pause">Pause</button></span>' +
+			'</div>' +
 			'</div></div></div>';
 		on( 'pxio-pause', 'click', function () { stopFlag = true; } );
 	}

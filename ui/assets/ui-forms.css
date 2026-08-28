@@ -215,8 +215,8 @@
 }
 
 /* Danger group — a row group for destructive actions: red title, red hairline
-   card over the warning tint, buttons in the warning colour. The grouped-row
-   equivalent of `.pxui-danger`. */
+   card over the warning tint, buttons in the warning colour. A screen's
+   cleanup / destructive-action section. */
 .pxui-rows__group--danger .pxui-rows__title { color:var(--pxui-bad); }
 
 .pxui-rows__group--danger .pxui-rows__card {
