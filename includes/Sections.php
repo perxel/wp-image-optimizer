@@ -59,8 +59,8 @@ class Sections {
 	 * (Converter::META_SIG): missing, or not equal to the current settings
 	 * signature. That covers never-converted, failed, partial and
 	 * settings-changed. The rarer "a new thumbnail size appeared under a done
-	 * record" case is left to the authoritative recalc (§5) — the scan is an
-	 * estimate by design.
+	 * record" case is caught by Converter::needs_work() on the catch-up path
+	 * (and by a forced re-run) - the SQL check is deliberately a fast estimate.
 	 *
 	 * @param string $ym        'YYYY-MM'.
 	 * @param int    $after_id   Return IDs strictly greater than this.

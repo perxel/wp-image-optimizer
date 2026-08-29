@@ -10,10 +10,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * admin-ajax endpoints. Every handler checks the nonce and capability.
  *
  * Only two kinds of thing stay on AJAX: the live progress poll while a run is
- * active, and the per-attachment Media-library buttons. Everything else — Scan,
- * Start, Pause, Cancel, Retry, Recalculate, the test email — is a plain form
- * POST to an `admin_post_*` handler (Admin.php), matching the plugin's
- * server-rendered house style.
+ * active, and the per-attachment Media-library buttons. Everything else - Scan,
+ * Start, Pause, Cancel, Retry, the test email - is a plain form POST to an
+ * `admin_post_*` handler (Admin.php), matching the plugin's server-rendered
+ * house style.
  */
 class Ajax {
 
@@ -39,7 +39,7 @@ class Ajax {
 	/* --------------------------------------------------------------------- */
 
 	/**
-	 * Live run progress — polled by the monitor every few seconds.
+	 * Live run progress - polled by the monitor every few seconds.
 	 */
 	public function progress() {
 		$this->guard();
@@ -58,7 +58,6 @@ class Ajax {
 
 		$force  = ! empty( $_POST['force'] );
 		$result = Converter::convert_attachment( $id, $force );
-		Metrics::apply( $result );
 
 		if ( 'failed' === ( $result['status'] ?? '' ) ) {
 			Failures::record( $id, ( ! empty( $result['error'] ) ? $result['error'] : 'conversion failed' ), 'failed' );
@@ -134,7 +133,7 @@ class Ajax {
 	}
 
 	/**
-	 * Everything the admin screens need in one object. Cheap — reads options and
+	 * Everything the admin screens need in one object. Cheap - reads options and
 	 * one `wp_count_attachments()`, never walks the library.
 	 *
 	 * @return array
@@ -145,10 +144,9 @@ class Ajax {
 		return array(
 			'environment' => Environment::probe(),
 			'settings'    => Settings::all(),
-			'metrics'     => Metrics::all(),
-			'report'      => Metrics::report(),
 			'summary'     => Scanner::summary(),
 			'scan'        => Scan::data(),
+			'stats'       => Scan::stats(),
 			'job'         => Runner::progress(),
 			'sections'    => Sections::months(),
 			'serving'     => array(
@@ -158,7 +156,6 @@ class Ajax {
 			),
 			'failures'    => Failures::listing( 100 ),
 			'sizes'       => array_merge( array( 'full' ), get_intermediate_image_sizes() ),
-			'recalcing'   => (bool) get_transient( 'perxel_image_optimizer_recalcing' ),
 		);
 	}
 }

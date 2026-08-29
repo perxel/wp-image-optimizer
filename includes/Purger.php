@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * "Remove all WebP" — a resumable, chunked delete of the .webp copies this
+ * "Remove all WebP" - a resumable, chunked delete of the .webp copies this
  * plugin created under uploads/ (siblings named `foo.jpg.webp` / `foo.png.webp`).
  * Standalone .webp uploads and other plugins' files are left alone.
  */
@@ -115,17 +115,18 @@ class Purger {
 	 * Clear all plugin state after a full purge.
 	 */
 	private static function finish() {
-		// Clear every per-attachment record AND force the meta cache to drop —
+		// Clear every per-attachment record AND force the meta cache to drop -
 		// a raw $wpdb->delete (or delete_post_meta on already-gone rows) leaves
 		// a persistent object cache serving stale "status => done" records.
 		foreach ( Scanner::all_image_ids() as $id ) {
 			$id = (int) $id;
 			delete_post_meta( $id, Converter::META );
 			delete_post_meta( $id, Converter::META_SIG );
+			delete_post_meta( $id, Converter::META_SAVED );
+			delete_post_meta( $id, Converter::META_WEBP );
 			wp_cache_delete( $id, 'post_meta' );
 		}
 
-		Metrics::reset();
 		Runner::reset();
 		Failures::clear();
 		Scan::clear();

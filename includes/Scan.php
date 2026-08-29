@@ -7,15 +7,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * The light, on-demand library scan behind the prepare screen.
+ * The one function that produces every library-wide figure the admin screens
+ * show - pending counts, coverage, exact bytes saved, exact bytes on disk - and
+ * the per-month breakdown behind the prepare screen.
  *
- * A page visit never walks the library (§5). The "Scan library" button runs
- * this: a handful of grouped `COUNT()` queries plus a ~120-attachment metadata
- * sample — no image decode, no file writes. The result is cached in one option
- * and drives the month list and the "This run" estimate.
+ * A page visit never runs it; the "Scan library" button does. It is all cheap
+ * SQL: grouped `COUNT()` per month, two `SUM()` over the flat
+ * `_perxel_image_optimizer_saved` / `_perxel_image_optimizer_webp` meta keys
+ * (written by `Converter` on every convert / remove), plus a ~120-attachment
+ * `_wp_attachment_metadata` sample for the pre-run size estimate. No image
+ * decode, no file reads, no library walk. Result cached in one option.
  *
- * This is NOT the authoritative recalc (Metrics::recalculate(), which walks
- * every attachment and the uploads dir for orphan .webp) — that stays rare.
+ * The byte totals are exact for everything converted by this plugin. WebP files
+ * left by other tools that were never recorded aren't counted - there is no
+ * record of them to sum, and the purge flow already reports those.
  */
 class Scan {
 
@@ -84,6 +89,42 @@ class Scan {
 	}
 
 	/**
+	 * Derived display figures for the "At a glance" tiles.
+	 *
+	 * @return array{
+	 *   scanned:bool, scanned_at:int, stale:bool,
+	 *   attachments:int, settled:int, pending:int, converted:int,
+	 *   coverage_pct:int, saved_bytes:int, webp_bytes:int, src_bytes:int,
+	 *   saved_pct:int
+	 * }
+	 */
+	public static function stats() {
+		$d = self::data();
+
+		$total   = (int) ( $d['total'] ?? 0 );
+		$pending = (int) ( $d['pending'] ?? 0 );
+		$settled = max( 0, $total - $pending );
+		$saved   = (int) ( $d['saved_bytes'] ?? 0 );
+		$webp    = (int) ( $d['webp_bytes'] ?? 0 );
+		$src     = $saved + $webp;
+
+		return array(
+			'scanned'      => ! empty( $d['scanned_at'] ),
+			'scanned_at'   => (int) ( $d['scanned_at'] ?? 0 ),
+			'stale'        => ! empty( $d['stale'] ),
+			'attachments'  => $total,
+			'settled'      => $settled,
+			'pending'      => $pending,
+			'converted'    => (int) ( $d['converted'] ?? 0 ),
+			'coverage_pct' => $total > 0 ? (int) round( $settled / $total * 100 ) : 0,
+			'saved_bytes'  => $saved,
+			'webp_bytes'   => $webp,
+			'src_bytes'    => $src,
+			'saved_pct'    => $src > 0 ? (int) round( $saved / $src * 100 ) : 0,
+		);
+	}
+
+	/**
 	 * Run the scan and cache it.
 	 *
 	 * @return array The stored data.
@@ -142,17 +183,45 @@ class Scan {
 
 		krsort( $months );
 
-		list( $avg_src, $avg_frac ) = self::sample();
+		// Exact library-wide byte totals - one indexed SUM per flat meta key.
+		$saved_total = (int) $wpdb->get_var(
+			$wpdb->prepare( "SELECT SUM(meta_value) FROM {$wpdb->postmeta} WHERE meta_key = %s", Converter::META_SAVED )
+		);
+		$webp_total  = (int) $wpdb->get_var(
+			$wpdb->prepare( "SELECT SUM(meta_value) FROM {$wpdb->postmeta} WHERE meta_key = %s", Converter::META_WEBP )
+		);
+		$converted   = (int) $wpdb->get_var(
+			$wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key = %s", Converter::META_WEBP )
+		);
+
+		list( $avg_src, $fallback_frac, $avg_mp ) = self::sample();
+
+		$measured_frac = $webp_total > 0;
+		$avg_frac      = $measured_frac
+			? $webp_total / ( $saved_total + $webp_total )
+			: $fallback_frac;
+
+		// Seconds per image: what past runs measured on this server, else a
+		// rough guess from the average image size.
+		$pace          = (float) get_option( Runner::PACE_OPTION, 0 );
+		$measured_pace = $pace > 0;
+		$per_image     = $measured_pace ? $pace : self::guess_per_image( $avg_mp );
 
 		$data = array(
-			'months'     => $months,
-			'total'      => $total_all,
-			'pending'    => $total_pending,
-			'avg_src'    => $avg_src,
-			'avg_frac'   => $avg_frac,
-			'scanned_at' => time(),
-			'signature'  => $signature,
-			'stale'      => false,
+			'months'        => $months,
+			'total'         => $total_all,
+			'pending'       => $total_pending,
+			'converted'     => $converted,
+			'saved_bytes'   => $saved_total,
+			'webp_bytes'    => $webp_total,
+			'avg_src'       => $avg_src,
+			'avg_frac'      => max( 0.05, min( 0.95, (float) $avg_frac ) ),
+			'frac_source'   => $measured_frac ? 'measured' : 'default',
+			'per_image'     => round( $per_image, 3 ),
+			'pace_measured' => $measured_pace,
+			'scanned_at'    => time(),
+			'signature'     => $signature,
+			'stale'         => false,
 		);
 
 		update_option( self::OPTION, $data, false );
@@ -161,14 +230,17 @@ class Scan {
 	}
 
 	/**
-	 * Sample attachment metadata to estimate the average source bytes per
-	 * pending image and the average WebP size fraction.
+	 * Sample attachment metadata for the pre-run size estimate: average source
+	 * bytes per attachment, plus a public-default WebP fraction to fall back on
+	 * before there is any real conversion data.
 	 *
 	 * Source bytes come from `_wp_attachment_metadata` (WP ≥ 6.0 stores
-	 * `filesize`) — no file reads. The WebP fraction comes from real conversion
-	 * data when there is any, otherwise public defaults.
+	 * `filesize`) - no file reads. Also returns the average megapixels per
+	 * attachment (full + sub-sizes), used to guess conversion speed before a
+	 * run has measured it.
 	 *
-	 * @return array{0:int,1:float} [ avg source bytes, avg webp fraction ].
+	 * @return array{0:int,1:float,2:float} [ avg source bytes, fallback webp
+	 *         fraction, avg megapixels ].
 	 */
 	private static function sample() {
 		global $wpdb;
@@ -184,14 +256,16 @@ class Scan {
 			)
 		);
 
-		$sum   = array(
+		$sum    = array(
 			'image/jpeg' => 0,
 			'image/png'  => 0,
 		);
-		$count = array(
+		$count  = array(
 			'image/jpeg' => 0,
 			'image/png'  => 0,
 		);
+		$mp_sum = 0.0;
+		$mp_n   = 0;
 
 		foreach ( (array) $ids as $id ) {
 			$id   = (int) $id;
@@ -203,12 +277,15 @@ class Scan {
 
 			$meta  = wp_get_attachment_metadata( $id );
 			$bytes = 0;
+			$mp    = 0.0;
 
 			if ( is_array( $meta ) ) {
 				$bytes += (int) ( $meta['filesize'] ?? 0 );
+				$mp    += ( (int) ( $meta['width'] ?? 0 ) * (int) ( $meta['height'] ?? 0 ) ) / 1000000;
 
 				foreach ( (array) ( $meta['sizes'] ?? array() ) as $size ) {
 					$bytes += (int) ( $size['filesize'] ?? 0 );
+					$mp    += ( (int) ( $size['width'] ?? 0 ) * (int) ( $size['height'] ?? 0 ) ) / 1000000;
 				}
 			}
 
@@ -216,25 +293,39 @@ class Scan {
 				$sum[ $mime ] += $bytes;
 				++$count[ $mime ];
 			}
+
+			if ( $mp > 0 ) {
+				$mp_sum += $mp;
+				++$mp_n;
+			}
 		}
 
 		$total_n = $count['image/jpeg'] + $count['image/png'];
 		$avg_src = $total_n > 0
 			? (int) round( ( $sum['image/jpeg'] + $sum['image/png'] ) / $total_n )
 			: 0;
+		$avg_mp  = $mp_n > 0 ? $mp_sum / $mp_n : 0.0;
 
-		// WebP size as a fraction of source, weighted by the sampled mime mix.
-		$report = Metrics::report();
-		if ( (int) $report['converted_files'] > 0 && (int) $report['served_before'] > 0 ) {
-			$frac = $report['served_after'] / $report['served_before'];
-		} else {
-			$jpeg_frac = 0.70; // ~30% smaller
-			$png_frac  = extension_loaded( 'imagick' ) ? 0.78 : 0.50;
-			$frac      = $total_n > 0
-				? ( ( $jpeg_frac * $count['image/jpeg'] ) + ( $png_frac * $count['image/png'] ) ) / $total_n
-				: $jpeg_frac;
-		}
+		$jpeg_frac = 0.70; // ~30% smaller
+		$png_frac  = extension_loaded( 'imagick' ) ? 0.78 : 0.50;
+		$fallback  = $total_n > 0
+			? ( ( $jpeg_frac * $count['image/jpeg'] ) + ( $png_frac * $count['image/png'] ) ) / $total_n
+			: $jpeg_frac;
 
-		return array( $avg_src, max( 0.05, min( 0.95, (float) $frac ) ) );
+		return array( $avg_src, $fallback, $avg_mp );
+	}
+
+	/**
+	 * Rough seconds-per-image before a run has measured this server: scaled by
+	 * the average megapixels processed (all sizes), floored so a thumbnail-only
+	 * library still shows a sane number.
+	 *
+	 * @param float $avg_mp Average megapixels per attachment.
+	 * @return float
+	 */
+	private static function guess_per_image( $avg_mp ) {
+		$per_mp = extension_loaded( 'imagick' ) ? 0.5 : 0.35;
+
+		return max( 0.4, $avg_mp > 0 ? $avg_mp * $per_mp : 1.0 );
 	}
 }

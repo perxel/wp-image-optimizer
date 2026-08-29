@@ -1,6 +1,6 @@
 <?php
 /**
- * Settings screen — environment, conversion config, serving, cleanup.
+ * Settings screen - environment, conversion config, serving, cleanup.
  *
  * @package Perxel_Image_Optimizer
  *
@@ -24,8 +24,8 @@ $engine = ! empty( $env['imagick_webp'] )
 	: ( ! empty( $env['gd'] ) ? 'GD ' . $env['gd_version'] : __( 'none', 'perxel-image-optimizer' ) );
 
 $serve_mode = array(
-	'apache'   => __( 'Active — via .htaccess', 'perxel-image-optimizer' ),
-	'fallback' => __( 'Active — via HTML fallback', 'perxel-image-optimizer' ),
+	'apache'   => __( 'Active - via .htaccess', 'perxel-image-optimizer' ),
+	'fallback' => __( 'Active - via HTML fallback', 'perxel-image-optimizer' ),
 	'off'      => __( 'Off', 'perxel-image-optimizer' ),
 );
 
@@ -164,12 +164,23 @@ foreach ( (array) $snap['sizes'] as $name ) {
 					),
 					array(
 						'label'   => __( 'Auto-optimize new uploads', 'perxel-image-optimizer' ),
-						'sub'     => esc_html__( 'Convert each image to WebP as it is uploaded.', 'perxel-image-optimizer' ),
+						'sub'     => esc_html__( 'Convert each image to WebP shortly after it is uploaded.', 'perxel-image-optimizer' ),
 						'content' => Perxel_UI::toggle(
 							array(
 								'name'    => 'convert_on_upload',
 								'checked' => $cfg['convert_on_upload'],
 								'label'   => __( 'Auto-optimize new uploads', 'perxel-image-optimizer' ),
+							)
+						),
+					),
+					array(
+						'label'   => __( 'Skip already-converted images', 'perxel-image-optimizer' ),
+						'sub'     => esc_html__( 'Off makes every bulk run re-encode the whole library, even current WebP copies.', 'perxel-image-optimizer' ),
+						'content' => Perxel_UI::toggle(
+							array(
+								'name'    => 'skip_converted',
+								'checked' => ! empty( $cfg['skip_converted'] ),
+								'label'   => __( 'Skip already-converted images', 'perxel-image-optimizer' ),
 							)
 						),
 					),
@@ -187,7 +198,7 @@ foreach ( (array) $snap['sizes'] as $name ) {
 $serve_status = esc_html__( 'Status:', 'perxel-image-optimizer' ) . ' '
 	. esc_html( isset( $serve_mode[ $srv['mode'] ] ) ? $serve_mode[ $srv['mode'] ] : $srv['mode'] );
 
-$serve_sub = $serve_status . ' — ' . esc_html__(
+$serve_sub = $serve_status . ' - ' . esc_html__(
 	'On Apache, saving this on adds a rewrite block to your .htaccess file (preview below). Saving it off, or deactivating the plugin, removes the block.',
 	'perxel-image-optimizer'
 );
@@ -238,7 +249,7 @@ $admin_email = (string) get_option( 'admin_email' );
 				'rows'  => array(
 					array(
 						'label'   => __( 'Email a report when a bulk run finishes', 'perxel-image-optimizer' ),
-						'sub'     => esc_html__( 'Converted count, bandwidth saved, disk added, failures — sent once per run (also on cancel).', 'perxel-image-optimizer' ),
+						'sub'     => esc_html__( 'Converted count, bandwidth saved, disk added, failures. Sent once per run (also on cancel).', 'perxel-image-optimizer' ),
 						'content' => Perxel_UI::toggle(
 							array(
 								'name'    => 'email_report',
@@ -262,7 +273,7 @@ $admin_email = (string) get_option( 'admin_email' );
 					),
 					array(
 						'label'   => __( 'Test', 'perxel-image-optimizer' ),
-						'sub'     => esc_html__( 'Sends a sample report now. Uses the address above — save first if you just changed it and have JavaScript off.', 'perxel-image-optimizer' ),
+						'sub'     => esc_html__( 'Sends a sample report now. Uses the address above; save first if you just changed it and have JavaScript off.', 'perxel-image-optimizer' ),
 						'content' => '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" id="pxio-test-email" style="display:inline">'
 							. '<input type="hidden" name="action" value="perxel_image_optimizer_test_email" />'
 							. '<input type="hidden" name="email_report_to" value="' . esc_attr( $email_to ) . '" />'
@@ -313,8 +324,8 @@ echo '<p id="pxio-purge-out" class="pxui-muted"></p>';
 /* --- Environment --------------------------------------------------- */
 
 /**
- * One row answers the only question that matters — can this server encode
- * WebP, and with what — and the disclosure spills the full detail for a
+ * One row answers the only question that matters - can this server encode
+ * WebP, and with what - and the disclosure spills the full detail for a
  * host that needs to diagnose it.
  */
 $env_ok = ! empty( $env['webp_encode'] );

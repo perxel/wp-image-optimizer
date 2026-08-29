@@ -10,10 +10,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Enumerates image attachments.
  *
  * The heavy "what still needs converting" work moved out: month-scoped queries
- * live in Sections, the cached library scan in Scan, and the failures list in
- * Failures. What is left here is the full-ID list (used by the authoritative
- * recalc), a cheap page-load summary, and the newest-first pending query the
- * catch-up path uses.
+ * live in Sections, the cached library scan (counts + exact byte totals) in
+ * Scan, the failures list in Failures. What is left here is the full-ID list
+ * (used by the "Remove all WebP" purge), a cheap page-load summary, and the
+ * newest-first pending query the catch-up path uses.
  */
 class Scanner {
 
@@ -75,9 +75,8 @@ class Scanner {
 	}
 
 	/**
-	 * Cheap dashboard counts — no library walk. The attachment total comes from
-	 * wp_count_attachments(); "pending" comes from the cached scan when there is
-	 * one, otherwise the incremental metrics figure.
+	 * Cheap dashboard counts - no library walk. The attachment total is always
+	 * live (wp_count_attachments()); "pending" is known only once scanned.
 	 *
 	 * @return array{attachments:int,pending:int,scanned:bool}
 	 */
@@ -87,13 +86,10 @@ class Scanner {
 
 		$scan    = Scan::data();
 		$scanned = ! empty( $scan['scanned_at'] );
-		$pending = $scanned
-			? (int) $scan['pending']
-			: (int) Metrics::all()['pending_files'];
 
 		return array(
 			'attachments' => $attachments,
-			'pending'     => $pending,
+			'pending'     => $scanned ? (int) $scan['pending'] : 0,
 			'scanned'     => $scanned,
 		);
 	}

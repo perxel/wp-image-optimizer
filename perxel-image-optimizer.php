@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Perxel Image Optimizer
  * Plugin URI:        https://github.com/perxel/wp-image-optimizer
- * Description:        Convert the media library to WebP and serve it via .htaccess. No SSH, no external service — a bulk run from an admin page plus per-attachment buttons.
+ * Description:        Convert the media library to WebP and serve it via .htaccess. No SSH, no external service - a bulk run from an admin page plus per-attachment buttons.
  * Version:           0.0.1
  * Requires at least: 6.5
  * Requires PHP:      7.4
@@ -43,7 +43,7 @@ spl_autoload_register(
 );
 
 /**
- * Action Scheduler — bundled background job runner (vendored, committed; not
+ * Action Scheduler - bundled background job runner (vendored, committed; not
  * Composer-managed here). Self-negotiates its version when several active
  * plugins ship a copy, so loading it unconditionally is safe. See CLAUDE.md
  * for how to refresh the vendored copy. Guarded so a botched deploy degrades

@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Plugin settings — stored in a single option, always read through defaults.
+ * Plugin settings - stored in a single option, always read through defaults.
  */
 class Settings {
 
@@ -31,6 +31,7 @@ class Settings {
 			'convert_on_upload' => true,
 			'serve'             => true,
 			'skip_megapixels'   => 0, // 0 = auto (Environment::safe_megapixels()).
+			'skip_converted'    => true, // bulk runs skip images that already have a current WebP copy
 			'email_report'      => false,
 			'email_report_to'   => '',
 		);
@@ -85,6 +86,10 @@ class Settings {
 
 		$clean['convert_png']       = ! empty( $input['convert_png'] );
 		$clean['convert_on_upload'] = ! empty( $input['convert_on_upload'] );
+
+		if ( array_key_exists( 'skip_converted', $input ) ) {
+			$clean['skip_converted'] = ! empty( $input['skip_converted'] );
+		}
 
 		if ( array_key_exists( 'serve', $input ) ) {
 			$clean['serve'] = ! empty( $input['serve'] );

@@ -12,7 +12,7 @@ Convert the media library to WebP and serve it via .htaccess. No SSH, no WP-CLI,
 
 == Description ==
 
-Convert the WordPress media library to WebP and serve it — entirely from an admin
+Convert the WordPress media library to WebP and serve it - entirely from an admin
 page, on shared hosting.
 
 * Conversion in PHP via WP_Image_Editor (GD/Imagick). `foo.jpg` becomes a
@@ -21,7 +21,7 @@ page, on shared hosting.
   `<img>` to `<picture>` fallback elsewhere.
 * Scan-first bulk run: a light scan estimates the work, then a background job
   (Action Scheduler) converts the library newest-to-oldest, one month at a time.
-  Pause, resume, cancel, close the tab — progress is durable. Optional email
+  Pause, resume, cancel, close the tab - progress is durable. Optional email
   report when a run finishes.
 * Per-attachment Convert / Reconvert / Remove buttons in the Media library.
 * New uploads are converted automatically, shortly after upload.
@@ -56,4 +56,4 @@ The `.htaccess` swap is Apache-only. On nginx the plugin rewrites `<img>` tags t
 * Admin redesign: the single scrolling page is now a **Status** screen (metrics +
   one action button) and a separate **Settings** screen, in a shared sidebar
   layout. Both are server-rendered; JavaScript only drives the conversion run.
-* Bundled `ui/` — a standalone, separately-versioned shared admin-UI kit.
+* Bundled `ui/` - a standalone, separately-versioned shared admin-UI kit.

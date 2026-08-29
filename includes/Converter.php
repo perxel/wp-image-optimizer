@@ -21,10 +21,21 @@ class Converter {
 	 * Standalone, SQL-filterable settings signature. Present and equal to the
 	 * current Settings::signature() exactly when the attachment is fully handled
 	 * under the current settings (status done, no-gain, or a deterministic
-	 * skip). Absent for partial/failed work — which is how Sections/Scanner
+	 * skip). Absent for partial/failed work - which is how Sections/Scanner
 	 * find "still needs converting" without unserialising per-row meta.
 	 */
 	const META_SIG = '_perxel_image_optimizer_sig';
+
+	/**
+	 * Flat, SQL-summable byte tallies for this attachment's current WebP set:
+	 * `_perxel_image_optimizer_saved` = source bytes minus WebP bytes,
+	 * `_perxel_image_optimizer_webp`  = WebP bytes on disk. Written whenever the
+	 * attachment has at least one WebP file, deleted otherwise. `Scan` sums these
+	 * for the exact library-wide "saved" / "on disk" figures - no library walk,
+	 * no unserialising the per-size blob above.
+	 */
+	const META_SAVED = '_perxel_image_optimizer_saved';
+	const META_WEBP  = '_perxel_image_optimizer_webp';
 
 	/**
 	 * Convert every eligible file of one attachment.
@@ -102,7 +113,10 @@ class Converter {
 				}
 
 				if ( ! file_exists( $path ) ) {
-					$result['sizes'][ $size ] = array( 'ok' => false, 'reason' => 'missing source' );
+					$result['sizes'][ $size ] = array(
+						'ok'     => false,
+						'reason' => 'missing source',
+					);
 					continue;
 				}
 
@@ -116,16 +130,19 @@ class Converter {
 						'webp' => (int) filesize( $target ),
 						'kept' => true,
 					);
-					$ok++;
+					++$ok;
 					continue;
 				}
 
 				// Megapixel guard.
 				$mp = self::megapixels( $path, $info );
 				if ( $max_mp > 0 && $mp > $max_mp ) {
-					$result['sizes'][ $size ] = array( 'ok' => false, 'reason' => sprintf( 'exceeds %d MP', $max_mp ) );
-					$skip++;
-					$too_large++;
+					$result['sizes'][ $size ] = array(
+						'ok'     => false,
+						'reason' => sprintf( 'exceeds %d MP', $max_mp ),
+					);
+					++$skip;
+					++$too_large;
 					continue;
 				}
 
@@ -134,16 +151,16 @@ class Converter {
 				$result['sizes'][ $size ] = $one;
 
 				if ( ! empty( $one['ok'] ) ) {
-					$ok++;
+					++$ok;
 					if ( empty( $one['kept'] ) ) {
 						$result['src_bytes']  += (int) $one['src'];
 						$result['webp_bytes'] += (int) $one['webp'];
-						$result['converted']++;
+						++$result['converted'];
 					}
 				} elseif ( isset( $one['reason'] ) && 'no_gain' === $one['reason'] ) {
-					$skip++;
+					++$skip;
 				} else {
-					$fail++;
+					++$fail;
 				}
 			}
 
@@ -192,15 +209,20 @@ class Converter {
 			if ( file_exists( $target ) ) {
 				$bytes += (int) filesize( $target );
 				if ( @unlink( $target ) ) {
-					$deleted++;
+					++$deleted;
 				}
 			}
 		}
 
 		delete_post_meta( $attachment_id, self::META );
 		delete_post_meta( $attachment_id, self::META_SIG );
+		delete_post_meta( $attachment_id, self::META_SAVED );
+		delete_post_meta( $attachment_id, self::META_WEBP );
 
-		return array( 'deleted' => $deleted, 'bytes' => $bytes );
+		return array(
+			'deleted' => $deleted,
+			'bytes'   => $bytes,
+		);
 	}
 
 	/**
@@ -221,7 +243,10 @@ class Converter {
 		$editor = wp_get_image_editor( $source );
 
 		if ( is_wp_error( $editor ) ) {
-			return array( 'ok' => false, 'reason' => $editor->get_error_message() );
+			return array(
+				'ok'     => false,
+				'reason' => $editor->get_error_message(),
+			);
 		}
 
 		$editor->set_quality( $quality );
@@ -244,34 +269,52 @@ class Converter {
 
 		if ( is_wp_error( $saved ) ) {
 			self::cleanup( $tmp );
-			return array( 'ok' => false, 'reason' => $saved->get_error_message() );
+			return array(
+				'ok'     => false,
+				'reason' => $saved->get_error_message(),
+			);
 		}
 
 		$written = isset( $saved['path'] ) ? $saved['path'] : $tmp;
 
 		if ( ! file_exists( $written ) ) {
-			return array( 'ok' => false, 'reason' => 'encoder wrote nothing' );
+			return array(
+				'ok'     => false,
+				'reason' => 'encoder wrote nothing',
+			);
 		}
 
 		$webp_bytes = (int) filesize( $written );
 
 		if ( $webp_bytes <= 0 || $webp_bytes >= $src_bytes ) {
 			self::cleanup( $written );
-			return array( 'ok' => false, 'reason' => 'no_gain', 'src' => $src_bytes, 'webp' => $webp_bytes );
+			return array(
+				'ok'     => false,
+				'reason' => 'no_gain',
+				'src'    => $src_bytes,
+				'webp'   => $webp_bytes,
+			);
 		}
 
 		if ( $written !== $target && ! @rename( $written, $target ) ) {
 			// Non-atomic fallback: copy then unlink.
 			if ( ! @copy( $written, $target ) ) {
 				self::cleanup( $written );
-				return array( 'ok' => false, 'reason' => 'could not place target' );
+				return array(
+					'ok'     => false,
+					'reason' => 'could not place target',
+				);
 			}
 			@unlink( $written );
 		}
 
 		@chmod( $target, ( fileperms( $source ) & 0777 ) | 0644 );
 
-		return array( 'ok' => true, 'src' => $src_bytes, 'webp' => $webp_bytes );
+		return array(
+			'ok'   => true,
+			'src'  => $src_bytes,
+			'webp' => $webp_bytes,
+		);
 	}
 
 	/**
@@ -371,6 +414,36 @@ class Converter {
 		} else {
 			delete_post_meta( $attachment_id, self::META_SIG );
 		}
+
+		self::save_byte_tallies( $attachment_id, $result['sizes'] );
+	}
+
+	/**
+	 * Recompute the flat byte tallies (META_SAVED / META_WEBP) from a result's
+	 * per-size rows: the current on-disk truth for this attachment. Deleted when
+	 * nothing is on disk.
+	 *
+	 * @param int   $attachment_id Attachment ID.
+	 * @param array $sizes         $result['sizes'].
+	 */
+	private static function save_byte_tallies( $attachment_id, array $sizes ) {
+		$saved = 0;
+		$webp  = 0;
+
+		foreach ( $sizes as $row ) {
+			if ( ! empty( $row['ok'] ) && isset( $row['src'], $row['webp'] ) ) {
+				$saved += (int) $row['src'] - (int) $row['webp'];
+				$webp  += (int) $row['webp'];
+			}
+		}
+
+		if ( $webp > 0 ) {
+			update_post_meta( $attachment_id, self::META_SAVED, max( 0, $saved ) );
+			update_post_meta( $attachment_id, self::META_WEBP, $webp );
+		} else {
+			delete_post_meta( $attachment_id, self::META_SAVED );
+			delete_post_meta( $attachment_id, self::META_WEBP );
+		}
 	}
 
 	/**
@@ -415,7 +488,7 @@ class Converter {
 			return true;
 		}
 
-		// Files changed underneath a "done" record — e.g. thumbnails were
+		// Files changed underneath a "done" record - e.g. thumbnails were
 		// regenerated with different size names. Any currently-wanted size that
 		// isn't recorded (and whose source exists) means there's work to do.
 		$recorded = (array) ( $meta['sizes'] ?? array() );

@@ -1,6 +1,6 @@
 <?php
 /**
- * Status screen — the live run monitor (running / stalled / paused / complete).
+ * Status screen - the live run monitor (running / stalled / paused / complete).
  * Included by views/status.php; assets/admin.js polls
  * `perxel_image_optimizer_progress` and updates the marked spans in place.
  *
@@ -53,7 +53,7 @@ switch ( $state ) {
 		break;
 
 	case 'paused':
-		$headline  = __( 'Paused', 'perxel-image-optimizer' ) . ( $month_line ? ' — ' . $month_line : '' );
+		$headline  = __( 'Paused', 'perxel-image-optimizer' ) . ( $month_line ? ' - ' . $month_line : '' );
 		$sub_extra = '';
 		break;
 
@@ -67,7 +67,7 @@ switch ( $state ) {
 		break;
 
 	default: // running.
-		$headline  = __( 'Converting…', 'perxel-image-optimizer' ) . ( $month_line ? ' — ' . $month_line : '' );
+		$headline  = __( 'Converting…', 'perxel-image-optimizer' ) . ( $month_line ? ' - ' . $month_line : '' );
 		$sub_extra = '';
 		break;
 }
@@ -155,7 +155,7 @@ if ( $failures ) {
 			. ( $row['edit'] ? '<a href="' . esc_url( $row['edit'] ) . '">' : '' )
 			. esc_html( $row['file'] ? $row['file'] : $row['name'] )
 			. ( $row['edit'] ? '</a>' : '' )
-			. ' — <span class="pxui-muted">' . esc_html( $row['reason'] ) . '</span>'
+			. ' - <span class="pxui-muted">' . esc_html( $row['reason'] ) . '</span>'
 			. '</li>';
 	}
 

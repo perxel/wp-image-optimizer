@@ -28,10 +28,13 @@ class Runner {
 	const GROUP  = 'perxel-image-optimizer';
 	const HOOK   = 'perxel_image_optimizer_convert_chunk';
 
+	/** Learned wall-clock seconds per image, EWMA over completed runs. */
+	const PACE_OPTION = 'perxel_image_optimizer_pace';
+
 	/** Seconds without a heartbeat before a running job counts as stalled. */
 	const STALE_AFTER = 300;
 
-	/** Hard ceiling on images per chunk — catches "thousands of tiny images". */
+	/** Hard ceiling on images per chunk - catches "thousands of tiny images". */
 	const MAX_PER_CHUNK = 50;
 
 	/** Soft wall-time budget per chunk, well under any proxy / php-fpm kill. */
@@ -126,17 +129,16 @@ class Runner {
 	 * Begin a bulk run.
 	 *
 	 * @param array $args {
-	 *     @type string   $scope          all|months.
-	 *     @type string[] $months         Selected YM keys when scope = months.
-	 *     @type bool     $skip_converted Skip already-converted images (default true).
+	 *     @type string   $scope  all|months.
+	 *     @type string[] $months Selected YM keys when scope = months.
 	 * }
 	 * @return array|false State, or false when there is nothing to do.
 	 */
 	public static function start( array $args ) {
 		$scope          = ( isset( $args['scope'] ) && 'months' === $args['scope'] ) ? 'months' : 'all';
-		$skip_converted = ! isset( $args['skip_converted'] ) || ! empty( $args['skip_converted'] );
+		$skip_converted = (bool) Settings::get( 'skip_converted' );
 
-		$all_months = wp_list_pluck( Sections::months(), 'ym' ); // newest → oldest
+		$all_months = wp_list_pluck( Sections::months(), 'ym' ); // newest first
 
 		$chosen = ( 'months' === $scope )
 			? array_values( array_intersect( $all_months, (array) ( $args['months'] ?? array() ) ) )
@@ -146,7 +148,7 @@ class Runner {
 			return false;
 		}
 
-		$estimate = Estimator::project( 'months' === $scope ? $chosen : null );
+		$estimate = Estimator::project( 'months' === $scope ? $chosen : null, $skip_converted );
 
 		$state = self::defaults();
 
@@ -160,7 +162,7 @@ class Runner {
 			'month'   => $chosen[0],
 			'last_id' => 0,
 		);
-		$state['total_candidates'] = self::candidate_total( $scope, $chosen, $skip_converted, (int) $estimate['images'] );
+		$state['total_candidates'] = (int) $estimate['images'];
 		$state['estimate']         = array(
 			'saved_bytes' => (int) $estimate['saved_bytes'],
 			'webp_bytes'  => (int) $estimate['webp_bytes'],
@@ -177,34 +179,39 @@ class Runner {
 	}
 
 	/**
-	 * Expected images to process: pending-only from the scan estimate, or the
-	 * full month totals when "skip already-converted" is off.
+	 * Fold this run's measured images-per-second into the persistent pace
+	 * estimate (EWMA) so the next run's "estimated time" reflects this server.
+	 * Needs a meaningful sample.
 	 *
-	 * @param string   $scope          all|months.
-	 * @param string[] $chosen         Selected YM keys.
-	 * @param bool     $skip_converted Whether converted images are skipped.
-	 * @param int      $fallback       Estimator pending count.
-	 * @return int
+	 * @param array $state Job state.
 	 */
-	private static function candidate_total( $scope, $chosen, $skip_converted, $fallback ) {
-		if ( $skip_converted ) {
-			return $fallback;
+	private static function record_pace( array $state ) {
+		if ( (int) $state['processed'] < 25 || (float) $state['seconds'] <= 0 ) {
+			return;
 		}
 
-		$total  = 0;
-		$months = Scan::data()['months'] ?? array();
+		$per_image = (float) $state['seconds'] / (int) $state['processed'];
+		$previous  = (float) get_option( self::PACE_OPTION, 0 );
+		$blended   = $previous > 0 ? ( ( 0.5 * $previous ) + ( 0.5 * $per_image ) ) : $per_image;
 
-		foreach ( $months as $ym => $month ) {
-			if ( 'all' === $scope || in_array( $ym, $chosen, true ) ) {
-				$total += (int) $month['total'];
-			}
-		}
-
-		return $total > 0 ? $total : $fallback;
+		update_option( self::PACE_OPTION, round( $blended, 3 ), false );
 	}
 
 	/**
-	 * Pause — stop scheduling work, keep the cursor.
+	 * Clear a finished run's completion state back to idle (the operator has
+	 * seen the summary and moved on). No-op unless phase is `complete`.
+	 */
+	public static function acknowledge_complete() {
+		$state = self::state();
+
+		if ( 'complete' === $state['phase'] ) {
+			$state['phase'] = 'idle';
+			self::save( $state );
+		}
+	}
+
+	/**
+	 * Pause - stop scheduling work, keep the cursor.
 	 */
 	public static function pause() {
 		$state = self::state();
@@ -213,6 +220,7 @@ class Runner {
 			return;
 		}
 
+		self::record_pace( $state );
 		$state['phase'] = 'paused';
 		self::save( $state );
 		self::unschedule();
@@ -235,7 +243,7 @@ class Runner {
 	}
 
 	/**
-	 * Cancel — stop future work, drop the cursor. Converted files are kept.
+	 * Cancel - stop future work, drop the cursor. Converted files are kept.
 	 */
 	public static function cancel() {
 		$state = self::state();
@@ -246,6 +254,8 @@ class Runner {
 
 		$partial  = $state;
 		$was_bulk = 'bulk' === $state['trigger'];
+
+		self::record_pace( $state );
 
 		$state['phase']         = 'idle';
 		$state['cursor']        = array(
@@ -268,7 +278,7 @@ class Runner {
 
 	/**
 	 * Called on a Status page load: if a run is stalled and nothing is
-	 * scheduled, kick a fresh chunk. Cheap — one AS lookup.
+	 * scheduled, kick a fresh chunk. Cheap - one AS lookup.
 	 */
 	public static function nudge() {
 		if ( ! self::is_stale() ) {
@@ -343,7 +353,6 @@ class Runner {
 					}
 
 					self::absorb( $state, $id, $result );
-					Metrics::apply( $result );
 
 					++$state['processed'];
 					$mp_done += $mp;
@@ -456,9 +465,14 @@ class Runner {
 			$state['emailed'] = true;
 		}
 
+		self::record_pace( $state );
 		self::save( $state );
 		self::unschedule();
-		Scan::mark_stale();
+
+		// Refresh the library figures now, in the worker - the completion screen
+		// then shows exact numbers with no "scan again" step. Cheap (grouped
+		// COUNTs + two SUMs + a small sample), and we are off the request path.
+		Scan::run();
 
 		if ( $send ) {
 			Mailer::send_report( self::state(), $reason );
@@ -504,7 +518,7 @@ class Runner {
 	}
 
 	/**
-	 * Full-size megapixels from stored metadata — no file read.
+	 * Full-size megapixels from stored metadata - no file read.
 	 *
 	 * @param int $id Attachment ID.
 	 * @return float
@@ -518,7 +532,7 @@ class Runner {
 	}
 
 	/**
-	 * Record an attachment as skipped — too large — and settle its meta so the
+	 * Record an attachment as skipped - too large - and settle its meta so the
 	 * runner never comes back to it (the override, a retry, or more memory
 	 * clear it).
 	 *
@@ -541,10 +555,12 @@ class Runner {
 			)
 		);
 		update_post_meta( $id, Converter::META_SIG, $signature );
+		delete_post_meta( $id, Converter::META_SAVED );
+		delete_post_meta( $id, Converter::META_WEBP );
 
 		Failures::record(
 			$id,
-			sprintf( 'too large for this server — %.1f MP over the %d MP ceiling', $mp, $ceiling ),
+			sprintf( 'too large for this server - %.1f MP over the %d MP ceiling', $mp, $ceiling ),
 			'too_large'
 		);
 	}

@@ -10,9 +10,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Admin pages, asset loading, and Media-library integration.
  *
  * Screens under Media, all rendered inside the shared Perxel UI layout (see ui/):
- *   - Status   ( upload.php?page=perxel-image-optimizer )          — the glance + the run button.
- *   - Settings ( upload.php?page=perxel-image-optimizer-settings ) — environment, config, serving, cleanup.
- *   - Perxel UI ( upload.php?page=perxel-image-optimizer-ui )      — the ui/ kit showcase, maintainer-only.
+ *   - Status   ( upload.php?page=perxel-image-optimizer )          - the glance + the run button.
+ *   - Settings ( upload.php?page=perxel-image-optimizer-settings ) - environment, config, serving, cleanup.
+ *   - Perxel UI ( upload.php?page=perxel-image-optimizer-ui )      - the ui/ kit showcase, maintainer-only.
  * Only "Status" shows in WP's Media menu; the sidebar links the rest.
  */
 class Admin {
@@ -30,8 +30,8 @@ class Admin {
 		add_action( 'admin_post_perxel_image_optimizer_save_settings', array( $this, 'save_settings' ) );
 		add_action( 'admin_post_perxel_image_optimizer_reset_settings', array( $this, 'reset_settings' ) );
 
-		// Status-screen actions — plain form POST → do the thing → redirect back.
-		foreach ( array( 'scan', 'start', 'pause', 'resume', 'cancel', 'retry_failed', 'recalc', 'test_email' ) as $verb ) {
+		// Status-screen actions - plain form POST → do the thing → redirect back.
+		foreach ( array( 'scan', 'start', 'pause', 'resume', 'cancel', 'retry_failed', 'test_email' ) as $verb ) {
 			add_action( 'admin_post_perxel_image_optimizer_' . $verb, array( $this, 'handle_' . $verb ) );
 		}
 
@@ -88,7 +88,7 @@ class Admin {
 			$titles[ self::PAGE_UI ] = __( 'Perxel UI', 'perxel-image-optimizer' );
 		}
 
-		// Own the browser <title> for the hidden screens — "Site • Page • Plugin".
+		// Own the browser <title> for the hidden screens - "Site • Page • Plugin".
 		// They are off the menu, so WP would otherwise leave the tab blank.
 		if ( class_exists( 'Perxel_UI_Layout' ) ) {
 			\Perxel_UI_Layout::set_page_titles( $titles, __( 'Image Optimization', 'perxel-image-optimizer' ) );
@@ -96,7 +96,7 @@ class Admin {
 	}
 
 	/**
-	 * Whether the current user may see the bundled UI-kit showcase — the
+	 * Whether the current user may see the bundled UI-kit showcase - the
 	 * maintainer only, by login or account email.
 	 *
 	 * @return bool
@@ -179,7 +179,7 @@ class Admin {
 
 	/**
 	 * The plugin's own file header (Name / Author / Author URI / Plugin URI),
-	 * read once. `Version` stays on the constant — it is the canonical runtime
+	 * read once. `Version` stays on the constant - it is the canonical runtime
 	 * source and avoids a file read.
 	 *
 	 * @return array
@@ -223,27 +223,30 @@ class Admin {
 			$pages[ self::PAGE_UI ] = __( 'Perxel UI', 'perxel-image-optimizer' );
 		}
 
-		return array_merge( array(
-			'title'       => $title,
-			'plugin'      => $header['name'],
-			'version'     => PERXEL_IMAGE_OPTIMIZER_VERSION,
-			'base'        => 'upload.php',
-			'wrap_class'  => 'perxel-image-optimizer',
-			'current'     => $current,
-			'menu'        => array( '' => $pages ),
-			'links'       => array(
-				__( 'Docs', 'perxel-image-optimizer' ) => $header['plugin_uri'],
+		return array_merge(
+			array(
+				'title'       => $title,
+				'plugin'      => $header['name'],
+				'version'     => PERXEL_IMAGE_OPTIMIZER_VERSION,
+				'base'        => 'upload.php',
+				'wrap_class'  => 'perxel-image-optimizer',
+				'current'     => $current,
+				'menu'        => array( '' => $pages ),
+				'links'       => array(
+					__( 'Docs', 'perxel-image-optimizer' ) => $header['plugin_uri'],
+				),
+				'author'      => array(
+					'name' => $header['author'],
+					'url'  => $header['author_uri'],
+				),
+				'text_domain' => 'perxel-image-optimizer',
 			),
-			'author'      => array(
-				'name' => $header['author'],
-				'url'  => $header['author_uri'],
-			),
-			'text_domain' => 'perxel-image-optimizer',
-		), $extra );
+			$extra
+		);
 	}
 
 	/**
-	 * True when the shared UI kit failed to load — render a plain fallback.
+	 * True when the shared UI kit failed to load - render a plain fallback.
 	 *
 	 * @return bool
 	 */
@@ -392,12 +395,7 @@ class Admin {
 			case 'paused':
 				return 'paused';
 			case 'complete':
-				// A scan taken after the run finished means the operator has
-				// moved on — drop back to the prepare / done states.
-				if ( empty( $snap['scan']['scanned_at'] ) || (int) $snap['scan']['scanned_at'] <= (int) $job['finished_at'] ) {
-					return 'complete';
-				}
-				break;
+				return 'complete';
 		}
 
 		if ( empty( $snap['scan']['scanned_at'] ) ) {
@@ -408,7 +406,7 @@ class Admin {
 			return 'ready';
 		}
 
-		if ( empty( $snap['settings']['serve'] ) && (int) $snap['report']['converted_files'] > 0 ) {
+		if ( empty( $snap['settings']['serve'] ) && (int) $snap['stats']['converted'] > 0 ) {
 			return 'serve_off';
 		}
 
@@ -493,6 +491,7 @@ class Admin {
 				'png_quality'       => $png_quality,
 				'convert_png'       => ! empty( $_POST['convert_png'] ),
 				'convert_on_upload' => ! empty( $_POST['convert_on_upload'] ),
+				'skip_converted'    => ! empty( $_POST['skip_converted'] ),
 				'serve'             => ! empty( $_POST['serve'] ),
 				'skip_megapixels'   => $skip_megapixels,
 				'sizes'             => $sizes,
@@ -504,7 +503,7 @@ class Admin {
 		// Sync the .htaccess block / cached mode to the just-saved serve setting.
 		( new Serve() )->reconcile();
 
-		// Conversion settings may have changed — the cached scan is now suspect.
+		// Conversion settings may have changed, so the cached scan is now suspect.
 		Scan::mark_stale();
 
 		wp_safe_redirect(
@@ -553,13 +552,15 @@ class Admin {
 	 */
 	public function handle_scan() {
 		if ( current_user_can( 'manage_options' ) && check_admin_referer( 'perxel_image_optimizer_scan' ) ) {
+			Runner::acknowledge_complete(); // Dismiss a finished run's summary.
 			Scan::run();
 		}
 		$this->redirect_to_status();
 	}
 
 	/**
-	 * Start a bulk run from the prepare form (scope + months + skip toggle).
+	 * Start a bulk run from the prepare form (scope + months). Whether
+	 * already-converted images are skipped is a Settings option.
 	 */
 	public function handle_start() {
 		if ( current_user_can( 'manage_options' ) && check_admin_referer( 'perxel_image_optimizer_start' ) ) {
@@ -568,9 +569,8 @@ class Admin {
 
 			Runner::start(
 				array(
-					'scope'          => $scope,
-					'months'         => $months,
-					'skip_converted' => ! empty( $_POST['skip_converted'] ),
+					'scope'  => $scope,
+					'months' => $months,
 				)
 			);
 		}
@@ -618,22 +618,6 @@ class Admin {
 			}
 			Failures::clear_kind( 'failed' );
 			Catchup::schedule();
-		}
-		$this->redirect_to_status();
-	}
-
-	/**
-	 * Kick the authoritative metrics recalculation as a background action.
-	 */
-	public function handle_recalc() {
-		if ( current_user_can( 'manage_options' ) && check_admin_referer( 'perxel_image_optimizer_recalc' ) ) {
-			set_transient( 'perxel_image_optimizer_recalcing', 1, 15 * MINUTE_IN_SECONDS );
-
-			if ( function_exists( 'as_enqueue_async_action' ) ) {
-				as_enqueue_async_action( 'perxel_image_optimizer_recalc', array(), Runner::GROUP );
-			} else {
-				Plugin::instance()->run_recalc();
-			}
 		}
 		$this->redirect_to_status();
 	}
@@ -713,7 +697,7 @@ class Admin {
 	 */
 	public static function attachment_status_label( $attachment_id ) {
 		if ( ! in_array( get_post_mime_type( $attachment_id ), array( 'image/jpeg', 'image/png' ), true ) ) {
-			return '—';
+			return '-';
 		}
 
 		$meta = Converter::get_meta( $attachment_id );

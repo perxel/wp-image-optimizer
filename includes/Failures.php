@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Replaces the old `Scanner::failures()` full library walk (§9): the runner and
  * the catch-up path add/remove entries as they go, so the monitor's failures
  * list is a single `get_option`. Per-image detail still lives in the
- * `_perxel_image_optimizer` post meta — this is only the "which ones" index.
+ * `_perxel_image_optimizer` post meta - this is only the "which ones" index.
  *
  * Shape: `[ (int) attachment_id => [ 'reason' => string, 'kind' =>
  * failed|too_large, 'ts' => int ] ]`.
@@ -49,7 +49,7 @@ class Failures {
 	}
 
 	/**
-	 * Drop one entry — the attachment converted cleanly on a later pass or a
+	 * Drop one entry - the attachment converted cleanly on a later pass or a
 	 * retry.
 	 *
 	 * @param int $id Attachment ID.
@@ -112,7 +112,7 @@ class Failures {
 	}
 
 	/**
-	 * IDs of the failed (not too-large) entries — used to re-queue them.
+	 * IDs of the failed (not too-large) entries - used to re-queue them.
 	 *
 	 * @return int[]
 	 */
@@ -129,22 +129,37 @@ class Failures {
 	}
 
 	/**
-	 * Enriched rows for the monitor's failures list.
+	 * Enriched rows for the monitor's failures list. Self-heals: a `failed`
+	 * entry whose attachment is now settled under the current signature (fixed
+	 * on a retry, per-image button, or catch-up pass) is dropped from the index
+	 * as it is read - no walk, bounded by $limit.
 	 *
 	 * @param int $limit Max rows.
 	 * @return array[]
 	 */
 	public static function listing( $limit = 100 ) {
-		$rows = array();
+		$rows      = array();
+		$data      = self::all();
+		$signature = Settings::signature();
+		$pruned    = false;
 
-		foreach ( self::all() as $id => $row ) {
-			if ( count( $rows ) >= $limit ) {
-				break;
-			}
-
-			$id = (int) $id;
+		foreach ( $data as $id => $row ) {
+			$id   = (int) $id;
+			$kind = $row['kind'] ?? 'failed';
 
 			if ( 'attachment' !== get_post_type( $id ) ) {
+				unset( $data[ $id ] );
+				$pruned = true;
+				continue;
+			}
+
+			if ( 'failed' === $kind && get_post_meta( $id, Converter::META_SIG, true ) === $signature ) {
+				unset( $data[ $id ] );
+				$pruned = true;
+				continue;
+			}
+
+			if ( count( $rows ) >= $limit ) {
 				continue;
 			}
 
@@ -154,47 +169,16 @@ class Failures {
 				'file'   => wp_basename( (string) get_post_meta( $id, '_wp_attached_file', true ) ),
 				'thumb'  => wp_get_attachment_image_url( $id, array( 60, 60 ) ),
 				'edit'   => get_edit_post_link( $id, 'raw' ),
-				'kind'   => $row['kind'] ?? 'failed',
+				'kind'   => $kind,
 				'reason' => $row['reason'] ?? '',
 			);
 		}
 
-		return $rows;
-	}
-
-	/**
-	 * Rebuild the index from per-attachment meta — the authoritative recalc's
-	 * job, so a stale index self-heals.
-	 */
-	public static function rebuild() {
-		$data = array();
-
-		foreach ( Scanner::all_image_ids() as $id ) {
-			$meta = Converter::get_meta( $id );
-
-			if ( ! $meta ) {
-				continue;
-			}
-
-			$status = $meta['status'] ?? '';
-			$ts     = (int) ( $meta['ts'] ?? time() );
-
-			if ( 'failed' === $status ) {
-				$data[ (int) $id ] = array(
-					'reason' => (string) ( ! empty( $meta['error'] ) ? $meta['error'] : 'conversion failed' ),
-					'kind'   => 'failed',
-					'ts'     => $ts,
-				);
-			} elseif ( 'skipped' === $status && false !== strpos( (string) ( $meta['error'] ?? '' ), 'too large' ) ) {
-				$data[ (int) $id ] = array(
-					'reason' => (string) $meta['error'],
-					'kind'   => 'too_large',
-					'ts'     => $ts,
-				);
-			}
+		if ( $pruned ) {
+			update_option( self::OPTION, $data, false );
 		}
 
-		update_option( self::OPTION, $data, false );
+		return $rows;
 	}
 
 	/**

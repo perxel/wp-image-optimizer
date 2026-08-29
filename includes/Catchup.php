@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * A new JPEG/PNG no longer converts inline (that blocked the upload response on
  * shared hosting). Instead it schedules one debounced catch-up action ~60s out
- * — keep-first, so a 40-image drag-drop becomes a single job, and a long upload
+ * - keep-first, so a 40-image drag-drop becomes a single job, and a long upload
  * session is picked up in ~1-minute waves. The job runs one weight-budgeted
  * chunk of "needs work, newest first" and reschedules itself while work remains.
  *
@@ -34,7 +34,7 @@ class Catchup {
 	}
 
 	/**
-	 * A new attachment finished processing — schedule a catch-up.
+	 * A new attachment finished processing - schedule a catch-up.
 	 *
 	 * @param array $metadata      Attachment metadata (passed through untouched).
 	 * @param int   $attachment_id Attachment ID.
@@ -54,7 +54,7 @@ class Catchup {
 
 	/**
 	 * Schedule one catch-up action, unless one is already pending (keep-first
-	 * debounce — never bump an existing job further out).
+	 * debounce - never bump an existing job further out).
 	 */
 	public static function schedule() {
 		if ( ! function_exists( 'as_schedule_single_action' ) ) {
@@ -77,7 +77,7 @@ class Catchup {
 			return;
 		}
 
-		// A bulk run is already walking the whole library — let it handle these.
+		// A bulk run is already walking the whole library - let it handle these.
 		if ( Runner::is_active() ) {
 			return;
 		}
@@ -92,7 +92,6 @@ class Catchup {
 		foreach ( Scanner::needs_work_ids( self::BATCH ) as $id ) {
 			try {
 				$result = Converter::convert_attachment( (int) $id );
-				Metrics::apply( $result );
 
 				if ( 'failed' === ( $result['status'] ?? '' ) ) {
 					Failures::record( $id, ( ! empty( $result['error'] ) ? $result['error'] : 'conversion failed' ), 'failed' );

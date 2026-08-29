@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * The optional "email a report when a bulk run finishes" notification.
  *
- * Opt-in (Settings, default off). Bulk runs only — the catch-up path never
+ * Opt-in (Settings, default off). Bulk runs only - the catch-up path never
  * mails. One mail per run, sent by the worker that flips the job to complete
  * (or by cancel / stalled-gave-up, with partial totals). Plain wp_mail(), site
  * default from-address, no external service.
@@ -87,7 +87,7 @@ class Mailer {
 
 		$subject = sprintf(
 			/* translators: 1: headline, 2: site name. */
-			__( '%1$s — %2$s', 'perxel-image-optimizer' ),
+			__( '%1$s - %2$s', 'perxel-image-optimizer' ),
 			$headline,
 			$site
 		);
@@ -117,7 +117,7 @@ class Mailer {
 			$lines[] = '';
 			$lines[] = __( 'First failures:', 'perxel-image-optimizer' );
 			foreach ( $failures as $row ) {
-				$lines[] = sprintf( '  - #%d %s — %s', $row['id'], ( '' !== $row['file'] ? $row['file'] : $row['name'] ), $row['reason'] );
+				$lines[] = sprintf( '  - #%d %s - %s', $row['id'], ( '' !== $row['file'] ? $row['file'] : $row['name'] ), $row['reason'] );
 			}
 		}
 

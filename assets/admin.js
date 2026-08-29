@@ -1,4 +1,4 @@
-/* Perxel Image Optimizer — admin pages (Status + Settings).
+/* Perxel Image Optimizer - admin pages (Status + Settings).
  *
  * Both screens are server-rendered by PHP. This script only drives:
  *   - the prepare form: month picker + "This run" arithmetic (no round-trip),
@@ -53,20 +53,35 @@
 		var form = byId( 'pxio-prepare' );
 		if ( ! form ) { return; }
 
-		var scope   = byId( 'pxio-scope' );
-		var months  = byId( 'pxio-months' );
-		var avgSrc  = parseFloat( form.dataset.avgSrc ) || 0;
-		var avgFrac = parseFloat( form.dataset.avgFrac ) || 0.7;
+		var scope    = byId( 'pxio-scope' );
+		var months   = byId( 'pxio-months' );
+		var avgSrc   = parseFloat( form.dataset.avgSrc ) || 0;
+		var avgFrac  = parseFloat( form.dataset.avgFrac ) || 0.7;
+		var perImage = parseFloat( form.dataset.perImage ) || 1;
 		var freeDisk = parseFloat( form.dataset.freeDisk ) || 0;
+		var scopeAll   = parseInt( form.dataset.scopeAll, 10 ) || 0;
 		var pendingAll = parseInt( form.dataset.pendingAll, 10 ) || 0;
+		var scopeWord  = scopeAll === pendingAll ? 'everything pending' : 'every image';
 
-		function selectedImages() {
-			if ( ! scope || scope.value !== 'months' ) { return pendingAll; }
-			var n = 0;
+		function duration( s ) {
+			s = Math.max( 0, Math.round( s ) );
+			if ( s < 90 ) { return 'a few seconds'; }
+			var m = Math.round( s / 60 );
+			if ( m < 60 ) { return '≈ ' + m + ' min'; }
+			var h = m / 60;
+			return '≈ ' + ( h < 10 ? h.toFixed( 1 ).replace( /\.0$/, '' ) : Math.round( h ) ) + ' hr';
+		}
+
+		// [ images in scope, pending in scope ] for the current selection.
+		function selected() {
+			if ( ! scope || scope.value !== 'months' ) { return [ scopeAll, pendingAll ]; }
+			var img = 0;
+			var pend = 0;
 			form.querySelectorAll( '.pxio-month:checked' ).forEach( function ( cb ) {
-				n += parseInt( cb.dataset.due, 10 ) || 0;
+				img  += parseInt( cb.dataset.scope, 10 ) || 0;
+				pend += parseInt( cb.dataset.pending, 10 ) || 0;
 			} );
-			return n;
+			return [ img, pend ];
 		}
 
 		function selectedMonthCount() {
@@ -77,25 +92,28 @@
 			var isMonths = scope && scope.value === 'months';
 			if ( months ) { months.hidden = ! isMonths; }
 
-			var images = selectedImages();
-			var src    = images * avgSrc;
-			var webp   = Math.round( src * avgFrac );
-			var saved  = Math.max( 0, src - webp );
-			var pct    = src > 0 ? Math.round( saved / src * 100 ) : 0;
+			var sel     = selected();
+			var images  = sel[ 0 ];
+			var pending = sel[ 1 ];
+			// New savings come only from images that aren't WebP yet.
+			var src   = pending * avgSrc;
+			var webp  = Math.round( src * avgFrac );
+			var saved = Math.max( 0, src - webp );
+			var pct   = src > 0 ? Math.round( saved / src * 100 ) : 0;
 
 			setText( 'pxio-fig-images', images.toLocaleString() );
-			setText( 'pxio-fig-saved', '≈ −' + bytes( saved ) );
-			setText( 'pxio-fig-pct', '≈ ' + pct + '% smaller' );
+			setText( 'pxio-fig-time', duration( images * perImage ) );
+			setText( 'pxio-fig-saved', '−' + pct + '%  ·  ≈ ' + bytes( saved ) );
 			setText( 'pxio-fig-disk', '≈ +' + bytes( webp ) );
 			setText( 'pxio-fig-scope', isMonths
 				? ( selectedMonthCount() + ' month' + ( selectedMonthCount() === 1 ? '' : 's' ) )
-				: 'everything pending' );
+				: scopeWord );
 
 			var warn = byId( 'pxio-run-warning' );
 			if ( warn ) {
 				warn.innerHTML = ( freeDisk > 0 && webp > freeDisk * 0.8 )
 					? '<div class="notice notice-warning pxui-notice inline"><p>' +
-						'Estimated disk added (' + bytes( webp ) + ') is close to the free space on this server (' + bytes( freeDisk ) + ').</p></div>'
+						'Estimated disk added (' + bytes( webp ) + ') is near the free space the server reports (' + bytes( freeDisk ) + ').</p></div>'
 					: '';
 			}
 
@@ -145,7 +163,7 @@
 				tries = 0;
 				var d = res.json.data;
 
-				// Phase or liveness changed — let PHP re-render the whole screen.
+				// Phase or liveness changed - let PHP re-render the whole screen.
 				if ( d.phase !== 'running' || d.stalled ) { reload(); return; }
 
 				var bar = document.querySelector( '#pxio-bar .pxui-progress__fill' );
@@ -153,7 +171,7 @@
 
 				setText( 'pxio-count', d.processed.toLocaleString() + ' / ' + d.total.toLocaleString() );
 				setText( 'pxio-headline', d.month_label
-					? 'Converting… — ' + d.month_label + ' · month ' + d.month_pos + ' of ' + d.months_total
+					? 'Converting… ' + d.month_label + ' · month ' + d.month_pos + ' of ' + d.months_total
 					: 'Converting…' );
 				setText( 'pxio-m-converted', d.converted.toLocaleString() );
 				setText( 'pxio-m-remaining', d.remaining.toLocaleString() );
