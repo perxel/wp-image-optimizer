@@ -35,13 +35,29 @@ class Runner {
 	const STALE_AFTER = 300;
 
 	/** Hard ceiling on images per chunk - catches "thousands of tiny images". */
-	const MAX_PER_CHUNK = 50;
-
-	/** Soft wall-time budget per chunk, well under any proxy / php-fpm kill. */
-	const CHUNK_SECONDS = 15;
+	const MAX_PER_CHUNK = 150;
 
 	/** DB page size when pulling candidate IDs for the current month. */
 	const DB_BATCH = 100;
+
+	/**
+	 * Wall-time budget for one chunk. Each Action Scheduler round-trip has real
+	 * overhead (and on a host with no async loopback the queue only runs on a
+	 * ~60s WP-Cron tick), so a chunk does as much work as the host's
+	 * max_execution_time safely allows before rescheduling. Progress is
+	 * persisted after every image, so a mid-chunk kill just resumes.
+	 *
+	 * @return int Seconds.
+	 */
+	public static function chunk_budget() {
+		$max = (int) ini_get( 'max_execution_time' );
+
+		if ( $max <= 0 || $max >= 130 ) {
+			return 90;
+		}
+
+		return max( 15, (int) floor( $max * 0.7 ) );
+	}
 
 	/**
 	 * Register the Action Scheduler callback. Called on every load (front,
@@ -49,6 +65,18 @@ class Runner {
 	 */
 	public static function register() {
 		add_action( self::HOOK, array( __CLASS__, 'run_chunk' ) );
+		add_filter( 'action_scheduler_queue_runner_time_limit', array( __CLASS__, 'as_time_limit' ) );
+	}
+
+	/**
+	 * Give Action Scheduler's queue runner enough headroom to finish one of our
+	 * chunks (default is 30s). Only ever raises the limit.
+	 *
+	 * @param int $seconds AS default.
+	 * @return int
+	 */
+	public static function as_time_limit( $seconds ) {
+		return max( (int) $seconds, self::chunk_budget() + 20 );
 	}
 
 	/**
@@ -277,17 +305,23 @@ class Runner {
 	}
 
 	/**
-	 * Called on a Status page load: if a run is stalled and nothing is
-	 * scheduled, kick a fresh chunk. Cheap - one AS lookup.
+	 * Called on every monitor page load while a run is active. Belt-and-braces
+	 * for hosts where the async loopback is blocked or an async request got
+	 * lost: make sure a chunk action is queued, and poke WP-Cron so it actually
+	 * runs on this request's traffic. Cheap - one AS lookup.
 	 */
 	public static function nudge() {
-		if ( ! self::is_stale() ) {
+		if ( 'running' !== self::state()['phase'] ) {
 			return;
 		}
 
 		if ( function_exists( 'as_enqueue_async_action' )
 			&& false === as_next_scheduled_action( self::HOOK, array(), self::GROUP ) ) {
 			as_enqueue_async_action( self::HOOK, array(), self::GROUP );
+		}
+
+		if ( function_exists( 'spawn_cron' ) ) {
+			spawn_cron();
 		}
 	}
 
@@ -316,12 +350,13 @@ class Runner {
 		self::save( $state );
 
 		$ceiling = self::megapixel_ceiling();
+		$budget  = self::chunk_budget();
 		$started = microtime( true );
 		$mp_done = 0.0;
 		$count   = 0;
 		$drained = false;
 
-		while ( $count < self::MAX_PER_CHUNK && ( microtime( true ) - $started ) < self::CHUNK_SECONDS ) {
+		while ( $count < self::MAX_PER_CHUNK && ( microtime( true ) - $started ) < $budget ) {
 			$ids = self::advance( $state );
 
 			if ( empty( $ids ) ) {
@@ -362,7 +397,7 @@ class Runner {
 				$state['last_beat'] = time();
 				self::save( $state );
 
-				if ( $count >= self::MAX_PER_CHUNK || ( microtime( true ) - $started ) >= self::CHUNK_SECONDS ) {
+				if ( $count >= self::MAX_PER_CHUNK || ( microtime( true ) - $started ) >= $budget ) {
 					break 2;
 				}
 			}
@@ -582,7 +617,14 @@ class Runner {
 
 		$total     = max( (int) $state['total_candidates'], (int) $state['processed'] );
 		$remaining = max( 0, $total - (int) $state['processed'] );
-		$per_image = $state['processed'] > 0 ? ( $state['seconds'] / $state['processed'] ) : 0.0;
+
+		// Wall-clock pace (includes the gaps between chunks), so the ETA
+		// reflects how fast this is really going, not just encode time.
+		$elapsed   = ( $state['started_at'] > 0 && 'complete' !== $state['phase'] )
+			? max( 1, time() - (int) $state['started_at'] )
+			: (float) $state['seconds'];
+		$per_image = $state['processed'] > 0 ? ( $elapsed / $state['processed'] ) : 0.0;
+		$encode    = $state['processed'] > 0 ? ( $state['seconds'] / $state['processed'] ) : 0.0;
 
 		$percent = $total > 0 ? (int) round( $state['processed'] / $total * 100 ) : 0;
 		if ( 'complete' === $state['phase'] ) {
@@ -610,7 +652,7 @@ class Runner {
 			'saved_bytes'   => (int) $state['saved_bytes'],
 			'webp_bytes'    => (int) $state['webp_bytes'],
 			'src_bytes'     => (int) $state['src_bytes'],
-			'rate'          => $per_image > 0 ? round( 1 / $per_image, 1 ) : 0,
+			'rate'          => $encode > 0 ? round( 1 / $encode, 1 ) : 0,
 			'eta_seconds'   => (int) round( $remaining * $per_image ),
 			'started_at'    => (int) $state['started_at'],
 			'finished_at'   => (int) $state['finished_at'],

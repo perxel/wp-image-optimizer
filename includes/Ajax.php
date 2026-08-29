@@ -44,6 +44,10 @@ class Ajax {
 	public function progress() {
 		$this->guard();
 
+		// Keep the worker alive while the tab is open (no-op if a chunk is
+		// already queued; spawn_cron() self-throttles).
+		Runner::nudge();
+
 		wp_send_json_success(
 			Runner::progress() + array( 'failures' => Failures::listing( 100 ) )
 		);

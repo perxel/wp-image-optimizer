@@ -24,11 +24,11 @@ $log_url   = admin_url( 'tools.php?page=action-scheduler&s=perxel_image_optimize
 
 // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- Perxel_UI escapes structure; dynamic values escaped inline.
 
-$icons = array(
-	'running'  => '<span class="dashicons dashicons-controls-play"></span>',
-	'stalled'  => 'warn',
-	'paused'   => '<span class="dashicons dashicons-controls-pause"></span>',
-	'complete' => 'good',
+$icon_html = array(
+	'running'  => '<span class="pxui-row__icon" aria-hidden="true">' . Perxel_UI::spinner() . '</span>',
+	'stalled'  => '<span class="pxui-row__icon pxui-row__icon--warn" aria-hidden="true"></span>',
+	'paused'   => '<span class="pxui-row__icon" aria-hidden="true"><span class="dashicons dashicons-controls-pause"></span></span>',
+	'complete' => '<span class="pxui-row__icon pxui-row__icon--good" aria-hidden="true"></span>',
 );
 
 $month_line = ( '' !== $job['month_label'] )
@@ -67,8 +67,11 @@ switch ( $state ) {
 		break;
 
 	default: // running.
-		$headline  = __( 'Converting…', 'perxel-image-optimizer' ) . ( $month_line ? ' - ' . $month_line : '' );
+		$headline  = __( 'Converting…', 'perxel-image-optimizer' ) . ( $month_line ? ' ' . $month_line : '' );
 		$sub_extra = '';
+		if ( 0 === $processed && ( time() - (int) $job['started_at'] ) > 25 ) {
+			$sub_extra = '<span class="pxui-muted">' . esc_html__( 'Waiting for a background worker. It runs on WP-Cron; keep this tab open or reload once to nudge it.', 'perxel-image-optimizer' ) . '</span>';
+		}
 		break;
 }
 
@@ -80,23 +83,28 @@ $bar = Perxel_UI::progress_bar(
 	)
 );
 
-echo '<div id="pxio-monitor" data-poll="' . esc_attr( in_array( $state, array( 'running', 'stalled' ), true ) ? '1' : '0' ) . '">';
+echo '<div id="pxio-monitor" data-state="' . esc_attr( $state ) . '" data-poll="'
+	. esc_attr( in_array( $state, array( 'running', 'stalled' ), true ) ? '1' : '0' ) . '">';
 
-echo Perxel_UI::rows(
-	array(
-		array(
-			'icon'  => $icons[ $state ],
-			'label' => '<span id="pxio-headline">' . esc_html( $headline ) . '</span>',
-			'sub'   => $bar . ( $sub_extra ? '<div>' . $sub_extra . '</div>' : '' ),
-		),
-	)
-);
+// Headline row built directly (not via Perxel_UI::rows) because it carries the
+// live #pxio-headline span, and rows() escapes its `label` field as plain text.
+echo '<div class="pxui-rows"><div class="pxui-rows__group"><div class="pxui-rows__card">'
+	. '<div class="pxui-row pxui-row--has-icon">'
+	. $icon_html[ $state ]
+	. '<span class="pxui-row__label"><span id="pxio-headline">' . esc_html( $headline ) . '</span>'
+	. '<span class="pxui-row__sub">' . $bar . ( $sub_extra ? '<div id="pxio-headnote">' . $sub_extra . '</div>' : '<div id="pxio-headnote"></div>' ) . '</span>'
+	. '</span>'
+	. '<span class="pxui-row__content"></span>'
+	. '</div>'
+	. '</div></div></div>';
 
+$eta_txt = (int) $job['eta_seconds'] > 0
+	? human_time_diff( time(), time() + (int) $job['eta_seconds'] )
+	: __( 'calculating', 'perxel-image-optimizer' );
 $rate_line = sprintf(
-	/* translators: 1: images/sec, 2: ETA, 3: failed count, 4: too-large count. */
-	__( '%1$s img/s · ETA %2$s · %3$s failed · %4$s too large', 'perxel-image-optimizer' ),
-	esc_html( (string) $job['rate'] ),
-	esc_html( human_time_diff( time(), time() + (int) $job['eta_seconds'] ) ),
+	/* translators: 1: ETA, 2: failed count, 3: too-large count. */
+	__( 'about %1$s left · %2$s failed · %3$s too large', 'perxel-image-optimizer' ),
+	esc_html( $eta_txt ),
 	'<span id="pxio-failed">' . esc_html( number_format_i18n( (int) $job['failed'] ) ) . '</span>',
 	'<span id="pxio-large">' . esc_html( number_format_i18n( (int) $job['too_large'] ) ) . '</span>'
 );

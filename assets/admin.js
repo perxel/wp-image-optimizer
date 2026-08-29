@@ -62,6 +62,10 @@
 		var scopeAll   = parseInt( form.dataset.scopeAll, 10 ) || 0;
 		var pendingAll = parseInt( form.dataset.pendingAll, 10 ) || 0;
 		var scopeWord  = scopeAll === pendingAll ? 'everything pending' : 'every image';
+		var STORE = 'pxioPrepare';
+
+		function monthBoxes() { return form.querySelectorAll( '.pxio-month' ); }
+		function checkedMonths() { return form.querySelectorAll( '.pxio-month:checked' ); }
 
 		function duration( s ) {
 			s = Math.max( 0, Math.round( s ) );
@@ -77,15 +81,49 @@
 			if ( ! scope || scope.value !== 'months' ) { return [ scopeAll, pendingAll ]; }
 			var img = 0;
 			var pend = 0;
-			form.querySelectorAll( '.pxio-month:checked' ).forEach( function ( cb ) {
+			checkedMonths().forEach( function ( cb ) {
 				img  += parseInt( cb.dataset.scope, 10 ) || 0;
 				pend += parseInt( cb.dataset.pending, 10 ) || 0;
 			} );
 			return [ img, pend ];
 		}
 
-		function selectedMonthCount() {
-			return form.querySelectorAll( '.pxio-month:checked' ).length;
+		function setText( id, txt ) {
+			var el = byId( id );
+			if ( el ) { el.textContent = txt; }
+		}
+
+		function persist() {
+			try {
+				var picked = [];
+				checkedMonths().forEach( function ( cb ) { picked.push( cb.value ); } );
+				window.sessionStorage.setItem( STORE, JSON.stringify( {
+					scope: scope ? scope.value : 'all',
+					months: picked
+				} ) );
+			} catch ( e ) {}
+		}
+
+		function restore() {
+			var saved;
+			try { saved = JSON.parse( window.sessionStorage.getItem( STORE ) || 'null' ); } catch ( e ) {}
+			if ( ! saved ) { return; }
+			if ( scope && saved.scope ) { scope.value = saved.scope; }
+			if ( saved.months && saved.months.length ) {
+				var want = {};
+				saved.months.forEach( function ( m ) { want[ m ] = 1; } );
+				monthBoxes().forEach( function ( cb ) { cb.checked = !! want[ cb.value ]; } );
+				syncYearAll();
+			}
+		}
+
+		function syncYearAll() {
+			form.querySelectorAll( '.pxio-year-all' ).forEach( function ( ya ) {
+				var group = form.querySelectorAll( '.pxio-month[data-year="' + ya.dataset.year + '"]' );
+				var on = group.length > 0;
+				group.forEach( function ( cb ) { if ( ! cb.checked ) { on = false; } } );
+				ya.checked = on;
+			} );
 		}
 
 		function recompute() {
@@ -100,13 +138,14 @@
 			var webp  = Math.round( src * avgFrac );
 			var saved = Math.max( 0, src - webp );
 			var pct   = src > 0 ? Math.round( saved / src * 100 ) : 0;
+			var count = checkedMonths().length;
 
 			setText( 'pxio-fig-images', images.toLocaleString() );
 			setText( 'pxio-fig-time', duration( images * perImage ) );
 			setText( 'pxio-fig-saved', '−' + pct + '%  ·  ≈ ' + bytes( saved ) );
 			setText( 'pxio-fig-disk', '≈ +' + bytes( webp ) );
 			setText( 'pxio-fig-scope', isMonths
-				? ( selectedMonthCount() + ' month' + ( selectedMonthCount() === 1 ? '' : 's' ) )
+				? ( count + ' month' + ( count === 1 ? '' : 's' ) + ' selected' )
 				: scopeWord );
 
 			var warn = byId( 'pxio-run-warning' );
@@ -119,25 +158,38 @@
 
 			var start = document.querySelector( 'button[form="pxio-prepare"]' );
 			if ( start ) { start.disabled = images < 1; }
+
+			persist();
 		}
 
-		function setText( id, txt ) {
-			var el = byId( id );
-			if ( el ) { el.textContent = txt; }
-		}
-
-		if ( scope ) { scope.addEventListener( 'change', recompute ); }
-
+		// A change anywhere in the form (scope select, a month box, a year box)
+		// re-runs the estimate; a year box also toggles its months first.
 		form.addEventListener( 'change', function ( e ) {
-			if ( e.target.classList.contains( 'pxio-year-all' ) ) {
-				var year = e.target.dataset.year;
-				form.querySelectorAll( '.pxio-month[data-year="' + year + '"]' ).forEach( function ( cb ) {
+			if ( e.target && e.target.classList.contains( 'pxio-year-all' ) ) {
+				form.querySelectorAll( '.pxio-month[data-year="' + e.target.dataset.year + '"]' ).forEach( function ( cb ) {
 					cb.checked = e.target.checked;
 				} );
+			} else if ( e.target && e.target.classList.contains( 'pxio-month' ) ) {
+				syncYearAll();
 			}
 			recompute();
 		} );
 
+		// The whole row is a click target, not just the 18px box.
+		form.addEventListener( 'click', function ( e ) {
+			if ( e.target.closest( 'input, a, button, select, label' ) ) { return; }
+			var row = e.target.closest( '.pxui-row' );
+			var cb  = row && row.querySelector( '.pxio-month, .pxio-year-all' );
+			if ( ! cb ) { return; }
+			cb.checked = ! cb.checked;
+			cb.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+		} );
+
+		form.addEventListener( 'submit', function () {
+			try { window.sessionStorage.removeItem( STORE ); } catch ( e ) {}
+		} );
+
+		restore();
 		recompute();
 	}
 
@@ -147,6 +199,7 @@
 		var mon = byId( 'pxio-monitor' );
 		if ( ! mon || mon.dataset.poll !== '1' ) { return; }
 
+		var wasStalled = mon.dataset.state === 'stalled';
 		var tries = 0;
 
 		function setText( id, txt ) {
@@ -163,8 +216,10 @@
 				tries = 0;
 				var d = res.json.data;
 
-				// Phase or liveness changed - let PHP re-render the whole screen.
-				if ( d.phase !== 'running' || d.stalled ) { reload(); return; }
+				// Re-render server-side only when the situation actually changes:
+				// the run ended/paused, or it crossed the stalled threshold in
+				// either direction.
+				if ( d.phase !== 'running' || !! d.stalled !== wasStalled ) { reload(); return; }
 
 				var bar = document.querySelector( '#pxio-bar .pxui-progress__fill' );
 				if ( bar ) { bar.style.width = d.percent + '%'; }
@@ -173,14 +228,16 @@
 				setText( 'pxio-headline', d.month_label
 					? 'Converting… ' + d.month_label + ' · month ' + d.month_pos + ' of ' + d.months_total
 					: 'Converting…' );
+				var note = byId( 'pxio-headnote' );
+				if ( note && d.processed > 0 ) { note.textContent = ''; }
 				setText( 'pxio-m-converted', d.converted.toLocaleString() );
 				setText( 'pxio-m-remaining', d.remaining.toLocaleString() );
 				setText( 'pxio-m-saved', bytes( d.saved_bytes ) );
 				setText( 'pxio-m-disk', bytes( d.webp_bytes ) );
 				setText( 'pxio-failed', d.failed.toLocaleString() );
 				setText( 'pxio-large', d.too_large.toLocaleString() );
-				setText( 'pxio-rate-line', d.rate + ' img/s · ETA ' + secs( d.eta_seconds ) +
-					' · ' + d.failed + ' failed · ' + d.too_large + ' too large' );
+				setText( 'pxio-rate-line', 'about ' + ( d.eta_seconds > 0 ? secs( d.eta_seconds ) : 'calculating' ) +
+					' left · ' + d.failed + ' failed · ' + d.too_large + ' too large' );
 				if ( d.projected ) {
 					setText( 'pxio-proj-line', 'Projected −' + bytes( d.projected.saved_bytes ) +
 						' (≈ ' + d.projected.percent + '%) · +' + bytes( d.projected.webp_bytes ) + ' disk' );
@@ -190,6 +247,7 @@
 			} );
 		}
 
+		tick();
 		setInterval( tick, 3000 );
 	}
 
@@ -242,11 +300,17 @@
 
 	/* ---- boot ---------------------------------------------------- */
 
-	document.addEventListener( 'DOMContentLoaded', function () {
+	function boot() {
 		bindPrepare();
 		bindMonitor();
 		if ( byId( 'pxio-settings-form' ) || byId( 'pxio-purge' ) ) { bindSettings(); }
-	} );
+	}
+
+	if ( document.readyState === 'loading' ) {
+		document.addEventListener( 'DOMContentLoaded', boot );
+	} else {
+		boot();
+	}
 
 	window.addEventListener( 'beforeunload', function ( e ) {
 		if ( settingsDirty ) { e.preventDefault(); e.returnValue = ''; }

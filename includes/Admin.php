@@ -269,8 +269,9 @@ class Admin {
 		$snap  = Ajax::snapshot();
 		$state = self::status_state( $snap );
 
-		// A stalled run: opening this page re-schedules a chunk (the nudge).
-		if ( 'stalled' === $state ) {
+		// While a run is active, opening this page makes sure a chunk is queued
+		// and pokes WP-Cron - covers hosts with no loopback and lost requests.
+		if ( in_array( $state, array( 'running', 'stalled' ), true ) ) {
 			Runner::nudge();
 		}
 

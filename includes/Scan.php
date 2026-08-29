@@ -194,18 +194,18 @@ class Scan {
 			$wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key = %s", Converter::META_WEBP )
 		);
 
-		list( $avg_src, $fallback_frac, $avg_mp ) = self::sample();
+		list( $avg_src, $fallback_frac, $avg_mp, $avg_files ) = self::sample();
 
 		$measured_frac = $webp_total > 0;
 		$avg_frac      = $measured_frac
 			? $webp_total / ( $saved_total + $webp_total )
 			: $fallback_frac;
 
-		// Seconds per image: what past runs measured on this server, else a
-		// rough guess from the average image size.
+		// Seconds per attachment: what past runs measured on this server, else a
+		// deliberately pessimistic guess.
 		$pace          = (float) get_option( Runner::PACE_OPTION, 0 );
 		$measured_pace = $pace > 0;
-		$per_image     = $measured_pace ? $pace : self::guess_per_image( $avg_mp );
+		$per_image     = $measured_pace ? $pace : self::guess_per_image( $avg_mp, $avg_files );
 
 		$data = array(
 			'months'        => $months,
@@ -235,12 +235,12 @@ class Scan {
 	 * before there is any real conversion data.
 	 *
 	 * Source bytes come from `_wp_attachment_metadata` (WP ≥ 6.0 stores
-	 * `filesize`) - no file reads. Also returns the average megapixels per
-	 * attachment (full + sub-sizes), used to guess conversion speed before a
-	 * run has measured it.
+	 * `filesize`) - no file reads. Also returns the average megapixels and the
+	 * average number of size files per attachment, used to guess conversion
+	 * speed before a run has measured it.
 	 *
-	 * @return array{0:int,1:float,2:float} [ avg source bytes, fallback webp
-	 *         fraction, avg megapixels ].
+	 * @return array{0:int,1:float,2:float,3:float} [ avg source bytes, fallback
+	 *         webp fraction, avg megapixels, avg size-file count ].
 	 */
 	private static function sample() {
 		global $wpdb;
@@ -264,8 +264,9 @@ class Scan {
 			'image/jpeg' => 0,
 			'image/png'  => 0,
 		);
-		$mp_sum = 0.0;
-		$mp_n   = 0;
+		$mp_sum    = 0.0;
+		$files_sum = 0;
+		$rows_n    = 0;
 
 		foreach ( (array) $ids as $id ) {
 			$id   = (int) $id;
@@ -278,6 +279,7 @@ class Scan {
 			$meta  = wp_get_attachment_metadata( $id );
 			$bytes = 0;
 			$mp    = 0.0;
+			$files = 1; // the full-size file
 
 			if ( is_array( $meta ) ) {
 				$bytes += (int) ( $meta['filesize'] ?? 0 );
@@ -286,6 +288,7 @@ class Scan {
 				foreach ( (array) ( $meta['sizes'] ?? array() ) as $size ) {
 					$bytes += (int) ( $size['filesize'] ?? 0 );
 					$mp    += ( (int) ( $size['width'] ?? 0 ) * (int) ( $size['height'] ?? 0 ) ) / 1000000;
+					++$files;
 				}
 			}
 
@@ -295,16 +298,18 @@ class Scan {
 			}
 
 			if ( $mp > 0 ) {
-				$mp_sum += $mp;
-				++$mp_n;
+				$mp_sum    += $mp;
+				$files_sum += $files;
+				++$rows_n;
 			}
 		}
 
-		$total_n = $count['image/jpeg'] + $count['image/png'];
-		$avg_src = $total_n > 0
+		$total_n   = $count['image/jpeg'] + $count['image/png'];
+		$avg_src   = $total_n > 0
 			? (int) round( ( $sum['image/jpeg'] + $sum['image/png'] ) / $total_n )
 			: 0;
-		$avg_mp  = $mp_n > 0 ? $mp_sum / $mp_n : 0.0;
+		$avg_mp    = $rows_n > 0 ? $mp_sum / $rows_n : 0.0;
+		$avg_files = $rows_n > 0 ? $files_sum / $rows_n : 1.0;
 
 		$jpeg_frac = 0.70; // ~30% smaller
 		$png_frac  = extension_loaded( 'imagick' ) ? 0.78 : 0.50;
@@ -312,20 +317,24 @@ class Scan {
 			? ( ( $jpeg_frac * $count['image/jpeg'] ) + ( $png_frac * $count['image/png'] ) ) / $total_n
 			: $jpeg_frac;
 
-		return array( $avg_src, $fallback, $avg_mp );
+		return array( $avg_src, $fallback, $avg_mp, $avg_files );
 	}
 
 	/**
-	 * Rough seconds-per-image before a run has measured this server: scaled by
-	 * the average megapixels processed (all sizes), floored so a thumbnail-only
-	 * library still shows a sane number.
+	 * Rough seconds per attachment before a run has measured this server:
+	 * per-file overhead (editor init, encode, atomic place) plus an encode cost
+	 * scaled by total megapixels across all sizes. Deliberately pessimistic -
+	 * the real rate replaces it after the first chunk, and an over-estimate is
+	 * friendlier than an "it'll be 2 minutes" that turns into twenty.
 	 *
-	 * @param float $avg_mp Average megapixels per attachment.
+	 * @param float $avg_mp    Average total megapixels per attachment.
+	 * @param float $avg_files Average size-file count per attachment.
 	 * @return float
 	 */
-	private static function guess_per_image( $avg_mp ) {
-		$per_mp = extension_loaded( 'imagick' ) ? 0.5 : 0.35;
+	private static function guess_per_image( $avg_mp, $avg_files ) {
+		$per_mp   = extension_loaded( 'imagick' ) ? 1.1 : 0.8;
+		$per_file = 0.45;
 
-		return max( 0.4, $avg_mp > 0 ? $avg_mp * $per_mp : 1.0 );
+		return max( 1.5, ( $avg_files * $per_file ) + ( $avg_mp * $per_mp ) );
 	}
 }

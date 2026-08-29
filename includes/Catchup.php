@@ -20,10 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Catchup {
 
-	const HOOK          = 'perxel_image_optimizer_catch_up';
-	const DELAY         = 60;
-	const CHUNK_SECONDS = 15;
-	const BATCH         = 40;
+	const HOOK  = 'perxel_image_optimizer_catch_up';
+	const DELAY = 60;
+	const BATCH = 60;
 
 	/**
 	 * Hooks. Registered on every load so the Action Scheduler callback exists.
@@ -102,7 +101,7 @@ class Catchup {
 				Failures::record( $id, $e->getMessage(), 'failed' );
 			}
 
-			if ( ( microtime( true ) - $started ) > self::CHUNK_SECONDS ) {
+			if ( ( microtime( true ) - $started ) > Runner::chunk_budget() ) {
 				break;
 			}
 		}
