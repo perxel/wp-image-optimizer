@@ -4,7 +4,7 @@
  * Plugin URI:        https://github.com/perxel/wp-image-optimizer
  * Description:        Convert the media library to WebP and serve it via .htaccess. No SSH, no external service — a bulk run from an admin page plus per-attachment buttons.
  * Version:           0.0.1
- * Requires at least: 6.0
+ * Requires at least: 6.5
  * Requires PHP:      7.4
  * Author:            phucbm
  * Author URI:        https://phucbm.com
@@ -43,6 +43,17 @@ spl_autoload_register(
 );
 
 /**
+ * Action Scheduler — bundled background job runner (vendored, committed; not
+ * Composer-managed here). Self-negotiates its version when several active
+ * plugins ship a copy, so loading it unconditionally is safe. See CLAUDE.md
+ * for how to refresh the vendored copy. Guarded so a botched deploy degrades
+ * (no background runner) rather than fatals on every request.
+ */
+if ( is_readable( __DIR__ . '/vendor/action-scheduler/action-scheduler.php' ) ) {
+	require_once __DIR__ . '/vendor/action-scheduler/action-scheduler.php';
+}
+
+/**
  * Shared Perxel admin UI. Standalone, versioned independently of this plugin;
  * see ui/README.md. Overwriting the ui/ folder cannot break plugin behaviour.
  */
@@ -52,6 +63,7 @@ Perxel_UI_Loader::register( '0.11.0', __DIR__ . '/ui', plugins_url( 'ui', __FILE
 
 register_activation_hook( __FILE__, array( '\Perxel\ImageOptimizer\Migrator', 'run' ) );
 register_deactivation_hook( __FILE__, array( '\Perxel\ImageOptimizer\Serve', 'on_deactivate' ) );
+register_deactivation_hook( __FILE__, array( '\Perxel\ImageOptimizer\Runner', 'pause' ) ); // Freeze a bulk run; Resume picks it up on reactivation.
 
 add_action(
 	'plugins_loaded',

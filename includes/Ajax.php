@@ -8,6 +8,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * admin-ajax endpoints. Every handler checks the nonce and capability.
+ *
+ * Only two kinds of thing stay on AJAX: the live progress poll while a run is
+ * active, and the per-attachment Media-library buttons. Everything else — Scan,
+ * Start, Pause, Cancel, Retry, Recalculate, the test email — is a plain form
+ * POST to an `admin_post_*` handler (Admin.php), matching the plugin's
+ * server-rendered house style.
  */
 class Ajax {
 
@@ -18,13 +24,7 @@ class Ajax {
 	 */
 	public function register() {
 		$map = array(
-			'perxel_image_optimizer_status'      => 'status',
-			'perxel_image_optimizer_recalc'      => 'recalc',
-			'perxel_image_optimizer_start'       => 'start',
-			'perxel_image_optimizer_resume'      => 'resume',
-			'perxel_image_optimizer_run_batch'   => 'run_batch',
-			'perxel_image_optimizer_cancel'      => 'cancel',
-			'perxel_image_optimizer_save'        => 'save_settings',
+			'perxel_image_optimizer_progress'    => 'progress',
 			'perxel_image_optimizer_convert_one' => 'convert_one',
 			'perxel_image_optimizer_remove_one'  => 'remove_one',
 			'perxel_image_optimizer_purge_start' => 'purge_start',
@@ -39,91 +39,14 @@ class Ajax {
 	/* --------------------------------------------------------------------- */
 
 	/**
-	 * Full snapshot for the admin page.
+	 * Live run progress — polled by the monitor every few seconds.
 	 */
-	public function status() {
+	public function progress() {
 		$this->guard();
 
-		wp_send_json_success( self::snapshot() );
-	}
-
-	/**
-	 * Full metrics recalculation.
-	 */
-	public function recalc() {
-		$this->guard();
-
-		Metrics::recalculate();
-
-		wp_send_json_success( self::snapshot() );
-	}
-
-	/**
-	 * Start a fresh run.
-	 */
-	public function start() {
-		$this->guard();
-
-		$lock = $this->lock_param();
-		Runner::start( $lock );
-
-		wp_send_json_success( self::snapshot() );
-	}
-
-	/**
-	 * Resume / take over a run.
-	 */
-	public function resume() {
-		$this->guard();
-
-		$lock = $this->lock_param();
-		Runner::resume( $lock );
-
-		wp_send_json_success( self::snapshot() );
-	}
-
-	/**
-	 * Process one batch.
-	 */
-	public function run_batch() {
-		$this->guard();
-
-		$lock   = $this->lock_param();
-		$result = Runner::run_batch( $lock );
-
-		if ( 'locked' === ( $result['status'] ?? '' ) ) {
-			wp_send_json_error( array( 'reason' => 'locked' ) + $result, 409 );
-		}
-
-		wp_send_json_success( $result + array( 'report' => Metrics::report() ) );
-	}
-
-	/**
-	 * Stop the run.
-	 */
-	public function cancel() {
-		$this->guard();
-
-		Runner::cancel();
-
-		wp_send_json_success( self::snapshot() );
-	}
-
-	/**
-	 * Save settings.
-	 */
-	public function save_settings() {
-		$this->guard();
-
-		$raw = isset( $_POST['settings'] ) ? wp_unslash( $_POST['settings'] ) : array();
-
-		if ( is_string( $raw ) ) {
-			$raw = json_decode( $raw, true );
-		}
-
-		Settings::update( is_array( $raw ) ? $raw : array() );
-
-		wp_send_json_success( self::snapshot() );
+		wp_send_json_success(
+			Runner::progress() + array( 'failures' => Failures::listing( 100 ) )
+		);
 	}
 
 	/**
@@ -136,6 +59,12 @@ class Ajax {
 		$force  = ! empty( $_POST['force'] );
 		$result = Converter::convert_attachment( $id, $force );
 		Metrics::apply( $result );
+
+		if ( 'failed' === ( $result['status'] ?? '' ) ) {
+			Failures::record( $id, ( ! empty( $result['error'] ) ? $result['error'] : 'conversion failed' ), 'failed' );
+		} else {
+			Failures::clear_one( $id );
+		}
 
 		wp_send_json_success(
 			array(
@@ -154,6 +83,7 @@ class Ajax {
 		$this->guard( $id );
 
 		$removed = Converter::remove_attachment( $id );
+		Failures::clear_one( $id );
 
 		wp_send_json_success(
 			array(
@@ -204,20 +134,13 @@ class Ajax {
 	}
 
 	/**
-	 * @return string Sanitised lock token from the request.
-	 */
-	private function lock_param() {
-		return isset( $_POST['lock'] ) ? sanitize_key( wp_unslash( $_POST['lock'] ) ) : '';
-	}
-
-	/**
-	 * Everything the admin page needs in one object.
+	 * Everything the admin screens need in one object. Cheap — reads options and
+	 * one `wp_count_attachments()`, never walks the library.
 	 *
 	 * @return array
 	 */
 	public static function snapshot() {
 		$serve = new Serve();
-		$state = Runner::state();
 
 		return array(
 			'environment' => Environment::probe(),
@@ -225,23 +148,17 @@ class Ajax {
 			'metrics'     => Metrics::all(),
 			'report'      => Metrics::report(),
 			'summary'     => Scanner::summary(),
-			'run'         => array(
-				'phase'       => $state['phase'],
-				'processed'   => (int) $state['processed'],
-				'total'       => (int) $state['total'],
-				'failed'      => (int) $state['failed'],
-				'saved_bytes' => (int) $state['saved_bytes'],
-				'remaining'   => count( $state['queue'] ),
-				'running'     => Runner::is_running(),
-				'stale'       => Runner::is_stale(),
-			),
+			'scan'        => Scan::data(),
+			'job'         => Runner::progress(),
+			'sections'    => Sections::months(),
 			'serving'     => array(
-				'mode'            => $serve->mode(),
-				'block_present'   => $serve->block_present(),
-				'rules_preview'   => $serve->rules_preview(),
+				'mode'          => $serve->mode(),
+				'block_present' => $serve->block_present(),
+				'rules_preview' => $serve->rules_preview(),
 			),
-			'failures'    => Scanner::failures( 50 ),
+			'failures'    => Failures::listing( 100 ),
 			'sizes'       => array_merge( array( 'full' ), get_intermediate_image_sizes() ),
+			'recalcing'   => (bool) get_transient( 'perxel_image_optimizer_recalcing' ),
 		);
 	}
 }

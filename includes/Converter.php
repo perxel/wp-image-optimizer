@@ -18,6 +18,15 @@ class Converter {
 	const META_OLD = '_perxel_webp'; // pre-1.0 key; migrated on read.
 
 	/**
+	 * Standalone, SQL-filterable settings signature. Present and equal to the
+	 * current Settings::signature() exactly when the attachment is fully handled
+	 * under the current settings (status done, no-gain, or a deterministic
+	 * skip). Absent for partial/failed work — which is how Sections/Scanner
+	 * find "still needs converting" without unserialising per-row meta.
+	 */
+	const META_SIG = '_perxel_image_optimizer_sig';
+
+	/**
 	 * Convert every eligible file of one attachment.
 	 *
 	 * @param int  $attachment_id Attachment ID.
@@ -76,10 +85,14 @@ class Converter {
 			$files   = self::attachment_files( $attachment_id );
 			$quality = 'image/png' === $mime ? (int) Settings::get( 'png_quality' ) : (int) Settings::get( 'jpeg_quality' );
 			$max_mp  = (int) Settings::get( 'skip_megapixels' );
+			if ( $max_mp <= 0 ) {
+				$max_mp = Environment::safe_megapixels();
+			}
 
-			$ok = 0;
-			$fail = 0;
-			$skip = 0;
+			$ok        = 0;
+			$fail      = 0;
+			$skip      = 0;
+			$too_large = 0;
 
 			foreach ( $files as $size => $info ) {
 				$path = $info['path'];
@@ -112,6 +125,7 @@ class Converter {
 				if ( $max_mp > 0 && $mp > $max_mp ) {
 					$result['sizes'][ $size ] = array( 'ok' => false, 'reason' => sprintf( 'exceeds %d MP', $max_mp ) );
 					$skip++;
+					$too_large++;
 					continue;
 				}
 
@@ -138,6 +152,9 @@ class Converter {
 				$result['error']  = 'all sizes failed';
 			} elseif ( $fail > 0 ) {
 				$result['status'] = 'partial';
+			} elseif ( 0 === $ok && $too_large > 0 ) {
+				$result['status'] = 'skipped';
+				$result['error']  = 'too large for this server';
 			} else {
 				$result['status'] = 'done';
 			}
@@ -145,6 +162,7 @@ class Converter {
 			$result['converted_count'] = $ok;
 			$result['failed_count']    = $fail;
 			$result['skipped_count']   = $skip;
+			$result['too_large_count'] = $too_large;
 		} catch ( \Throwable $e ) {
 			$result['status'] = 'failed';
 			$result['error']  = $e->getMessage();
@@ -180,6 +198,7 @@ class Converter {
 		}
 
 		delete_post_meta( $attachment_id, self::META );
+		delete_post_meta( $attachment_id, self::META_SIG );
 
 		return array( 'deleted' => $deleted, 'bytes' => $bytes );
 	}
@@ -330,6 +349,8 @@ class Converter {
 	 * @param array $result        Conversion result.
 	 */
 	private static function save_meta( $attachment_id, array $result ) {
+		$signature = Settings::signature();
+
 		update_post_meta(
 			$attachment_id,
 			self::META,
@@ -337,10 +358,19 @@ class Converter {
 				'status'    => $result['status'],
 				'sizes'     => $result['sizes'],
 				'error'     => $result['error'],
-				'signature' => Settings::signature(),
+				'signature' => $signature,
 				'ts'        => time(),
 			)
 		);
+
+		// The standalone signature marks "settled under these settings". Written
+		// for done / no-gain / deterministic skips; cleared while work remains
+		// (partial, failed) so the scan and runner keep seeing the attachment.
+		if ( in_array( $result['status'], array( 'done', 'skipped' ), true ) ) {
+			update_post_meta( $attachment_id, self::META_SIG, $signature );
+		} else {
+			delete_post_meta( $attachment_id, self::META_SIG );
+		}
 	}
 
 	/**

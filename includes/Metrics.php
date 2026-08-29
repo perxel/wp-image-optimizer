@@ -134,13 +134,21 @@ class Metrics {
 	public static function recalculate() {
 		$m = self::defaults();
 
+		$signature = Settings::signature();
+
 		foreach ( Scanner::all_image_ids() as $id ) {
 			$meta       = Converter::get_meta( $id );
 			$meta_sizes = is_array( $meta ) && ! empty( $meta['sizes'] ) ? $meta['sizes'] : array();
-			$stale      = ! $meta || ( $meta['signature'] ?? '' ) !== Settings::signature();
+			$stale      = ! $meta || ( $meta['signature'] ?? '' ) !== $signature;
 
 			if ( $meta && 'failed' === ( $meta['status'] ?? '' ) ) {
 				$m['failed_attachments']++;
+			}
+
+			// Backfill the standalone signature meta for records that predate it
+			// (or lost it) so Sections/Scanner see them as settled.
+			if ( $meta && ! $stale && in_array( $meta['status'] ?? '', array( 'done', 'skipped' ), true ) ) {
+				update_post_meta( $id, Converter::META_SIG, $signature );
 			}
 
 			foreach ( Converter::attachment_files( $id ) as $size => $info ) {
@@ -185,6 +193,10 @@ class Metrics {
 		$m['last_full_scan'] = time();
 
 		update_option( self::OPTION, $m, false );
+
+		// The authoritative pass also refreshes the derived indexes.
+		Failures::rebuild();
+		Scan::mark_stale();
 
 		return $m;
 	}

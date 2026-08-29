@@ -7,7 +7,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Enumerates image attachments and works out what still needs converting.
+ * Enumerates image attachments.
+ *
+ * The heavy "what still needs converting" work moved out: month-scoped queries
+ * live in Sections, the cached library scan in Scan, and the failures list in
+ * Failures. What is left here is the full-ID list (used by the authoritative
+ * recalc), a cheap page-load summary, and the newest-first pending query the
+ * catch-up path uses.
  */
 class Scanner {
 
@@ -33,89 +39,62 @@ class Scanner {
 	}
 
 	/**
-	 * Build the pending queue: image attachments that need work under the
-	 * current settings.
+	 * Pending attachment IDs library-wide, newest first, capped. "Pending" is
+	 * decided in SQL by the standalone signature meta (see Sections).
 	 *
+	 * @param int $limit Max IDs.
 	 * @return int[]
 	 */
-	public static function build_queue() {
-		$pending = array();
+	public static function needs_work_ids( $limit ) {
+		global $wpdb;
 
-		foreach ( self::all_image_ids() as $id ) {
-			if ( Converter::needs_work( $id ) ) {
-				$pending[] = (int) $id;
-			}
-		}
+		$ids = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT p.ID FROM {$wpdb->posts} p
+				 LEFT JOIN {$wpdb->postmeta} sig
+				   ON sig.post_id = p.ID AND sig.meta_key = %s
+				 WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
+				   AND p.post_mime_type IN ( 'image/jpeg', 'image/png' )
+				   AND ( sig.meta_id IS NULL OR sig.meta_value <> %s )
+				 ORDER BY p.ID DESC
+				 LIMIT %d",
+				Converter::META_SIG,
+				Settings::signature(),
+				max( 1, (int) $limit )
+			)
+		);
 
-		return $pending;
+		return array_map( 'intval', (array) $ids );
 	}
 
 	/**
-	 * Counts for the dashboard.
+	 * @return bool Whether any image still needs work.
+	 */
+	public static function has_pending() {
+		return array() !== self::needs_work_ids( 1 );
+	}
+
+	/**
+	 * Cheap dashboard counts — no library walk. The attachment total comes from
+	 * wp_count_attachments(); "pending" comes from the cached scan when there is
+	 * one, otherwise the incremental metrics figure.
 	 *
-	 * @return array
+	 * @return array{attachments:int,pending:int,scanned:bool}
 	 */
 	public static function summary() {
-		$ids       = self::all_image_ids();
-		$total     = count( $ids );
-		$done      = 0;
-		$partial   = 0;
-		$failed    = 0;
-		$pending   = 0;
+		$counts      = (array) wp_count_attachments();
+		$attachments = (int) ( $counts['image/jpeg'] ?? 0 ) + (int) ( $counts['image/png'] ?? 0 );
 
-		foreach ( $ids as $id ) {
-			$meta   = Converter::get_meta( $id );
-			$status = is_array( $meta ) ? ( $meta['status'] ?? '' ) : '';
-
-			if ( 'failed' === $status ) {
-				$failed++;
-			}
-
-			if ( Converter::needs_work( $id ) ) {
-				if ( 'partial' === $status ) {
-					$partial++;
-				}
-				$pending++;
-			} else {
-				$done++;
-			}
-		}
+		$scan    = Scan::data();
+		$scanned = ! empty( $scan['scanned_at'] );
+		$pending = $scanned
+			? (int) $scan['pending']
+			: (int) Metrics::all()['pending_files'];
 
 		return array(
-			'attachments' => $total,
-			'done'        => $done,
-			'partial'     => $partial,
-			'failed'      => $failed,
+			'attachments' => $attachments,
 			'pending'     => $pending,
+			'scanned'     => $scanned,
 		);
-	}
-
-	/**
-	 * List failed attachments with their reason.
-	 *
-	 * @param int $limit Max rows.
-	 * @return array
-	 */
-	public static function failures( $limit = 100 ) {
-		$rows = array();
-
-		foreach ( self::all_image_ids() as $id ) {
-			$meta = Converter::get_meta( $id );
-
-			if ( $meta && 'failed' === ( $meta['status'] ?? '' ) ) {
-				$rows[] = array(
-					'id'    => (int) $id,
-					'file'  => (string) get_post_meta( $id, '_wp_attached_file', true ),
-					'name'  => get_the_title( $id ),
-					'error' => $meta['error'] ?? 'unknown',
-				);
-			}
-
-			if ( count( $rows ) >= $limit ) {
-				break;
-			}
-		}
-
-		return $rows;
 	}
 }

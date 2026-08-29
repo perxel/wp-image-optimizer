@@ -19,7 +19,10 @@ global $wpdb;
 $options = array(
 	'perxel_image_optimizer_settings',
 	'perxel_image_optimizer_metrics',
-	'perxel_image_optimizer_state',
+	'perxel_image_optimizer_state',   // pre-redesign runner state
+	'perxel_image_optimizer_job',
+	'perxel_image_optimizer_scan',
+	'perxel_image_optimizer_failures',
 	'perxel_image_optimizer_serve_mode',
 	'perxel_image_optimizer_purge',
 	'perxel_image_optimizer_db_version',
@@ -29,9 +32,21 @@ foreach ( $options as $option ) {
 	delete_option( $option );
 }
 
-// Per-attachment status meta (new + pre-1.0 key).
+delete_transient( 'perxel_image_optimizer_recalcing' );
+
+// Best-effort: drop our scheduled background actions if Action Scheduler is
+// loaded. Any leftover rows are inert once the callbacks are gone and Action
+// Scheduler prunes them on its own retention schedule.
+if ( function_exists( 'as_unschedule_all_actions' ) ) {
+	as_unschedule_all_actions( '', array(), 'perxel-image-optimizer' );
+}
+
+// Action Scheduler's own tables (actionscheduler_*) are left in place — the
+// library is shared infrastructure and may still be in use by another plugin.
+
+// Per-attachment status meta (current keys + pre-1.0 key).
 $wpdb->query(
-	"DELETE FROM {$wpdb->postmeta} WHERE meta_key IN ( '_perxel_image_optimizer', '_perxel_webp' )"
+	"DELETE FROM {$wpdb->postmeta} WHERE meta_key IN ( '_perxel_image_optimizer', '_perxel_image_optimizer_sig', '_perxel_webp' )"
 );
 
 // Per-attachment conversion locks.

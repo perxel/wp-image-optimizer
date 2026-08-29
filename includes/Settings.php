@@ -30,7 +30,9 @@ class Settings {
 			'sizes'             => array( '*' ), // '*' = every registered size + full
 			'convert_on_upload' => true,
 			'serve'             => true,
-			'skip_megapixels'   => 25,
+			'skip_megapixels'   => 0, // 0 = auto (Environment::safe_megapixels()).
+			'email_report'      => false,
+			'email_report_to'   => '',
 		);
 	}
 
@@ -78,7 +80,7 @@ class Settings {
 			$clean['png_quality'] = self::snap_quality( $input['png_quality'] );
 		}
 		if ( isset( $input['skip_megapixels'] ) ) {
-			$clean['skip_megapixels'] = max( 1, min( 200, (int) $input['skip_megapixels'] ) );
+			$clean['skip_megapixels'] = max( 0, min( 200, (int) $input['skip_megapixels'] ) );
 		}
 
 		$clean['convert_png']       = ! empty( $input['convert_png'] );
@@ -86,6 +88,14 @@ class Settings {
 
 		if ( array_key_exists( 'serve', $input ) ) {
 			$clean['serve'] = ! empty( $input['serve'] );
+		}
+
+		if ( array_key_exists( 'email_report', $input ) ) {
+			$clean['email_report'] = ! empty( $input['email_report'] );
+		}
+
+		if ( array_key_exists( 'email_report_to', $input ) ) {
+			$clean['email_report_to'] = sanitize_email( (string) $input['email_report_to'] );
 		}
 
 		if ( array_key_exists( 'sizes', $input ) ) {
@@ -136,6 +146,18 @@ class Settings {
 				)
 			)
 		);
+	}
+
+	/**
+	 * Where a completion report is sent: the configured address, or the site
+	 * admin email when the field is blank or invalid.
+	 *
+	 * @return string
+	 */
+	public static function report_recipient() {
+		$to = trim( (string) self::get( 'email_report_to' ) );
+
+		return ( '' !== $to && is_email( $to ) ) ? $to : (string) get_option( 'admin_email' );
 	}
 
 	/**

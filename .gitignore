@@ -1,7 +1,8 @@
 .idea/
 .DS_Store
 node_modules/
-vendor/
+/vendor/*
+!/vendor/action-scheduler/
 composer.lock
 package-lock.json
 dist/

@@ -30,6 +30,11 @@ class Admin {
 		add_action( 'admin_post_perxel_image_optimizer_save_settings', array( $this, 'save_settings' ) );
 		add_action( 'admin_post_perxel_image_optimizer_reset_settings', array( $this, 'reset_settings' ) );
 
+		// Status-screen actions — plain form POST → do the thing → redirect back.
+		foreach ( array( 'scan', 'start', 'pause', 'resume', 'cancel', 'retry_failed', 'recalc', 'test_email' ) as $verb ) {
+			add_action( 'admin_post_perxel_image_optimizer_' . $verb, array( $this, 'handle_' . $verb ) );
+		}
+
 		// Media library list table.
 		add_filter( 'manage_media_columns', array( $this, 'media_column' ) );
 		add_action( 'manage_media_custom_column', array( $this, 'media_column_value' ), 10, 2 );
@@ -261,15 +266,98 @@ class Admin {
 		$snap  = Ajax::snapshot();
 		$state = self::status_state( $snap );
 
+		// A stalled run: opening this page re-schedules a chunk (the nudge).
+		if ( 'stalled' === $state ) {
+			Runner::nudge();
+		}
+
 		if ( ! $this->ui_ready() ) {
 			echo '<div class="wrap"><h1>' . esc_html__( 'Perxel Image Optimizer', 'perxel-image-optimizer' ) . '</h1>';
 			echo '<div class="notice notice-error"><p>' . esc_html__( 'The shared Perxel UI library could not be loaded.', 'perxel-image-optimizer' ) . '</p></div></div>';
 			return;
 		}
 
-		\Perxel_UI_Layout::open( $this->layout_args( self::PAGE, __( 'Status', 'perxel-image-optimizer' ) ) );
+		\Perxel_UI_Layout::open(
+			$this->layout_args(
+				self::PAGE,
+				__( 'Status', 'perxel-image-optimizer' ),
+				array( 'actions' => $this->status_actions( $state, $snap ) )
+			)
+		);
 		include PERXEL_IMAGE_OPTIMIZER_DIR . 'includes/views/status.php';
 		\Perxel_UI_Layout::close();
+	}
+
+	/**
+	 * The sticky-title-bar buttons for the current Status state.
+	 *
+	 * @param string $state Status state.
+	 * @param array  $snap  Ajax::snapshot().
+	 * @return string Trusted HTML.
+	 */
+	private function status_actions( $state, array $snap ) {
+		$scan_pending = (int) ( $snap['scan']['pending'] ?? 0 );
+
+		switch ( $state ) {
+			case 'not_scanned':
+				return $this->action_form( 'perxel_image_optimizer_scan', __( 'Scan library', 'perxel-image-optimizer' ), 'primary' );
+
+			case 'ready':
+			case 'serve_off':
+			case 'done':
+				$start = '';
+				if ( 'ready' === $state && $scan_pending > 0 ) {
+					$start = ' <button type="submit" form="pxio-prepare" class="button button-primary">'
+						. esc_html__( 'Start conversion', 'perxel-image-optimizer' ) . '</button>';
+				}
+				return $this->action_form( 'perxel_image_optimizer_scan', __( 'Scan again', 'perxel-image-optimizer' ) ) . $start;
+
+			case 'running':
+				return $this->action_form( 'perxel_image_optimizer_pause', __( 'Pause', 'perxel-image-optimizer' ) )
+					. ' ' . $this->action_form(
+						'perxel_image_optimizer_cancel',
+						__( 'Cancel', 'perxel-image-optimizer' ),
+						'secondary',
+						array( 'confirm' => __( 'Stop the run? Converted files are kept.', 'perxel-image-optimizer' ) )
+					);
+
+			case 'stalled':
+			case 'paused':
+				return $this->action_form( 'perxel_image_optimizer_resume', __( 'Resume', 'perxel-image-optimizer' ), 'primary' )
+					. ' ' . $this->action_form(
+						'perxel_image_optimizer_cancel',
+						__( 'Cancel', 'perxel-image-optimizer' ),
+						'secondary',
+						array( 'confirm' => __( 'Stop the run? Converted files are kept.', 'perxel-image-optimizer' ) )
+					);
+
+			case 'complete':
+				return $this->action_form( 'perxel_image_optimizer_scan', __( 'Scan library', 'perxel-image-optimizer' ), 'primary' );
+		}
+
+		return '';
+	}
+
+	/**
+	 * A one-button `admin-post` form, for a sticky-bar action.
+	 *
+	 * @param string $action admin_post action name (also the nonce action).
+	 * @param string $label  Button text.
+	 * @param string $style  primary|secondary.
+	 * @param array  $args   [ 'confirm' => string ].
+	 * @return string
+	 */
+	private function action_form( $action, $label, $style = 'secondary', $args = array() ) {
+		$class   = 'primary' === $style ? 'button button-primary' : 'button';
+		$confirm = isset( $args['confirm'] )
+			? ' data-pxui-confirm="' . esc_attr( $args['confirm'] ) . '"'
+			: '';
+
+		return '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline-block">'
+			. '<input type="hidden" name="action" value="' . esc_attr( $action ) . '" />'
+			. wp_nonce_field( $action, '_wpnonce', true, false )
+			. '<button type="submit" class="' . esc_attr( $class ) . '"' . $confirm . '>' . esc_html( $label ) . '</button>'
+			. '</form>';
 	}
 
 	/**
@@ -286,32 +374,38 @@ class Admin {
 	}
 
 	/**
-	 * Which headline state the Status page is in.
+	 * Which state the Status page is in.
 	 *
 	 * @param array $snap Ajax::snapshot().
-	 * @return string cannot_convert|stale|paused|running|work|serve_off|done
+	 * @return string cannot_convert|running|stalled|paused|complete|not_scanned|ready|serve_off|done
 	 */
 	public static function status_state( array $snap ) {
 		if ( empty( $snap['environment']['webp_encode'] ) ) {
 			return 'cannot_convert';
 		}
 
-		$run = $snap['run'];
+		$job = $snap['job'];
 
-		if ( ! empty( $run['running'] ) ) {
-			return 'running';
+		switch ( $job['phase'] ) {
+			case 'running':
+				return ! empty( $job['stalled'] ) ? 'stalled' : 'running';
+			case 'paused':
+				return 'paused';
+			case 'complete':
+				// A scan taken after the run finished means the operator has
+				// moved on — drop back to the prepare / done states.
+				if ( empty( $snap['scan']['scanned_at'] ) || (int) $snap['scan']['scanned_at'] <= (int) $job['finished_at'] ) {
+					return 'complete';
+				}
+				break;
 		}
 
-		if ( ! empty( $run['stale'] ) ) {
-			return 'stale';
+		if ( empty( $snap['scan']['scanned_at'] ) ) {
+			return 'not_scanned';
 		}
 
-		if ( (int) $run['remaining'] > 0 && (int) $run['processed'] > 0 ) {
-			return 'paused';
-		}
-
-		if ( (int) $snap['summary']['pending'] > 0 ) {
-			return 'work';
+		if ( (int) $snap['scan']['pending'] > 0 ) {
+			return 'ready';
 		}
 
 		if ( empty( $snap['settings']['serve'] ) && (int) $snap['report']['converted_files'] > 0 ) {
@@ -337,8 +431,9 @@ class Admin {
 
 		// Display-only flash flags set by our own redirects; no nonce to check.
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended
-		$updated = isset( $_GET['updated'] );
-		$reset   = isset( $_GET['reset'] );
+		$updated    = isset( $_GET['updated'] );
+		$reset      = isset( $_GET['reset'] );
+		$test_email = isset( $_GET['test_email'] ) ? sanitize_key( wp_unslash( $_GET['test_email'] ) ) : '';
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		if ( ! $this->ui_ready() ) {
@@ -389,7 +484,8 @@ class Admin {
 
 		$jpeg_quality    = isset( $_POST['jpeg_quality'] ) ? absint( $_POST['jpeg_quality'] ) : 80;
 		$png_quality     = isset( $_POST['png_quality'] ) ? absint( $_POST['png_quality'] ) : 90;
-		$skip_megapixels = isset( $_POST['skip_megapixels'] ) ? absint( $_POST['skip_megapixels'] ) : 25;
+		$skip_megapixels = isset( $_POST['skip_megapixels'] ) ? absint( $_POST['skip_megapixels'] ) : 0;
+		$email_report_to = isset( $_POST['email_report_to'] ) ? sanitize_email( wp_unslash( $_POST['email_report_to'] ) ) : '';
 
 		Settings::update(
 			array(
@@ -400,11 +496,16 @@ class Admin {
 				'serve'             => ! empty( $_POST['serve'] ),
 				'skip_megapixels'   => $skip_megapixels,
 				'sizes'             => $sizes,
+				'email_report'      => ! empty( $_POST['email_report'] ),
+				'email_report_to'   => $email_report_to,
 			)
 		);
 
 		// Sync the .htaccess block / cached mode to the just-saved serve setting.
 		( new Serve() )->reconcile();
+
+		// Conversion settings may have changed — the cached scan is now suspect.
+		Scan::mark_stale();
 
 		wp_safe_redirect(
 			add_query_arg(
@@ -440,6 +541,132 @@ class Admin {
 				admin_url( 'upload.php' )
 			)
 		);
+		exit;
+	}
+
+	/*
+	 * Status-screen actions (admin-post → do → redirect back to Status).
+	 */
+
+	/**
+	 * Run the light library scan.
+	 */
+	public function handle_scan() {
+		if ( current_user_can( 'manage_options' ) && check_admin_referer( 'perxel_image_optimizer_scan' ) ) {
+			Scan::run();
+		}
+		$this->redirect_to_status();
+	}
+
+	/**
+	 * Start a bulk run from the prepare form (scope + months + skip toggle).
+	 */
+	public function handle_start() {
+		if ( current_user_can( 'manage_options' ) && check_admin_referer( 'perxel_image_optimizer_start' ) ) {
+			$scope  = ( isset( $_POST['scope'] ) && 'months' === sanitize_key( wp_unslash( $_POST['scope'] ) ) ) ? 'months' : 'all';
+			$months = isset( $_POST['months'] ) ? array_map( 'sanitize_text_field', (array) wp_unslash( $_POST['months'] ) ) : array();
+
+			Runner::start(
+				array(
+					'scope'          => $scope,
+					'months'         => $months,
+					'skip_converted' => ! empty( $_POST['skip_converted'] ),
+				)
+			);
+		}
+		$this->redirect_to_status();
+	}
+
+	/**
+	 * Pause the run.
+	 */
+	public function handle_pause() {
+		if ( current_user_can( 'manage_options' ) && check_admin_referer( 'perxel_image_optimizer_pause' ) ) {
+			Runner::pause();
+		}
+		$this->redirect_to_status();
+	}
+
+	/**
+	 * Resume a paused / stalled run.
+	 */
+	public function handle_resume() {
+		if ( current_user_can( 'manage_options' ) && check_admin_referer( 'perxel_image_optimizer_resume' ) ) {
+			Runner::resume();
+		}
+		$this->redirect_to_status();
+	}
+
+	/**
+	 * Cancel the run (keeps converted files).
+	 */
+	public function handle_cancel() {
+		if ( current_user_can( 'manage_options' ) && check_admin_referer( 'perxel_image_optimizer_cancel' ) ) {
+			Runner::cancel();
+		}
+		$this->redirect_to_status();
+	}
+
+	/**
+	 * Re-queue every failed attachment: drop its settled marker so the next
+	 * catch-up pass picks it up.
+	 */
+	public function handle_retry_failed() {
+		if ( current_user_can( 'manage_options' ) && check_admin_referer( 'perxel_image_optimizer_retry_failed' ) ) {
+			foreach ( Failures::failed_ids() as $id ) {
+				delete_post_meta( $id, Converter::META_SIG );
+			}
+			Failures::clear_kind( 'failed' );
+			Catchup::schedule();
+		}
+		$this->redirect_to_status();
+	}
+
+	/**
+	 * Kick the authoritative metrics recalculation as a background action.
+	 */
+	public function handle_recalc() {
+		if ( current_user_can( 'manage_options' ) && check_admin_referer( 'perxel_image_optimizer_recalc' ) ) {
+			set_transient( 'perxel_image_optimizer_recalcing', 1, 15 * MINUTE_IN_SECONDS );
+
+			if ( function_exists( 'as_enqueue_async_action' ) ) {
+				as_enqueue_async_action( 'perxel_image_optimizer_recalc', array(), Runner::GROUP );
+			} else {
+				Plugin::instance()->run_recalc();
+			}
+		}
+		$this->redirect_to_status();
+	}
+
+	/**
+	 * Send a sample completion report to the address in Settings.
+	 */
+	public function handle_test_email() {
+		$sent = false;
+
+		if ( current_user_can( 'manage_options' ) && check_admin_referer( 'perxel_image_optimizer_test_email' ) ) {
+			$to   = isset( $_POST['email_report_to'] ) ? sanitize_email( wp_unslash( $_POST['email_report_to'] ) ) : '';
+			$to   = $to ? $to : Settings::report_recipient();
+			$sent = Mailer::send_test( $to );
+		}
+
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'       => self::PAGE_SETTINGS,
+					'test_email' => $sent ? 'sent' : 'failed',
+				),
+				admin_url( 'upload.php' )
+			) . '#notifications'
+		);
+		exit;
+	}
+
+	/**
+	 * Redirect back to the Status screen.
+	 */
+	private function redirect_to_status() {
+		wp_safe_redirect( admin_url( 'upload.php?page=' . self::PAGE ) );
 		exit;
 	}
 

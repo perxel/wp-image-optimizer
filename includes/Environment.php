@@ -45,6 +45,7 @@ class Environment {
 			'imagick_lossless' => $has_imk && $imk_webp,
 			'memory_limit'     => self::bytes_from_ini( ini_get( 'memory_limit' ) ),
 			'memory_limit_raw' => (string) ini_get( 'memory_limit' ),
+			'safe_megapixels'  => self::safe_megapixels(),
 			'max_execution'    => (int) ini_get( 'max_execution_time' ),
 			'set_time_limit'   => function_exists( 'set_time_limit' ) && ! in_array( 'set_time_limit', $disabled_functions, true ),
 			'htaccess_writable' => self::htaccess_writable(),
@@ -61,6 +62,32 @@ class Environment {
 	 */
 	public static function can_convert() {
 		return wp_image_editor_supports( array( 'mime_type' => 'image/webp' ) );
+	}
+
+	/**
+	 * Largest image (megapixels) this server can safely decode for conversion,
+	 * derived from the PHP memory limit and the active image engine. Used as the
+	 * automatic ceiling when the "Skip images larger than" override is left at 0.
+	 *
+	 * Decode cost ≈ width·height·4 bytes for the raw bitmap, times an engine
+	 * working-set factor (Imagick holds more copies in memory than GD). The
+	 * conversion is allowed up to 60% of the memory limit.
+	 *
+	 * @return int Megapixels. 0 means the memory limit is unlimited/unknown, so
+	 *             no automatic ceiling is applied.
+	 */
+	public static function safe_megapixels() {
+		$limit = self::bytes_from_ini( ini_get( 'memory_limit' ) );
+
+		if ( $limit <= 0 ) {
+			return 0;
+		}
+
+		$factor    = extension_loaded( 'imagick' ) ? 5.0 : 2.5;
+		$per_pixel = 4 * $factor;
+		$pixels    = ( $limit * 0.6 ) / $per_pixel;
+
+		return max( 1, (int) floor( $pixels / 1000000 ) );
 	}
 
 	/**

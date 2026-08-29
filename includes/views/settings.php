@@ -4,9 +4,10 @@
  *
  * @package Perxel_Image_Optimizer
  *
- * @var array $snap    Perxel\ImageOptimizer\Ajax::snapshot().
- * @var bool  $updated Whether the settings form just saved.
- * @var bool  $reset   Whether settings were just reset to defaults.
+ * @var array  $snap       Perxel\ImageOptimizer\Ajax::snapshot().
+ * @var bool   $updated    Whether the settings form just saved.
+ * @var bool   $reset      Whether settings were just reset to defaults.
+ * @var string $test_email '', 'sent' or 'failed' after a test-email attempt.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -63,6 +64,12 @@ if ( $updated ) {
 	echo Perxel_UI::notice( 'success', esc_html__( 'Settings saved.', 'perxel-image-optimizer' ), array( 'dismissible' => true ) );
 } elseif ( $reset ) {
 	echo Perxel_UI::notice( 'success', esc_html__( 'Settings reset to defaults.', 'perxel-image-optimizer' ), array( 'dismissible' => true ) );
+}
+
+if ( 'sent' === $test_email ) {
+	echo Perxel_UI::notice( 'success', esc_html__( 'Test email sent.', 'perxel-image-optimizer' ), array( 'dismissible' => true ) );
+} elseif ( 'failed' === $test_email ) {
+	echo Perxel_UI::notice( 'error', esc_html__( 'Test email could not be sent. Check the address and your site mail configuration.', 'perxel-image-optimizer' ), array( 'dismissible' => true ) );
 }
 
 /* --- Conversion --------------------------------------------------- */
@@ -148,9 +155,12 @@ foreach ( (array) $snap['sizes'] as $name ) {
 					),
 					array(
 						'label'   => __( 'Skip images larger than', 'perxel-image-optimizer' ),
-						'sub'     => esc_html__( 'Bigger images risk running out of memory, so they are left alone.', 'perxel-image-optimizer' ),
-						'content' => '<input type="number" id="pxio-mp" name="skip_megapixels" min="1" max="200" value="'
-							. esc_attr( $cfg['skip_megapixels'] ) . '" /> ' . esc_html__( 'megapixels', 'perxel-image-optimizer' ),
+						'sub'     => $env['safe_megapixels'] > 0
+							/* translators: %d: megapixels. */
+							? esc_html( sprintf( __( 'Bigger images risk running out of memory. Leave at 0 to use this server\'s computed ceiling (%d MP).', 'perxel-image-optimizer' ), (int) $env['safe_megapixels'] ) )
+							: esc_html__( 'Bigger images risk running out of memory, so they are left alone. Leave at 0 to use the computed ceiling.', 'perxel-image-optimizer' ),
+						'content' => '<input type="number" id="pxio-mp" name="skip_megapixels" min="0" max="200" value="'
+							. esc_attr( (int) $cfg['skip_megapixels'] ) . '" /> ' . esc_html__( 'megapixels', 'perxel-image-optimizer' ),
 					),
 					array(
 						'label'   => __( 'Auto-optimize new uploads', 'perxel-image-optimizer' ),
@@ -205,6 +215,60 @@ $serve_sub = $serve_status . ' — ' . esc_html__(
 						'summary' => __( 'Managed .htaccess block', 'perxel-image-optimizer' ),
 						'sub'     => esc_html__( 'The exact rules added while serving is on: Apache sends the .webp copy to browsers that accept it, and the original to the rest.', 'perxel-image-optimizer' ),
 						'details' => Perxel_UI::code( $srv['rules_preview'] ),
+					),
+				),
+			),
+		)
+	);
+	?>
+</div>
+
+<?php
+/* --- Notifications ---------------------------------------------- */
+
+$email_to    = (string) $cfg['email_report_to'];
+$admin_email = (string) get_option( 'admin_email' );
+?>
+<div id="notifications">
+	<?php
+	echo Perxel_UI::rows(
+		array(
+			array(
+				'title' => __( 'Notifications', 'perxel-image-optimizer' ),
+				'rows'  => array(
+					array(
+						'label'   => __( 'Email a report when a bulk run finishes', 'perxel-image-optimizer' ),
+						'sub'     => esc_html__( 'Converted count, bandwidth saved, disk added, failures — sent once per run (also on cancel).', 'perxel-image-optimizer' ),
+						'content' => Perxel_UI::toggle(
+							array(
+								'name'    => 'email_report',
+								'form'    => 'pxio-settings-form',
+								'checked' => ! empty( $cfg['email_report'] ),
+								'label'   => __( 'Email a report when a bulk run finishes', 'perxel-image-optimizer' ),
+							)
+						),
+					),
+					array(
+						'label'   => __( 'Send to', 'perxel-image-optimizer' ),
+						'sub'     => esc_html(
+							sprintf(
+								/* translators: %s: the site admin email. */
+								__( 'Leave blank to use the site admin address (%s).', 'perxel-image-optimizer' ),
+								$admin_email
+							)
+						),
+						'content' => '<input type="email" id="pxio-email-to" name="email_report_to" form="pxio-settings-form"'
+							. ' value="' . esc_attr( $email_to ) . '" placeholder="' . esc_attr( $admin_email ) . '" class="regular-text" />',
+					),
+					array(
+						'label'   => __( 'Test', 'perxel-image-optimizer' ),
+						'sub'     => esc_html__( 'Sends a sample report now. Uses the address above — save first if you just changed it and have JavaScript off.', 'perxel-image-optimizer' ),
+						'content' => '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" id="pxio-test-email" style="display:inline">'
+							. '<input type="hidden" name="action" value="perxel_image_optimizer_test_email" />'
+							. '<input type="hidden" name="email_report_to" value="' . esc_attr( $email_to ) . '" />'
+							. wp_nonce_field( 'perxel_image_optimizer_test_email', '_wpnonce', true, false )
+							. '<button type="submit" class="button">' . esc_html__( 'Send test email', 'perxel-image-optimizer' ) . '</button>'
+							. '</form>',
 					),
 				),
 			),

@@ -121,11 +121,14 @@ class Purger {
 		foreach ( Scanner::all_image_ids() as $id ) {
 			$id = (int) $id;
 			delete_post_meta( $id, Converter::META );
+			delete_post_meta( $id, Converter::META_SIG );
 			wp_cache_delete( $id, 'post_meta' );
 		}
 
 		Metrics::reset();
 		Runner::reset();
+		Failures::clear();
+		Scan::clear();
 		delete_option( self::OPTION );
 	}
 }

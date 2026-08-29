@@ -1,7 +1,7 @@
 === Perxel Image Optimizer ===
 Contributors: phucbm
 Tags: webp, images, performance, optimization, media
-Requires at least: 6.0
+Requires at least: 6.5
 Tested up to: 6.6
 Requires PHP: 7.4
 Stable tag: 0.0.1
@@ -19,14 +19,16 @@ page, on shared hosting.
   `foo.jpg.webp` sibling; originals are never modified.
 * Serving through a managed `.htaccess` block on Apache/LiteSpeed, with an
   `<img>` to `<picture>` fallback elsewhere.
-* Bulk run from the admin page with adaptive batching, durable progress and
-  Resume. No cron, no background work.
+* Scan-first bulk run: a light scan estimates the work, then a background job
+  (Action Scheduler) converts the library newest-to-oldest, one month at a time.
+  Pause, resume, cancel, close the tab — progress is durable. Optional email
+  report when a run finishes.
 * Per-attachment Convert / Reconvert / Remove buttons in the Media library.
-* New uploads are converted automatically.
+* New uploads are converted automatically, shortly after upload.
 
-The admin area is two screens under Media > WebP: a **Status** page (the numbers
-plus one button) and a separate **Settings** page (environment, conversion
-options, serving, cleanup).
+The admin area is two screens under Media > WebP: a **Status** page (scan →
+prepare → live monitor) and a separate **Settings** page (environment, conversion
+options, serving, notifications, cleanup).
 
 == Installation ==
 
