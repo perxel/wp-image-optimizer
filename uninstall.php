@@ -3,7 +3,7 @@
  * Uninstall cleanup for Perxel Image Optimizer.
  *
  * Removes the plugin's own settings, state, and the managed .htaccess block, plus
- * every per-attachment status record (old and new keys).
+ * every per-attachment status record.
  *
  * It does NOT delete the .webp files under uploads/ - that can be a very large,
  * slow operation. Run "Media → Image Optimizer → Remove all WebP" before deleting
@@ -26,7 +26,6 @@ $options = array(
 	'perxel_image_optimizer_failures',
 	'perxel_image_optimizer_serve_mode',
 	'perxel_image_optimizer_purge',
-	'perxel_image_optimizer_db_version',
 );
 
 foreach ( $options as $option ) {
@@ -43,15 +42,13 @@ if ( function_exists( 'as_unschedule_all_actions' ) ) {
 // Action Scheduler's own tables (actionscheduler_*) are left in place - the
 // library is shared infrastructure and may still be in use by another plugin.
 
-// Per-attachment meta: status blob, signature marker, flat byte tallies, and
-// the pre-1.0 key.
+// Per-attachment meta: status blob, signature marker, flat byte tallies.
 $wpdb->query(
 	"DELETE FROM {$wpdb->postmeta} WHERE meta_key IN (
 		'_perxel_image_optimizer',
 		'_perxel_image_optimizer_sig',
 		'_perxel_image_optimizer_saved',
-		'_perxel_image_optimizer_webp',
-		'_perxel_webp'
+		'_perxel_image_optimizer_webp'
 	)"
 );
 
@@ -73,7 +70,6 @@ if ( file_exists( $htaccess ) && is_writable( $htaccess ) ) {
 		require_once ABSPATH . 'wp-admin/includes/misc.php';
 	}
 	insert_with_markers( $htaccess, 'Perxel Image Optimizer', array() );
-	insert_with_markers( $htaccess, 'Perxel WebP', array() );
 }
 
 wp_cache_flush();

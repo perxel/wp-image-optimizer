@@ -50,9 +50,8 @@ The `.htaccess` swap is Apache-only. On nginx the plugin rewrites `<img>` tags t
 == Changelog ==
 
 = 0.0.1 =
-* First standalone release. Renamed from the internal "Perxel WebP" mu-plugin;
-  slug, namespace and stored data keys are now `perxel_image_optimizer_*`, with a
-  one-time migration from the old `perxel_webp_*` keys on activation.
+* First standalone release. Slug, namespace and stored data keys are
+  `perxel_image_optimizer_*`.
 * Admin redesign: the single scrolling page is now a **Status** screen (metrics +
   one action button) and a separate **Settings** screen, in a shared sidebar
   layout. Both are server-rendered; JavaScript only drives the conversion run.

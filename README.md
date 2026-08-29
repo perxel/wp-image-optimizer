@@ -59,7 +59,6 @@ behaviour or fatal. See [`ui/README.md`](ui/README.md). With `WP_DEBUG` on,
 | `perxel_image_optimizer_state` | option | resumable conversion queue |
 | `perxel_image_optimizer_serve_mode` | option | `apache` / `fallback` / `off` |
 | `perxel_image_optimizer_purge` | option | in-progress purge queue |
-| `perxel_image_optimizer_db_version` | option | migration marker |
 | `_perxel_image_optimizer` | post meta | per-attachment status + per-size sizes |
 | `perxel_image_optimizer_sample` | transient | cached sample estimate |
 
@@ -67,14 +66,6 @@ behaviour or fatal. See [`ui/README.md`](ui/README.md). With `WP_DEBUG` on,
 above. **Uninstalling** the plugin (Plugins → Delete) removes the options, post
 meta, and the `.htaccess` block, but **not** the `.webp` files — run "Remove all
 WebP" first if you want those gone too.
-
-## Upgrading from "Perxel WebP"
-
-Earlier builds shipped as a must-use plugin under the `perxel_webp_*` prefix. On
-activation this plugin runs a one-time migration that copies that data forward to
-the `perxel_image_optimizer_*` keys and replaces the `# BEGIN Perxel WebP`
-`.htaccess` block. The old data is left in place (a parallel mu-plugin copy may
-still rely on it).
 
 ## Notes
 

@@ -31,8 +31,6 @@ class Plugin {
 	 * Boot - called on plugins_loaded.
 	 */
 	public function boot() {
-		Migrator::run();
-
 		// Background job callbacks. Registered on every load (front, admin,
 		// cron, Action Scheduler's async loopback) so in-flight work always has
 		// a handler - even while the plugin is soft-disabled, so a paused run

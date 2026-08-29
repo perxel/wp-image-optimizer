@@ -14,8 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Converter {
 
-	const META     = '_perxel_image_optimizer';
-	const META_OLD = '_perxel_webp'; // pre-1.0 key; migrated on read.
+	const META = '_perxel_image_optimizer';
 
 	/**
 	 * Standalone, SQL-filterable settings signature. Present and equal to the
@@ -454,15 +453,6 @@ class Converter {
 	 */
 	public static function get_meta( $attachment_id ) {
 		$meta = get_post_meta( $attachment_id, self::META, true );
-
-		if ( ! is_array( $meta ) ) {
-			// Fall back to the pre-1.0 key and migrate it forward on read.
-			$legacy = get_post_meta( $attachment_id, self::META_OLD, true );
-			if ( is_array( $legacy ) ) {
-				update_post_meta( $attachment_id, self::META, $legacy );
-				return $legacy;
-			}
-		}
 
 		return is_array( $meta ) ? $meta : null;
 	}
