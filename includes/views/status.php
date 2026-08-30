@@ -369,6 +369,26 @@ $per_image = (float) ( $scan['per_image'] ?? 1 );
 		)
 		: esc_html__( 'Free space unreadable on this server.', 'perxel-image-optimizer' );
 
+	// Plain-language lead line for the note - one sentence pulling the four
+	// figures together for a non-technical reader. admin.js rewrites the span
+	// on every selection change (recompute()); this is the no-JS fallback.
+	$eta_phrase = ( $eta < 90 )
+		? __( 'takes only a few seconds', 'perxel-image-optimizer' )
+		/* translators: %s: duration, e.g. "18 mins". */
+		: sprintf( __( 'takes about %s', 'perxel-image-optimizer' ), human_time_diff( 0, $eta ) );
+
+	$run_summary = esc_html(
+		sprintf(
+			/* translators: 1: image count, 2: time phrase e.g. "takes about 18 mins", 3: bandwidth saved, 4: percent, 5: disk added. */
+			__( 'Converting %1$s images %2$s. Your visitors save about %3$s (a %4$d%% cut per image); your server gains about %5$s.', 'perxel-image-optimizer' ),
+			number_format_i18n( (int) $est_all['images'] ),
+			$eta_phrase,
+			size_format( (int) $est_all['saved_bytes'], 1 ),
+			(int) $est_all['percent'],
+			size_format( (int) $est_all['webp_bytes'], 1 )
+		)
+	);
+
 	$run_note  = esc_html__( 'Runs in the background. Close the tab anytime.', 'perxel-image-optimizer' );
 	$report_to = ! empty( $snap['settings']['email_report'] ) ? \Perxel\ImageOptimizer\Settings::report_recipient() : '';
 	if ( '' !== $report_to ) {
@@ -381,6 +401,8 @@ $per_image = (float) ( $scan['per_image'] ?? 1 );
 		);
 	}
 	$run_note .= '<br>' . esc_html__( 'Figures are estimates from a library sample; the live run shows real numbers.', 'perxel-image-optimizer' );
+
+	$run_note = '<span id="pxio-run-summary">' . $run_summary . '</span><br>' . $run_note;
 
 	echo $figure_group(
 		array(

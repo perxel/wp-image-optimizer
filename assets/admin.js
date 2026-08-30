@@ -169,6 +169,22 @@
 			setText( 'pxio-fig-disk', '≈ +' + bytes( webp ) );
 			setText( 'pxio-fig-scope', isMonths ? 'across selected months' : scopeWord );
 
+			// Plain-language lead line for the note - the four figures as one
+			// sentence a non-technical reader can act on.
+			if ( images < 1 ) {
+				setText( 'pxio-run-summary', 'Pick one or more months to see the estimate.' );
+			} else {
+				var dur = duration( images * perImage );
+				var timePhrase = dur === 'a few seconds'
+					? 'takes only a few seconds'
+					: 'takes about ' + dur.replace( '≈ ', '' );
+				setText( 'pxio-run-summary',
+					'Converting ' + images.toLocaleString() + ' image' + ( images === 1 ? '' : 's' ) +
+					( isMonths ? ' across the selected months' : '' ) + ' ' + timePhrase +
+					'. Your visitors save about ' + bytes( saved ) + ' (a ' + pct + '% cut per image); ' +
+					'your server gains about ' + bytes( webp ) + '.' );
+			}
+
 			var warn = byId( 'pxio-run-warning' );
 			if ( warn ) {
 				warn.innerHTML = ( freeDisk > 0 && webp > freeDisk * 0.8 )
