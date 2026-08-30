@@ -247,18 +247,14 @@
 				if ( d.phase !== 'running' || !! d.stalled !== wasStalled ||
 					( wasQueued && d.processed > 0 ) ) { reload(); return; }
 
+				// Only the live-run rows exist mid-run: the progress count, the
+				// failure tallies, and the rate line. The saved / disk / converted
+				// rows render server-side once the run is complete (a phase change
+				// forces a full reload above), so there is nothing to update here.
 				setText( 'pxio-count', d.processed.toLocaleString() + ' / ' + d.total.toLocaleString() );
-				setText( 'pxio-m-converted', d.converted.toLocaleString() );
-				setText( 'pxio-m-remaining', d.remaining.toLocaleString() );
-				setText( 'pxio-m-saved', bytes( d.saved_bytes ) );
-				setText( 'pxio-m-disk', bytes( d.webp_bytes ) );
 				setText( 'pxio-failed', d.failed.toLocaleString() );
 				setText( 'pxio-large', d.too_large.toLocaleString() );
 				setText( 'pxio-rate-line', 'about ' + ( d.eta_seconds > 0 ? secs( d.eta_seconds ) : 'calculating' ) + ' left' );
-				if ( d.projected ) {
-					setText( 'pxio-proj-line', '−' + bytes( d.projected.saved_bytes ) +
-						' (≈ ' + d.projected.percent + '%) · +' + bytes( d.projected.webp_bytes ) + ' disk' );
-				}
 			} ).catch( function () {
 				if ( ++tries >= 4 ) { reload(); }
 			} );

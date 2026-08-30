@@ -105,32 +105,28 @@ $rows = array(
 
 /* --- Figure rows. --- */
 
-$rows[] = array(
-	'label'   => __( 'Converted', 'perxel-image-optimizer' ),
-	'content' => '<span id="pxio-m-converted">' . esc_html( number_format_i18n( (int) $job['converted'] ) ) . '</span>',
-);
-
-if ( ! $is_done ) {
+if ( $is_done ) {
+	// The payoff ledger - shown only once the run has finished. While a run is
+	// live, nobody watching this page is here for byte tallies: they want how
+	// far along it is (row 1), how much longer (Rate, below), and whether
+	// anything broke ("Not converted", below). The savings land here at the end.
 	$rows[] = array(
-		'label'   => __( 'Remaining', 'perxel-image-optimizer' ),
-		'content' => '<span id="pxio-m-remaining">' . esc_html( number_format_i18n( (int) $job['remaining'] ) ) . '</span>',
+		'label'   => __( 'Converted', 'perxel-image-optimizer' ),
+		'content' => '<span id="pxio-m-converted">' . esc_html( number_format_i18n( (int) $job['converted'] ) ) . '</span>',
 	);
-}
 
-$rows[] = array(
-	'label'   => $is_done ? __( 'Saved', 'perxel-image-optimizer' ) : __( 'Saved so far', 'perxel-image-optimizer' ),
-	'content' => '&minus;<span id="pxio-m-saved">' . esc_html( size_format( $saved, 1 ) ) . '</span>',
-	'tone'    => 'good',
-);
+	$rows[] = array(
+		'label'   => __( 'Saved', 'perxel-image-optimizer' ),
+		'content' => '&minus;<span id="pxio-m-saved">' . esc_html( size_format( $saved, 1 ) ) . '</span>',
+		'tone'    => 'good',
+	);
 
-$rows[] = array(
-	'label'   => __( 'Disk added', 'perxel-image-optimizer' ),
-	'content' => '<span id="pxio-m-disk">' . esc_html( size_format( (int) $job['webp_bytes'], 1 ) ) . '</span>',
-);
-
-// Rate + projection only once real work has happened - meaningless while queued
-// and gone once the run is over.
-if ( ! $is_done && $processed > 0 ) {
+	$rows[] = array(
+		'label'   => __( 'Disk added', 'perxel-image-optimizer' ),
+		'content' => '<span id="pxio-m-disk">' . esc_html( size_format( (int) $job['webp_bytes'], 1 ) ) . '</span>',
+	);
+} elseif ( $processed > 0 ) {
+	// Live run: the one number that matters mid-run is how much longer.
 	$eta_txt = (int) $job['eta_seconds'] > 0
 		? human_time_diff( time(), time() + (int) $job['eta_seconds'] )
 		: __( 'calculating', 'perxel-image-optimizer' );
@@ -141,19 +137,6 @@ if ( ! $is_done && $processed > 0 ) {
 			/* translators: %s: human time estimate. */
 			. esc_html( sprintf( __( 'about %s left', 'perxel-image-optimizer' ), $eta_txt ) )
 			. '</span>',
-		'content' => '',
-	);
-
-	$proj   = $job['projected'];
-	$rows[] = array(
-		'label'   => __( 'Projection', 'perxel-image-optimizer' ),
-		'sub'     => '<span id="pxio-proj-line">' . sprintf(
-			/* translators: 1: saved size, 2: percent, 3: disk size. */
-			__( '&minus;%1$s (&asymp; %2$d%%) &middot; +%3$s disk', 'perxel-image-optimizer' ),
-			esc_html( size_format( (int) $proj['saved_bytes'], 1 ) ),
-			(int) $proj['percent'],
-			esc_html( size_format( (int) $proj['webp_bytes'], 1 ) )
-		) . '</span>',
 		'content' => '',
 	);
 }

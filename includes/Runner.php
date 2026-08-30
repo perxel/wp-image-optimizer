@@ -650,36 +650,6 @@ class Runner {
 			'finished_at'   => (int) $state['finished_at'],
 			'finish_reason' => $state['finish_reason'],
 			'estimate'      => $state['estimate'],
-			'projected'     => self::projection( $state ),
-		);
-	}
-
-	/**
-	 * Extrapolate the measured saving so far to the whole run.
-	 *
-	 * @param array $state Job state.
-	 * @return array{saved_bytes:int,webp_bytes:int,percent:int}
-	 */
-	private static function projection( array $state ) {
-		if ( $state['src_bytes'] <= 0 || $state['processed'] <= 0 ) {
-			return array(
-				'saved_bytes' => (int) $state['estimate']['saved_bytes'],
-				'webp_bytes'  => (int) $state['estimate']['webp_bytes'],
-				'percent'     => 0,
-			);
-		}
-
-		$total  = max( (int) $state['total_candidates'], (int) $state['processed'] );
-		$factor = $total / max( 1, (int) $state['processed'] );
-
-		$saved   = (int) round( $state['saved_bytes'] * $factor );
-		$webp    = (int) round( $state['webp_bytes'] * $factor );
-		$percent = (int) round( ( $state['src_bytes'] - $state['webp_bytes'] ) / $state['src_bytes'] * 100 );
-
-		return array(
-			'saved_bytes' => $saved,
-			'webp_bytes'  => $webp,
-			'percent'     => max( 0, $percent ),
 		);
 	}
 
