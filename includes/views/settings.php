@@ -23,12 +23,6 @@ $engine = ! empty( $env['imagick_webp'] )
 	? 'Imagick'
 	: ( ! empty( $env['gd'] ) ? 'GD ' . $env['gd_version'] : __( 'none', 'perxel-image-optimizer' ) );
 
-$serve_mode = array(
-	'apache'   => __( 'Active - via .htaccess', 'perxel-image-optimizer' ),
-	'fallback' => __( 'Active - via HTML fallback', 'perxel-image-optimizer' ),
-	'off'      => __( 'Off', 'perxel-image-optimizer' ),
-);
-
 /**
  * Named WebP quality steps. The label carries the guidance so the row needs
  * no long help text; the stored value is snapped to one of these keys.
@@ -209,11 +203,8 @@ foreach ( (array) $snap['sizes'] as $name ) {
 <?php
 /* --- Serving ----------------------------------------------------- */
 
-$serve_status = esc_html__( 'Status:', 'perxel-image-optimizer' ) . ' '
-	. esc_html( isset( $serve_mode[ $srv['mode'] ] ) ? $serve_mode[ $srv['mode'] ] : $srv['mode'] );
-
-$serve_sub = $serve_status . ' - ' . esc_html__(
-	'On Apache, saving this on adds a rewrite block to your .htaccess file (preview below). Saving it off, or deactivating the plugin, removes the block.',
+$serve_sub = esc_html__(
+	'WebP is served automatically. Turn this off to serve the original images again for everyone - a quick way to undo serving if a converted image looks wrong. Nothing is deleted.',
 	'perxel-image-optimizer'
 );
 ?>
@@ -235,11 +226,6 @@ $serve_sub = $serve_status . ' - ' . esc_html__(
 								'label'   => __( 'Serve WebP to supported browsers', 'perxel-image-optimizer' ),
 							)
 						),
-					),
-					array(
-						'summary' => __( 'Managed .htaccess block', 'perxel-image-optimizer' ),
-						'sub'     => esc_html__( 'The exact rules added while serving is on: Apache sends the .webp copy to browsers that accept it, and the original to the rest.', 'perxel-image-optimizer' ),
-						'details' => Perxel_UI::code( $srv['rules_preview'] ),
 					),
 				),
 			),
@@ -374,6 +360,27 @@ foreach ( $env_detail as $env_key => $env_value ) {
 	$env_lines[] = str_pad( $env_key, $env_pad ) . $env_value;
 }
 
+if ( 'apache' === $srv['mode'] ) {
+	$serve_row = array(
+		'summary' => __( 'WebP serving', 'perxel-image-optimizer' ),
+		'sub'     => esc_html__( 'Via .htaccess - covers every image on the site. Expand for the exact rules.', 'perxel-image-optimizer' ),
+		'icon'    => 'good',
+		'details' => Perxel_UI::code( $srv['rules_preview'] ),
+	);
+} elseif ( 'fallback' === $srv['mode'] ) {
+	$serve_row = array(
+		'label' => __( 'WebP serving', 'perxel-image-optimizer' ),
+		'sub'   => esc_html__( 'Via an HTML <picture> fallback - reaches images rendered through WordPress, not those hard-coded in a theme.', 'perxel-image-optimizer' ),
+		'icon'  => 'warn',
+	);
+} else {
+	$serve_row = array(
+		'label' => __( 'WebP serving', 'perxel-image-optimizer' ),
+		'sub'   => esc_html__( 'Off - browsers get the original files.', 'perxel-image-optimizer' ),
+		'icon'  => 'bad',
+	);
+}
+
 echo Perxel_UI::rows(
 	array(
 		array(
@@ -390,6 +397,7 @@ echo Perxel_UI::rows(
 					'icon'    => $env_ok ? 'good' : 'bad',
 					'details' => Perxel_UI::code( implode( "\n", $env_lines ) ),
 				),
+				$serve_row,
 			),
 		),
 	)
