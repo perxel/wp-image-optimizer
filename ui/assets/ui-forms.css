@@ -32,6 +32,14 @@
     color:var(--pxui-fg-muted);
 }
 
+.pxui-rows__note {
+    margin:var(--pxui-s2) 0 0;
+    padding-left:var(--pxui-s2);
+    font-size:12px;
+    line-height:1.5;
+    color:var(--pxui-fg-muted);
+}
+
 .pxui-rows__card {
     background:#f9f9f9;
     border-radius:var(--pxui-radius);
@@ -218,6 +226,7 @@
    card over the warning tint, buttons in the warning colour. A screen's
    cleanup / destructive-action section. */
 .pxui-rows__group--danger .pxui-rows__title { color:var(--pxui-bad); }
+.pxui-rows__group--danger .pxui-rows__note { color:#a8595b; }
 
 .pxui-rows__group--danger .pxui-rows__card {
     background:var(--pxui-bad-bg);

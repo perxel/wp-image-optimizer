@@ -166,6 +166,11 @@ final class Perxel_UI {
 	 * title, red hairline card, buttons in the warning colour — for a screen's
 	 * cleanup / destructive-action section.
 	 *
+	 * A group with a `note` key renders that trusted HTML (or plain string) as a
+	 * muted footnote below the card — a description, a caveat, a "learn more"
+	 * link for the whole group. Left-aligned with the title. Groups only; a flat
+	 * row list has nowhere to put one.
+	 *
 	 * Each row: `[ 'label' => plain text, 'sub' => trusted HTML (secondary
 	 * line under the label), 'content' => trusted HTML (text, a toggle(), a
 	 * <select> or a button), 'tone' => good|warn|bad, 'icon' => … ]`.
@@ -259,7 +264,13 @@ final class Perxel_UI {
 				$out .= '</div>';
 			}
 
-			$out .= '</div></div>';
+			$out .= '</div>';
+
+			if ( ! empty( $group['note'] ) ) {
+				$out .= '<p class="pxui-rows__note">' . $group['note'] . '</p>';
+			}
+
+			$out .= '</div>';
 		}
 
 		$out .= '</div>';

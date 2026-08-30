@@ -176,6 +176,7 @@ final class Perxel_UI_Showcase {
 				),
 				array(
 					'title' => 'Conversion',
+					'note'  => 'A group <code>note</code> — trusted HTML below the card for a description or caveat. <a href="#">Learn more</a> about conversion settings.',
 					'rows'  => array(
 						array(
 							'label'   => 'Convert new uploads',
@@ -284,6 +285,7 @@ final class Perxel_UI_Showcase {
 				array(
 					'title'  => 'Danger zone',
 					'danger' => true,
+					'note'   => 'In a danger group the <code>note</code> tints muted-red. These actions cannot be undone.',
 					'rows'   => array(
 						array(
 							'label'   => 'Remove all WebP files',

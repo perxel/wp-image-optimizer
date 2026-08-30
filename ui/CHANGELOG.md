@@ -3,6 +3,13 @@
 Versioned independently of any plugin. Within a major version, changes are
 additive only (see `README.md` → "Versioning").
 
+## 0.13.0
+
+- `rows()` groups take an optional `note` — trusted HTML (or a plain string)
+  rendered as a muted footnote below the card: a group description, a caveat, a
+  "learn more" link. Left-aligned with the group title. Groups only.
+- Additive — a group without `note` renders exactly as before.
+
 ## 0.12.0
 
 - `rows()` disclosure rows take an optional `content` — trusted HTML rendered
