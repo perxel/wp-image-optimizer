@@ -59,7 +59,7 @@ if ( is_readable( __DIR__ . '/vendor/action-scheduler/action-scheduler.php' ) ) 
  */
 define( 'PERXEL_UI_SHOWCASE_HOSTED', true ); // We host the kit showcase as our 3rd screen; see Admin::render_ui().
 require_once __DIR__ . '/ui/loader.php';
-Perxel_UI_Loader::register( '0.13.0', __DIR__ . '/ui', plugins_url( 'ui', __FILE__ ) );
+Perxel_UI_Loader::register( '0.14.0', __DIR__ . '/ui', plugins_url( 'ui', __FILE__ ) );
 
 register_deactivation_hook( __FILE__, array( '\Perxel\ImageOptimizer\Serve', 'on_deactivate' ) );
 register_deactivation_hook( __FILE__, array( '\Perxel\ImageOptimizer\Runner', 'pause' ) ); // Freeze a bulk run; Resume picks it up on reactivation.

@@ -97,12 +97,6 @@
     color:var(--pxui-brand);
 }
 
-.pxui-version {
-    font-size:12px;
-    color:var(--pxui-fg-muted);
-    font-variant-numeric:tabular-nums;
-}
-
 .pxui-main__actions {
     display:flex;
     align-items:center;
@@ -227,6 +221,10 @@
     border-top:1px solid var(--pxui-border);
     font-size:12px;
     color:var(--pxui-fg-muted);
+}
+
+.pxui-version {
+    font-variant-numeric:tabular-nums;
 }
 
 .pxui-footer__links a {

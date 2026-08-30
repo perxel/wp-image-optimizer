@@ -3,6 +3,14 @@
 Versioned independently of any plugin. Within a major version, changes are
 additive only (see `README.md` → "Versioning").
 
+## 0.14.0
+
+- The kit `version` now renders in the footer (left cluster, after `By …`,
+  separated by a middot) instead of beside the brand name in the sidebar bar.
+  The sidebar bar shows only `plugin`. `.pxui-version` moves with it.
+- No API change — `version` is passed and consumed exactly as before, only its
+  placement moved.
+
 ## 0.13.0
 
 - `rows()` groups take an optional `note` — trusted HTML (or a plain string)

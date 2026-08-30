@@ -14,9 +14,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 <div class="pxui-sidebar">
 	<div class="pxui-sidebar__bar">
 		<div class="pxui-brand"><?php echo esc_html( $d['plugin'] ); ?></div>
-		<?php if ( '' !== (string) $d['version'] ) : ?>
-			<span class="pxui-version">v<?php echo esc_html( $d['version'] ); ?></span>
-		<?php endif; ?>
 	</div>
 	<nav class="pxui-sidebar__nav" aria-label="<?php echo esc_attr( $d['plugin'] ); ?>">
 		<?php foreach ( (array) $d['menu'] as $group => $items ) : ?>

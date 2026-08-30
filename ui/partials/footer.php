@@ -14,8 +14,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 $author      = (array) $d['author'];
 $author_name = isset( $author['name'] ) ? (string) $author['name'] : '';
 $author_url  = isset( $author['url'] ) ? (string) $author['url'] : '';
+$version     = (string) $d['version'];
 
-if ( '' === $author_name && empty( $d['links'] ) ) {
+if ( '' === $author_name && '' === $version && empty( $d['links'] ) ) {
 	return;
 }
 ?>
@@ -25,6 +26,9 @@ if ( '' === $author_name && empty( $d['links'] ) ) {
 			By <a href="<?php echo esc_url( $author_url ); ?>" target="_blank" rel="noreferrer noopener"><?php echo esc_html( $author_name ); ?></a>
 		<?php elseif ( '' !== $author_name ) : ?>
 			By <?php echo esc_html( $author_name ); ?>
+		<?php endif; ?>
+		<?php if ( '' !== $version ) : ?>
+			<?php echo '' !== $author_name ? ' &middot; ' : ''; ?><span class="pxui-version">v<?php echo esc_html( $version ); ?></span>
 		<?php endif; ?>
 	</span>
 	<?php if ( ! empty( $d['links'] ) ) : ?>
