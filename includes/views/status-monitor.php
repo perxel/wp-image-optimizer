@@ -1,6 +1,6 @@
 <?php
 /**
- * Status screen - the live run monitor.
+ * Optimization screen - the live run monitor.
  *
  * One Perxel_UI::rows() group: the run phase is the group *title*, the
  * plain-language "what's happening" sentence is the first row's `sub`, and the
@@ -35,16 +35,19 @@ $log_url   = admin_url( 'tools.php?page=action-scheduler&s=perxel_image_optimize
 // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- Perxel_UI escapes structure; dynamic values escaped inline.
 
 /*
- * Per-phase: the group title, the Progress-row icon (spinner while working),
- * and the one sentence that tells a non-technical user what to expect.
+ * Per-phase: the group title, the first row's label + icon (spinner while
+ * working), and the one sentence that tells a non-technical user what to expect.
  */
+$row_label = __( 'Progress', 'perxel-image-optimizer' );
+
 switch ( $state ) {
 	case 'queued':
 		$phase_title = __( 'Queued', 'perxel-image-optimizer' );
+		$row_label   = __( 'Waiting', 'perxel-image-optimizer' );
 		$row_icon    = Perxel_UI::spinner();
 		$sentence    = ( $elapsed > 90 )
 			? esc_html__( 'Still queued. If nothing moves in a minute, reload this page once.', 'perxel-image-optimizer' )
-			: esc_html__( 'Starting now - your server picks this up in the background.', 'perxel-image-optimizer' );
+			: esc_html__( 'Running in the background - this page reloads by itself once conversion starts.', 'perxel-image-optimizer' );
 		break;
 
 	case 'stalled':
@@ -61,6 +64,7 @@ switch ( $state ) {
 
 	case 'complete':
 		$phase_title = $cancelled ? __( 'Cancelled', 'perxel-image-optimizer' ) : __( 'Complete', 'perxel-image-optimizer' );
+		$row_label   = __( 'Result', 'perxel-image-optimizer' );
 		$row_icon    = $cancelled ? 'warn' : 'good';
 		$sentence    = $cancelled
 			? esc_html(
@@ -90,13 +94,32 @@ switch ( $state ) {
 		break;
 }
 
-/* --- Row 1: Progress / Result - spinner icon, sentence, "<done> / <total>". --- */
+/* --- Row 1: Waiting / Progress / Result - icon, one sub-line, "<done> / <total>". --- */
+
+/*
+ * While it's actively converting, the sub-line under the count is the one
+ * number a watcher wants - "about N left". Rate is not its own row. In every
+ * other phase the sub-line is the plain-language "what's happening" sentence.
+ */
+$live_run = 'running' === $state && $processed > 0;
+
+if ( $live_run ) {
+	$eta_txt  = (int) $job['eta_seconds'] > 0
+		? human_time_diff( time(), time() + (int) $job['eta_seconds'] )
+		: __( 'calculating', 'perxel-image-optimizer' );
+	$row1_sub = '<span id="pxio-rate-line">'
+		/* translators: %s: human time estimate. */
+		. esc_html( sprintf( __( 'about %s left', 'perxel-image-optimizer' ), $eta_txt ) )
+		. '</span>';
+} else {
+	$row1_sub = '' !== $sentence ? '<span id="pxio-headnote">' . $sentence . '</span>' : '';
+}
 
 $rows = array(
 	array(
-		'label'   => $is_done ? __( 'Result', 'perxel-image-optimizer' ) : __( 'Progress', 'perxel-image-optimizer' ),
+		'label'   => $row_label,
 		'icon'    => $row_icon,
-		'sub'     => '' !== $sentence ? '<span id="pxio-headnote">' . $sentence . '</span>' : '',
+		'sub'     => $row1_sub,
 		'content' => '<span id="pxio-count">'
 			. esc_html( sprintf( '%s / %s', number_format_i18n( $processed ), number_format_i18n( $total ) ) )
 			. '</span>',
@@ -108,8 +131,8 @@ $rows = array(
 if ( $is_done ) {
 	// The payoff ledger - shown only once the run has finished. While a run is
 	// live, nobody watching this page is here for byte tallies: they want how
-	// far along it is (row 1), how much longer (Rate, below), and whether
-	// anything broke ("Not converted", below). The savings land here at the end.
+	// far along it is and how much longer (row 1), and whether anything broke
+	// ("Not converted", below). The savings land here at the end.
 	$rows[] = array(
 		'label'   => __( 'Converted', 'perxel-image-optimizer' ),
 		'content' => '<span id="pxio-m-converted">' . esc_html( number_format_i18n( (int) $job['converted'] ) ) . '</span>',
@@ -125,8 +148,9 @@ if ( $is_done ) {
 		'label'   => __( 'Disk added', 'perxel-image-optimizer' ),
 		'content' => '<span id="pxio-m-disk">' . esc_html( size_format( (int) $job['webp_bytes'], 1 ) ) . '</span>',
 	);
-} elseif ( $processed > 0 ) {
-	// Live run: the one number that matters mid-run is how much longer.
+} elseif ( ! $live_run && $processed > 0 ) {
+	// Stalled / paused with work already done: keep the estimate as its own
+	// row - the count row's sub-line is showing the phase sentence here.
 	$eta_txt = (int) $job['eta_seconds'] > 0
 		? human_time_diff( time(), time() + (int) $job['eta_seconds'] )
 		: __( 'calculating', 'perxel-image-optimizer' );
@@ -172,13 +196,17 @@ if ( $failures ) {
 	);
 }
 
-/* --- Group note: reassurance + timing + the activity-log link. --- */
-
-$note_parts = array();
+/*
+ * Group note, two lines: the reassurance sentence on top, then a muted meta
+ * line ("Started 6 minutes ago &middot; View background activity").
+ */
+$note_lines = array();
 
 if ( in_array( $state, array( 'queued', 'running' ), true ) ) {
-	$note_parts[] = esc_html__( 'Runs in the background - safe to close this tab.', 'perxel-image-optimizer' );
+	$note_lines[] = esc_html__( 'You can close this tab - it keeps running in the background, at a pace your server can handle.', 'perxel-image-optimizer' );
 }
+
+$meta_parts = array();
 
 $since = $is_done ? (int) $job['finished_at'] : (int) $job['started_at'];
 if ( $since > 0 ) {
@@ -187,14 +215,15 @@ if ( $since > 0 ) {
 		/* translators: %s: human time diff, e.g. "4 mins". */
 		: esc_html( sprintf( __( '%s ago', 'perxel-image-optimizer' ), human_time_diff( $since ) ) );
 
-	$note_parts[] = $is_done
+	$meta_parts[] = $is_done
 		/* translators: %s: relative time. */
-		? sprintf( esc_html__( 'Finished %s.', 'perxel-image-optimizer' ), $rel )
+		? sprintf( esc_html__( 'Finished %s', 'perxel-image-optimizer' ), $rel )
 		/* translators: %s: relative time. */
-		: sprintf( esc_html__( 'Started %s.', 'perxel-image-optimizer' ), $rel );
+		: sprintf( esc_html__( 'Started %s', 'perxel-image-optimizer' ), $rel );
 }
 
-$note_parts[] = '<a href="' . esc_url( $log_url ) . '">' . esc_html__( 'View background activity', 'perxel-image-optimizer' ) . '</a>';
+$meta_parts[]  = '<a href="' . esc_url( $log_url ) . '">' . esc_html__( 'View background activity', 'perxel-image-optimizer' ) . '</a>';
+$note_lines[]  = implode( ' &middot; ', $meta_parts );
 
 /* --- Render. --- */
 
@@ -206,7 +235,7 @@ echo Perxel_UI::rows(
 		array(
 			'title' => $phase_title,
 			'rows'  => $rows,
-			'note'  => implode( ' &middot; ', $note_parts ),
+			'note'  => implode( '<br>', $note_lines ),
 		),
 	)
 );

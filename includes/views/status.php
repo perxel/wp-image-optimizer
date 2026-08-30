@@ -1,6 +1,6 @@
 <?php
 /**
- * Status screen - cheap glance, then one of: not-scanned, prepare, or the live
+ * Optimization screen - cheap glance, then one of: not-scanned, prepare, or the live
  * monitor. All server-rendered; assets/admin.js only does the prepare-form
  * arithmetic and the monitor poll.
  *

@@ -10,10 +10,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Admin pages, asset loading, and Media-library integration.
  *
  * Screens under Media, all rendered inside the shared Perxel UI layout (see ui/):
- *   - Status   ( upload.php?page=perxel-image-optimizer )          - the glance + the run button.
+ *   - Optimization ( upload.php?page=perxel-image-optimizer )       - the glance + the run button.
  *   - Settings ( upload.php?page=perxel-image-optimizer-settings ) - environment, config, serving, cleanup.
  *   - Perxel UI ( upload.php?page=perxel-image-optimizer-ui )      - the ui/ kit showcase, maintainer-only.
- * Only "Status" shows in WP's Media menu; the sidebar links the rest.
+ * Only the "WebP" entry shows in WP's Media menu; the sidebar links the rest.
  */
 class Admin {
 
@@ -68,7 +68,7 @@ class Admin {
 		remove_submenu_page( 'upload.php', self::PAGE_SETTINGS );
 
 		$titles = array(
-			self::PAGE          => __( 'Status', 'perxel-image-optimizer' ),
+			self::PAGE          => __( 'Optimization', 'perxel-image-optimizer' ),
 			self::PAGE_SETTINGS => __( 'Settings', 'perxel-image-optimizer' ),
 		);
 
@@ -215,7 +215,7 @@ class Admin {
 		$header = $this->plugin_header();
 
 		$pages = array(
-			self::PAGE          => __( 'Status', 'perxel-image-optimizer' ),
+			self::PAGE          => __( 'Optimization', 'perxel-image-optimizer' ),
 			self::PAGE_SETTINGS => __( 'Settings', 'perxel-image-optimizer' ),
 		);
 
@@ -284,7 +284,7 @@ class Admin {
 		\Perxel_UI_Layout::open(
 			$this->layout_args(
 				self::PAGE,
-				__( 'Status', 'perxel-image-optimizer' ),
+				__( 'Optimization', 'perxel-image-optimizer' ),
 				array( 'actions' => $this->status_actions( $state, $snap ) )
 			)
 		);
