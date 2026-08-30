@@ -157,6 +157,8 @@ class Runner {
 	 * Begin a bulk run.
 	 *
 	 * @param array $args {
+	 *     Run options.
+	 *
 	 *     @type string   $scope  all|months.
 	 *     @type string[] $months Selected YM keys when scope = months.
 	 * }

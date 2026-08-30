@@ -134,8 +134,17 @@ class Scan {
 
 		$signature = Settings::signature();
 
+		// The Scan button is the single source of every library-wide figure: a
+		// handful of grouped COUNT()/SUM() aggregates with no WP_Query
+		// equivalent, run synchronously on one explicit user action. The whole
+		// result set is cached in the `perxel_image_optimizer_scan` option (see
+		// update_option below), which is the intended cache layer - per-row
+		// object caching here would be redundant and defeat the "one button, one
+		// exact refresh" contract.
+		//
 		// YEAR()/MONTH() rather than DATE_FORMAT() so the pending query survives
 		// wpdb::prepare() (which mangles a literal `%Y`).
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$totals = $wpdb->get_results(
 			"SELECT YEAR(post_date) AS y, MONTH(post_date) AS m, COUNT(*) AS c
 			 FROM {$wpdb->posts}
@@ -144,6 +153,7 @@ class Scan {
 			 GROUP BY y, m"
 		);
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- aggregate scan query, see the note at the top of run().
 		$pending = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT YEAR(p.post_date) AS y, MONTH(p.post_date) AS m, COUNT(*) AS c
@@ -184,13 +194,16 @@ class Scan {
 		krsort( $months );
 
 		// Exact library-wide byte totals - one indexed SUM per flat meta key.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- aggregate scan query, see the note at the top of run().
 		$saved_total = (int) $wpdb->get_var(
 			$wpdb->prepare( "SELECT SUM(meta_value) FROM {$wpdb->postmeta} WHERE meta_key = %s", Converter::META_SAVED )
 		);
-		$webp_total  = (int) $wpdb->get_var(
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- aggregate scan query, see the note at the top of run().
+		$webp_total = (int) $wpdb->get_var(
 			$wpdb->prepare( "SELECT SUM(meta_value) FROM {$wpdb->postmeta} WHERE meta_key = %s", Converter::META_WEBP )
 		);
-		$converted   = (int) $wpdb->get_var(
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- aggregate scan query, see the note at the top of run().
+		$converted = (int) $wpdb->get_var(
 			$wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key = %s", Converter::META_WEBP )
 		);
 
@@ -245,6 +258,9 @@ class Scan {
 	private static function sample() {
 		global $wpdb;
 
+		// ~120-row random sample for the pre-run size estimate; runs inside the
+		// scan, result folded into the cached option.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$ids = $wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT ID FROM {$wpdb->posts}
@@ -256,11 +272,11 @@ class Scan {
 			)
 		);
 
-		$sum    = array(
+		$sum       = array(
 			'image/jpeg' => 0,
 			'image/png'  => 0,
 		);
-		$count  = array(
+		$count     = array(
 			'image/jpeg' => 0,
 			'image/png'  => 0,
 		);

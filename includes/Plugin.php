@@ -25,6 +25,9 @@ class Plugin {
 		return self::$instance;
 	}
 
+	/**
+	 * Singleton - use Plugin::instance().
+	 */
 	private function __construct() {}
 
 	/**

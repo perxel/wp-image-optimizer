@@ -222,8 +222,8 @@ if ( $since > 0 ) {
 		: sprintf( esc_html__( 'Started %s', 'perxel-image-optimizer' ), $rel );
 }
 
-$meta_parts[]  = '<a href="' . esc_url( $log_url ) . '">' . esc_html__( 'View background activity', 'perxel-image-optimizer' ) . '</a>';
-$note_lines[]  = implode( ' &middot; ', $meta_parts );
+$meta_parts[] = '<a href="' . esc_url( $log_url ) . '">' . esc_html__( 'View background activity', 'perxel-image-optimizer' ) . '</a>';
+$note_lines[] = implode( ' &middot; ', $meta_parts );
 
 /* --- Render. --- */
 

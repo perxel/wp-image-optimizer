@@ -43,6 +43,9 @@ if ( function_exists( 'as_unschedule_all_actions' ) ) {
 // library is shared infrastructure and may still be in use by another plugin.
 
 // Per-attachment meta: status blob, signature marker, flat byte tallies.
+// One-shot cleanup on plugin delete - a direct DELETE is the only way to clear
+// a meta key across every post, and there is nothing to cache at uninstall.
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 $wpdb->query(
 	"DELETE FROM {$wpdb->postmeta} WHERE meta_key IN (
 		'_perxel_image_optimizer',
@@ -52,7 +55,9 @@ $wpdb->query(
 	)"
 );
 
-// Per-attachment conversion locks.
+// Per-attachment conversion locks (transients). delete_transient() needs each
+// name; a LIKE sweep is the practical one-shot cleanup.
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 $wpdb->query(
 	"DELETE FROM {$wpdb->options}
 	 WHERE option_name LIKE '\\_transient\\_perxel\\_image\\_optimizer\\_lock\\_%'
@@ -65,6 +70,7 @@ if ( ! function_exists( 'get_home_path' ) ) {
 }
 $htaccess = get_home_path() . '.htaccess';
 
+// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- uninstall runs before WP_Filesystem is bootstrapped; insert_with_markers() also no-ops on a read-only file.
 if ( file_exists( $htaccess ) && is_writable( $htaccess ) ) {
 	if ( ! function_exists( 'insert_with_markers' ) ) {
 		require_once ABSPATH . 'wp-admin/includes/misc.php';

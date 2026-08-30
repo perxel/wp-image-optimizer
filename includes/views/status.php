@@ -146,10 +146,15 @@ if ( 'not_scanned' === $state ) {
 /* --- serve_off | done (scanned, nothing pending) --- */
 
 if ( 'serve_off' === $state ) {
+	$enable_serve_form = '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline-block;margin-left:8px">'
+		. '<input type="hidden" name="action" value="perxel_image_optimizer_enable_serve" />'
+		. wp_nonce_field( 'perxel_image_optimizer_enable_serve', '_wpnonce', true, false )
+		. '<button type="submit" class="button button-small button-primary">' . esc_html__( 'Serve WebP now', 'perxel-image-optimizer' ) . '</button>'
+		. '</form>';
+
 	echo Perxel_UI::notice(
 		'warning',
-		esc_html__( 'Every image is converted, but WebP is not being served.', 'perxel-image-optimizer' )
-		. ' <a class="button button-small" href="' . esc_url( $settings_url . '#serving' ) . '">' . esc_html__( 'Enable serving', 'perxel-image-optimizer' ) . '</a>'
+		esc_html__( 'Every image is converted, but WebP is not being served yet.', 'perxel-image-optimizer' ) . $enable_serve_form
 	);
 	echo $glance();
 	return;
@@ -236,28 +241,41 @@ $per_image = (float) ( $scan['per_image'] ?? 1 );
 	<?php
 	wp_nonce_field( 'perxel_image_optimizer_start' );
 
+	$convert_rows = array(
+		array(
+			'label'   => __( 'Scope', 'perxel-image-optimizer' ),
+			'content' => '<select id="pxio-scope" name="scope">'
+				. '<option value="all">' . esc_html(
+					sprintf(
+						$skip_converted
+							/* translators: %s: count. */
+							? __( 'Everything pending (%s)', 'perxel-image-optimizer' )
+							/* translators: %s: count. */
+							: __( 'Every image (%s)', 'perxel-image-optimizer' ),
+						number_format_i18n( $scope_base )
+					)
+				) . '</option>'
+				. '<option value="months">' . esc_html__( 'Choose months', 'perxel-image-optimizer' ) . '</option>'
+				. '</select>',
+		),
+	);
+
+	// Serving is off by default (never enabled on activation). Offer it right
+	// here so a run isn't wasted on files nothing reads - checked, one click.
+	if ( empty( $snap['settings']['serve'] ) ) {
+		$convert_rows[] = array(
+			'label'   => __( 'Serve WebP', 'perxel-image-optimizer' ),
+			'sub'     => esc_html__( 'Send the .webp files to browsers that support them, via a managed .htaccess rule (or a picture-tag fallback where .htaccess is not available). Without this the converted files sit unused. Reversible any time in Settings.', 'perxel-image-optimizer' ),
+			'content' => '<label class="pxio-inline-check"><input type="checkbox" class="pxui-checkbox" name="enable_serve" value="1" form="pxio-prepare" checked /> '
+				. esc_html__( 'Serve them once converted', 'perxel-image-optimizer' ) . '</label>',
+		);
+	}
+
 	echo Perxel_UI::rows(
 		array(
 			array(
 				'title' => __( 'What to convert', 'perxel-image-optimizer' ),
-				'rows'  => array(
-					array(
-						'label'   => __( 'Scope', 'perxel-image-optimizer' ),
-						'content' => '<select id="pxio-scope" name="scope">'
-							. '<option value="all">' . esc_html(
-								sprintf(
-									$skip_converted
-										/* translators: %s: count. */
-										? __( 'Everything pending (%s)', 'perxel-image-optimizer' )
-										/* translators: %s: count. */
-										: __( 'Every image (%s)', 'perxel-image-optimizer' ),
-									number_format_i18n( $scope_base )
-								)
-							) . '</option>'
-							. '<option value="months">' . esc_html__( 'Choose months', 'perxel-image-optimizer' ) . '</option>'
-							. '</select>',
-					),
-				),
+				'rows'  => $convert_rows,
 			),
 		)
 	);

@@ -81,8 +81,9 @@ class Purger {
 		foreach ( $chunk as $path ) {
 			if ( file_exists( $path ) ) {
 				$state['bytes'] += (int) filesize( $path );
-				if ( @unlink( $path ) ) {
-					$state['deleted']++;
+				wp_delete_file( $path );
+				if ( ! file_exists( $path ) ) {
+					++$state['deleted'];
 				}
 			}
 		}

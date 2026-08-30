@@ -207,7 +207,8 @@ class Converter {
 
 			if ( file_exists( $target ) ) {
 				$bytes += (int) filesize( $target );
-				if ( @unlink( $target ) ) {
+				wp_delete_file( $target );
+				if ( ! file_exists( $target ) ) {
 					++$deleted;
 				}
 			}
@@ -260,7 +261,7 @@ class Converter {
 					$img->setOption( 'webp:lossless', 'true' );
 				}
 			} catch ( \Throwable $e ) {
-				// fall through to lossy
+				unset( $e ); // Imagick lossless option unavailable - fall through to lossy.
 			}
 		}
 
@@ -295,8 +296,10 @@ class Converter {
 			);
 		}
 
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.rename_rename -- atomic publish of the temp encode; WP_Filesystem has no atomic move, and a cross-device failure is handled by the copy fallback below.
 		if ( $written !== $target && ! @rename( $written, $target ) ) {
 			// Non-atomic fallback: copy then unlink.
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- failure is handled explicitly on the next line.
 			if ( ! @copy( $written, $target ) ) {
 				self::cleanup( $written );
 				return array(
@@ -304,9 +307,10 @@ class Converter {
 					'reason' => 'could not place target',
 				);
 			}
-			@unlink( $written );
+			wp_delete_file( $written );
 		}
 
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- best-effort mode match on the new sibling; a failure here is harmless and must not surface a warning.
 		@chmod( $target, ( fileperms( $source ) & 0777 ) | 0644 );
 
 		return array(
@@ -365,6 +369,7 @@ class Converter {
 		$h = (int) ( $info['height'] ?? 0 );
 
 		if ( $w <= 0 || $h <= 0 ) {
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- getimagesize() emits a warning on truncated/odd files; a false return is handled.
 			$size = @getimagesize( $path );
 			if ( $size ) {
 				$w = (int) $size[0];
@@ -380,7 +385,7 @@ class Converter {
 	 */
 	private static function cleanup( $path ) {
 		if ( $path && file_exists( $path ) ) {
-			@unlink( $path );
+			wp_delete_file( $path );
 		}
 	}
 

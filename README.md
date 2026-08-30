@@ -1,18 +1,21 @@
 # Perxel Image Optimizer
 
-Convert the WordPress media library to WebP and serve it — entirely from an
-admin page, on shared hosting, with no SSH, no WP-CLI, and no external service.
+Local WebP conversion for your media library — entirely from an admin page,
+built for shared hosting. No third-party CDN or external service, no API key or
+account, free. Your images never leave your host.
 
 - **Conversion** — PHP (`WP_Image_Editor` → GD/Imagick). `foo.jpg` → `foo.jpg.webp`
   sibling. Originals are never modified.
 - **Serving** — a managed `.htaccess` block: Apache serves the `.webp` when the
   browser sends `Accept: image/webp`. Falls back to `<img>` → `<picture>`
   rewriting on nginx or when `.htaccess` isn't writable.
-- **Bulk run** — tab-driven AJAX loop with adaptive batch sizing, durable
-  progress, and Resume. No cron, no background work: close the tab and it stops.
+- **Bulk run** — a light scan estimates the work, then a background job (Action
+  Scheduler) converts the library newest→oldest, one calendar month at a time.
+  Pause / Resume / Cancel; progress is durable across a tab close or a mid-run
+  kill. Optional completion email.
 - **Per-attachment** — Convert / Reconvert / Remove buttons in the Media list
   table and the attachment detail panel.
-- **New uploads** — converted automatically.
+- **New uploads** — converted automatically, shortly after upload.
 
 ## Install
 
@@ -39,12 +42,14 @@ Slug `perxel-image-optimizer`, text domain `perxel-image-optimizer`, namespace
 `ui/` is a standalone, separately-versioned admin-UI kit (layout + a few
 server-rendered components on top of native wp-admin CSS). It is meant to be
 copied verbatim into other Perxel plugins; overwriting it cannot break plugin
-behaviour or fatal. See [`ui/README.md`](ui/README.md). With `WP_DEBUG` on,
-**Tools → Perxel UI** is a component showcase.
+behaviour or fatal. See [`ui/README.md`](ui/README.md). The kit ships a
+maintainer-only component showcase under `ui/showcase/`; that folder is stripped
+from the distributed build (`.distignore`) and `ui/loader.php` tolerates its
+absence.
 
 ## Requirements
 
-- PHP 7.4+, WordPress 6.0+
+- PHP 7.4+, WordPress 6.5+
 - GD or Imagick with WebP support (`wp_image_editor_supports(['mime_type' => 'image/webp'])`).
   The admin page hard-stops with a notice if neither is available.
 - Apache/LiteSpeed with a writable `.htaccess` for zero-markup serving;

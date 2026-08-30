@@ -147,6 +147,7 @@ class Serve {
 			return false;
 		}
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reading the local .htaccess we manage, not a URL; wp_remote_get() does not apply.
 		return false !== strpos( (string) file_get_contents( $path ), '# BEGIN ' . self::MARKER );
 	}
 
@@ -244,9 +245,7 @@ class Serve {
 		update_option( self::MODE_OPTION, $mode, true );
 	}
 
-	/* --------------------------------------------------------------------- *
-	 * <picture> fallback
-	 * --------------------------------------------------------------------- */
+	/* --- <picture> fallback (non-Apache / unwritable .htaccess) --- */
 
 	/**
 	 * @param string $filtered_image <img> HTML.

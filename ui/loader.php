@@ -83,7 +83,9 @@ if ( ! class_exists( 'Perxel_UI_Loader' ) ) {
 			require $win['dir'] . '/class-perxel-ui.php';
 			require $win['dir'] . '/class-perxel-ui-layout.php';
 
-			if ( is_admin() ) {
+			// The component showcase is a maintainer-only dev tool. A plugin may
+			// strip `showcase/` from its distributed build; tolerate its absence.
+			if ( is_admin() && is_readable( $win['dir'] . '/showcase/class-perxel-ui-showcase.php' ) ) {
 				require $win['dir'] . '/showcase/class-perxel-ui-showcase.php';
 				Perxel_UI_Showcase::init();
 			}

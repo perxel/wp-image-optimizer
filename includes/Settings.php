@@ -29,7 +29,7 @@ class Settings {
 			'convert_png'       => true,
 			'sizes'             => array( '*' ), // '*' = every registered size + full
 			'convert_on_upload' => true,
-			'serve'             => true,
+			'serve'             => false, // opt-in: enabled from the prepare form or Settings, never on activation.
 			'skip_megapixels'   => 0, // 0 = auto (Environment::safe_megapixels()).
 			'skip_converted'    => true, // bulk runs skip images that already have a current WebP copy
 			'email_report'      => false,

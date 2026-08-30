@@ -3,6 +3,13 @@
 Versioned independently of any plugin. Within a major version, changes are
 additive only (see `README.md` → "Versioning").
 
+## 0.15.0
+
+- `loader.php` tolerates a missing `showcase/` folder: the showcase require is
+  now guarded by `is_readable()`, so a plugin may strip `ui/showcase/` from its
+  distributed build without fataling. No API change; a copy that still ships the
+  showcase behaves exactly as before.
+
 ## 0.14.0
 
 - The kit `version` now renders in the footer (left cluster, after `By …`,

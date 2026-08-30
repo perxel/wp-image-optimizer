@@ -48,6 +48,10 @@ class Scanner {
 	public static function needs_work_ids( $limit ) {
 		global $wpdb;
 
+		// Pending-work IDs via a LEFT JOIN on the signature meta - not expressible
+		// as a cached WP_Query. Capped by LIMIT; the catch-up path calls this at
+		// most once per request and acts on the result immediately.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$ids = $wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT p.ID FROM {$wpdb->posts} p

@@ -26,6 +26,11 @@ class Sections {
 	public static function months() {
 		global $wpdb;
 
+		// A grouped COUNT by month with a mime filter - no WP_Query equivalent.
+		// Runs on the prepare screen only; the whole scan result is cached in the
+		// `perxel_image_optimizer_scan` option, so per-row object caching would be
+		// redundant and could serve a stale month list.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$rows = $wpdb->get_results(
 			"SELECT DATE_FORMAT(post_date, '%Y-%m') AS ym, COUNT(*) AS c
 			 FROM {$wpdb->posts}
@@ -79,6 +84,10 @@ class Sections {
 		$limit    = max( 1, (int) $limit );
 
 		if ( ! $skip_done ) {
+			// Month-scoped ID slice for the background runner - indexed on
+			// post_date/post_type, capped by LIMIT, read once per chunk. Not a
+			// cacheable result (the runner walks a moving cursor).
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$ids = $wpdb->get_col(
 				$wpdb->prepare(
 					"SELECT ID FROM {$wpdb->posts}
@@ -98,6 +107,10 @@ class Sections {
 			return array_map( 'intval', (array) $ids );
 		}
 
+		// Same month-scoped slice, minus records already settled under the current
+		// settings signature (a LEFT JOIN on postmeta WP_Query cannot express).
+		// Moving-cursor read, not a cacheable result.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$ids = $wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT p.ID FROM {$wpdb->posts} p

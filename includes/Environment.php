@@ -16,10 +16,10 @@ class Environment {
 	 * @return array
 	 */
 	public static function probe() {
-		$gd_info    = function_exists( 'gd_info' ) ? gd_info() : array();
-		$has_gd     = function_exists( 'imagewebp' );
-		$has_imk    = extension_loaded( 'imagick' );
-		$imk_webp   = false;
+		$gd_info  = function_exists( 'gd_info' ) ? gd_info() : array();
+		$has_gd   = function_exists( 'imagewebp' );
+		$has_imk  = extension_loaded( 'imagick' );
+		$imk_webp = false;
 
 		if ( $has_imk ) {
 			try {
@@ -36,22 +36,22 @@ class Environment {
 		$upload = wp_get_upload_dir();
 
 		return array(
-			'php_version'      => PHP_VERSION,
-			'gd'               => $has_gd,
-			'gd_version'       => $gd_info['GD Version'] ?? '',
-			'imagick'          => $has_imk,
-			'imagick_webp'     => $imk_webp,
-			'webp_encode'      => (bool) $editor_webp,
-			'imagick_lossless' => $has_imk && $imk_webp,
-			'memory_limit'     => self::bytes_from_ini( ini_get( 'memory_limit' ) ),
-			'memory_limit_raw' => (string) ini_get( 'memory_limit' ),
-			'safe_megapixels'  => self::safe_megapixels(),
-			'max_execution'    => (int) ini_get( 'max_execution_time' ),
-			'set_time_limit'   => function_exists( 'set_time_limit' ) && ! in_array( 'set_time_limit', $disabled_functions, true ),
+			'php_version'       => PHP_VERSION,
+			'gd'                => $has_gd,
+			'gd_version'        => $gd_info['GD Version'] ?? '',
+			'imagick'           => $has_imk,
+			'imagick_webp'      => $imk_webp,
+			'webp_encode'       => (bool) $editor_webp,
+			'imagick_lossless'  => $has_imk && $imk_webp,
+			'memory_limit'      => self::bytes_from_ini( ini_get( 'memory_limit' ) ),
+			'memory_limit_raw'  => (string) ini_get( 'memory_limit' ),
+			'safe_megapixels'   => self::safe_megapixels(),
+			'max_execution'     => (int) ini_get( 'max_execution_time' ),
+			'set_time_limit'    => function_exists( 'set_time_limit' ) && ! in_array( 'set_time_limit', $disabled_functions, true ),
 			'htaccess_writable' => self::htaccess_writable(),
-			'uploads_writable' => wp_is_writable( $upload['basedir'] ),
-			'free_disk'        => self::free_disk( $upload['basedir'] ),
-			'is_apache'        => self::is_apache(),
+			'uploads_writable'  => wp_is_writable( $upload['basedir'] ),
+			'free_disk'         => self::free_disk( $upload['basedir'] ),
+			'is_apache'         => self::is_apache(),
 		);
 	}
 
@@ -132,6 +132,7 @@ class Environment {
 			return null;
 		}
 
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- disk_free_space() warns on hosts that restrict it via open_basedir/disable_functions; a non-numeric return is handled.
 		$bytes = @disk_free_space( $dir );
 
 		return is_numeric( $bytes ) ? (int) $bytes : null;
@@ -148,8 +149,8 @@ class Environment {
 			return 0;
 		}
 
-		$unit  = strtolower( substr( $value, -1 ) );
-		$num   = (int) $value;
+		$unit = strtolower( substr( $value, -1 ) );
+		$num  = (int) $value;
 
 		switch ( $unit ) {
 			case 'g':

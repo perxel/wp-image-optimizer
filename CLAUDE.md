@@ -107,7 +107,10 @@ into each Perxel plugin. It is NOT specific to this plugin.
   code; the Status screen renders every metric as a `rows()` group.
 - The **Perxel UI** showcase page (the review surface after any `ui/` change) is
   registered by the plugin as its third screen, visible only to `phucbm` /
-  `phucbm.dev@gmail.com`.
+  `phucbm.dev@gmail.com`. It lives in `ui/showcase/` and is **stripped from the
+  distributed build** (`.distignore`): `ui/loader.php` (>= 0.15.0) tolerates the
+  missing folder and `Admin::can_see_showcase()` is `false` when the class is
+  absent. Do local `ui/` review from a dev checkout.
 
 ## Admin screens
 
@@ -130,6 +133,13 @@ shows in WP's menu):
   test-send), danger zone. The "Save settings" button sits in the sticky title
   bar (`layout_args`' `actions`), wired to `#pxio-settings-form` via the HTML5
   `form` attribute. `skip_megapixels` 0 = auto (`Environment::safe_megapixels()`).
+
+**Serving is opt-in** (`serve` defaults `false`) - the plugin never writes
+`.htaccess` on activation. It is enabled by an explicit user action: the
+"Serve them once converted" checkbox on the prepare form (`handle_start` reads
+`enable_serve`), the one-click "Serve WebP now" button in the `serve_off` state
+(`handle_enable_serve`), or the Settings toggle. Each path calls
+`Settings::update(['serve'=>true])` then `Serve::reconcile()`.
 
 AJAX (`Ajax.php`) is now only the monitor poll + the per-attachment Media buttons
 (`convert_one` / `remove_one`) + the purge loop. Everything else is `admin_post`.
@@ -154,10 +164,15 @@ by name so the build zip keeps only Action Scheduler.
 Keep the diff focused: `composer run lint:fix` / `phpcbf` will happily reformat
 unrelated files - revert anything you didn't mean to touch.
 
-**Known:** a clean checkout currently does NOT pass `composer run lint` -
-`composer.json` pins wpcs `^3.1` but 3.4 tightened many sniffs, so CI lint is red
-independent of any change. Match the conventions the existing code uses; don't
-chase a bar the rest of the repo doesn't meet. New `ui/` code should stay clean.
+`composer run lint` is **green** and should stay that way. `phpcs.xml.dist`
+curates the base `WordPress` standard: the file operations this plugin genuinely
+needs are handled with targeted `phpcs:ignore` (with a reason) at the call site,
+and a short list of WP-Docs sniffs that wpcs 3.4 folded into the base standard
+are excluded where they clash with deliberate house style (PSR-4-ish `Ucfirst.php`
+filenames, namespace-guard files without an `@package` block, terse
+`@param`-only docblocks, unenforced inline-comment punctuation, full hook
+signatures with unused params). Don't silence a *new* real finding to keep it
+green - fix the code or add a reasoned inline ignore.
 
 ## Releasing
 

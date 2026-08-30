@@ -31,7 +31,7 @@ class Admin {
 		add_action( 'admin_post_perxel_image_optimizer_reset_settings', array( $this, 'reset_settings' ) );
 
 		// Status-screen actions - plain form POST → do the thing → redirect back.
-		foreach ( array( 'scan', 'start', 'pause', 'resume', 'cancel', 'retry_failed', 'test_email' ) as $verb ) {
+		foreach ( array( 'scan', 'start', 'pause', 'resume', 'cancel', 'retry_failed', 'test_email', 'enable_serve' ) as $verb ) {
 			add_action( 'admin_post_perxel_image_optimizer_' . $verb, array( $this, 'handle_' . $verb ) );
 		}
 
@@ -103,6 +103,12 @@ class Admin {
 	 */
 	private static function can_see_showcase() {
 		if ( ! current_user_can( 'manage_options' ) ) {
+			return false;
+		}
+
+		// The showcase ships only in maintainer builds - `ui/showcase/` is
+		// stripped from the distributed zip. Absent class => no third screen.
+		if ( ! class_exists( 'Perxel_UI_Showcase' ) ) {
 			return false;
 		}
 
@@ -572,12 +578,33 @@ class Admin {
 			$scope  = ( isset( $_POST['scope'] ) && 'months' === sanitize_key( wp_unslash( $_POST['scope'] ) ) ) ? 'months' : 'all';
 			$months = isset( $_POST['months'] ) ? array_map( 'sanitize_text_field', (array) wp_unslash( $_POST['months'] ) ) : array();
 
+			// The prepare form carries "serve the .webp once converted" when
+			// serving is currently off, so a bulk run isn't silently invisible.
+			// This is the user's explicit opt-in - serving is never enabled on
+			// activation.
+			if ( ! empty( $_POST['enable_serve'] ) && ! Settings::get( 'serve' ) ) {
+				Settings::update( array( 'serve' => true ) );
+				( new Serve() )->reconcile();
+			}
+
 			Runner::start(
 				array(
 					'scope'  => $scope,
 					'months' => $months,
 				)
 			);
+		}
+		$this->redirect_to_status();
+	}
+
+	/**
+	 * Enable WebP serving in one click, from the "converted but not served"
+	 * state on the Optimization screen.
+	 */
+	public function handle_enable_serve() {
+		if ( current_user_can( 'manage_options' ) && check_admin_referer( 'perxel_image_optimizer_enable_serve' ) ) {
+			Settings::update( array( 'serve' => true ) );
+			( new Serve() )->reconcile();
 		}
 		$this->redirect_to_status();
 	}

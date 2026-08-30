@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * admin-ajax endpoints. Every handler checks the nonce and capability.
+ * Admin-ajax endpoints. Every handler checks the nonce and capability.
  *
  * Only two kinds of thing stay on AJAX: the live progress poll while a run is
  * active, and the per-attachment Media-library buttons. Everything else - Scan,
@@ -57,8 +57,15 @@ class Ajax {
 	 * Convert a single attachment (Media view buttons).
 	 */
 	public function convert_one() {
-		$id = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
-		$this->guard( $id );
+		if ( ! check_ajax_referer( self::NONCE, 'nonce', false ) ) {
+			wp_send_json_error( array( 'reason' => 'bad nonce' ), 403 );
+		}
+
+		$id = isset( $_POST['id'] ) ? absint( wp_unslash( $_POST['id'] ) ) : 0;
+
+		if ( ! $id || ! current_user_can( 'edit_post', $id ) ) {
+			wp_send_json_error( array( 'reason' => 'forbidden' ), 403 );
+		}
 
 		$force  = ! empty( $_POST['force'] );
 		$result = Converter::convert_attachment( $id, $force );
@@ -82,8 +89,15 @@ class Ajax {
 	 * Remove a single attachment's siblings.
 	 */
 	public function remove_one() {
-		$id = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
-		$this->guard( $id );
+		if ( ! check_ajax_referer( self::NONCE, 'nonce', false ) ) {
+			wp_send_json_error( array( 'reason' => 'bad nonce' ), 403 );
+		}
+
+		$id = isset( $_POST['id'] ) ? absint( wp_unslash( $_POST['id'] ) ) : 0;
+
+		if ( ! $id || ! current_user_can( 'edit_post', $id ) ) {
+			wp_send_json_error( array( 'reason' => 'forbidden' ), 403 );
+		}
 
 		$removed = Converter::remove_attachment( $id );
 		Failures::clear_one( $id );
@@ -120,18 +134,16 @@ class Ajax {
 	/* --------------------------------------------------------------------- */
 
 	/**
-	 * Nonce + capability check. Dies with a JSON error on failure.
-	 *
-	 * @param int $attachment_id Optional attachment to check edit rights on.
+	 * Nonce + manage_options check for the screen-level endpoints (progress poll,
+	 * purge loop). The per-attachment handlers check the nonce and `edit_post`
+	 * inline. Dies with a JSON error on failure.
 	 */
-	private function guard( $attachment_id = 0 ) {
+	private function guard() {
 		if ( ! check_ajax_referer( self::NONCE, 'nonce', false ) ) {
 			wp_send_json_error( array( 'reason' => 'bad nonce' ), 403 );
 		}
 
-		$cap = $attachment_id ? 'edit_post' : 'manage_options';
-
-		if ( $attachment_id ? ! current_user_can( $cap, $attachment_id ) : ! current_user_can( $cap ) ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'reason' => 'forbidden' ), 403 );
 		}
 	}
