@@ -317,8 +317,18 @@ class Admin {
 			case 'done':
 				$start = '';
 				if ( 'ready' === $state && $scan_pending > 0 ) {
-					$start = ' <button type="submit" form="pxio-prepare" class="button button-primary">'
-						. esc_html__( 'Start conversion', 'perxel-image-optimizer' ) . '</button>';
+					if ( empty( $snap['settings']['serve'] ) ) {
+						// Serving is off. The plain button runs without it (enable
+						// later in Settings); the primary button is the explicit
+						// opt-in - handle_start() reads the enable_serve field.
+						$start = ' <button type="submit" form="pxio-prepare" class="button">'
+							. esc_html__( 'Start conversion', 'perxel-image-optimizer' ) . '</button>'
+							. ' <button type="submit" form="pxio-prepare" name="enable_serve" value="1" class="button button-primary">'
+							. esc_html__( 'Enable serving & start conversion', 'perxel-image-optimizer' ) . '</button>';
+					} else {
+						$start = ' <button type="submit" form="pxio-prepare" class="button button-primary">'
+							. esc_html__( 'Start conversion', 'perxel-image-optimizer' ) . '</button>';
+					}
 				}
 				return $this->action_form( 'perxel_image_optimizer_scan', __( 'Scan again', 'perxel-image-optimizer' ) ) . $start;
 
@@ -578,10 +588,10 @@ class Admin {
 			$scope  = ( isset( $_POST['scope'] ) && 'months' === sanitize_key( wp_unslash( $_POST['scope'] ) ) ) ? 'months' : 'all';
 			$months = isset( $_POST['months'] ) ? array_map( 'sanitize_text_field', (array) wp_unslash( $_POST['months'] ) ) : array();
 
-			// The prepare form carries "serve the .webp once converted" when
-			// serving is currently off, so a bulk run isn't silently invisible.
-			// This is the user's explicit opt-in - serving is never enabled on
-			// activation.
+			// When serving is off, the title bar offers "Enable serving & start
+			// conversion" alongside a plain "Start conversion"; the former posts
+			// enable_serve. This is the user's explicit opt-in - serving is never
+			// enabled on activation.
 			if ( ! empty( $_POST['enable_serve'] ) && ! Settings::get( 'serve' ) ) {
 				Settings::update( array( 'serve' => true ) );
 				( new Serve() )->reconcile();

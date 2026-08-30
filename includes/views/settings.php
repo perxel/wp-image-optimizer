@@ -204,7 +204,7 @@ foreach ( (array) $snap['sizes'] as $name ) {
 /* --- Serving ----------------------------------------------------- */
 
 $serve_sub = esc_html__(
-	'Send the converted .webp files to browsers that support them, via a managed .htaccess rule (or a picture-tag fallback where .htaccess is not available). Off by default; you can also enable it from the Optimization screen when you start a run. Turning it off serves the originals again for everyone - nothing is deleted.',
+	'Send the converted .webp files to browsers that support them, via a managed .htaccess rule (or a picture-tag fallback where .htaccess is not available). Off by default. Turning it off serves the originals again for everyone; nothing is deleted.',
 	'perxel-image-optimizer'
 );
 ?>

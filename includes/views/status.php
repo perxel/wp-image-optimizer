@@ -260,16 +260,9 @@ $per_image = (float) ( $scan['per_image'] ?? 1 );
 		),
 	);
 
-	// Serving is off by default (never enabled on activation). Offer it right
-	// here so a run isn't wasted on files nothing reads - checked, one click.
-	if ( empty( $snap['settings']['serve'] ) ) {
-		$convert_rows[] = array(
-			'label'   => __( 'Serve WebP', 'perxel-image-optimizer' ),
-			'sub'     => esc_html__( 'Send the .webp files to browsers that support them, via a managed .htaccess rule (or a picture-tag fallback where .htaccess is not available). Without this the converted files sit unused. Reversible any time in Settings.', 'perxel-image-optimizer' ),
-			'content' => '<label class="pxio-inline-check"><input type="checkbox" class="pxui-checkbox" name="enable_serve" value="1" form="pxio-prepare" checked /> '
-				. esc_html__( 'Serve them once converted', 'perxel-image-optimizer' ) . '</label>',
-		);
-	}
+	// Serving is off by default (never enabled on activation). The choice moves
+	// to the title bar: "Start conversion" vs "Enable serving & start conversion"
+	// (see Admin::status_actions), so nothing is needed in this form.
 
 	echo Perxel_UI::rows(
 		array(

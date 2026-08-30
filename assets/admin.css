@@ -13,10 +13,6 @@
 #pxio-months .pxio-year-months { border-top: 1px solid #eee; }
 #pxio-months .pxio-year-months .pxui-row { padding-left: var(--pxui-s6); }
 
-/* Prepare form — inline "serve once converted" checkbox (shown when serving
- * is still off). Aligns the box with its label on the row's right edge. */
-.pxio-inline-check { display: inline-flex; align-items: center; gap: 6px; }
-
 /* Media library column + attachment detail */
 .perxel-image-optimizer-cell { display: inline-block; }
 .column-perxel_image_optimizer { width: 160px; }
