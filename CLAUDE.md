@@ -180,3 +180,9 @@ Bump the version in `perxel-image-optimizer.php` (header + `PERXEL_IMAGE_OPTIMIZ
 and `readme.txt` (`Stable tag`), add a changelog entry, tag, create a GitHub
 Release. `release.yml` builds the zip and (with SVN secrets) pushes to
 WordPress.org. `dist/` is never committed.
+
+`ui/CHECKLIST-wordpress-org.md` is the shared WordPress.org submission /
+compliance checklist for every Perxel plugin (headers, readme, security,
+direct-DB / filesystem ignore conventions, opt-in server config, PHPCS setup,
+SVN steps). Consult it before a first submission and skim it before each
+release.

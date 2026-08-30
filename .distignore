@@ -13,6 +13,11 @@
 # tolerates its absence (>= 0.15.0).
 /ui/showcase
 
+# UI-kit dev docs (no code references them).
+/ui/README.md
+/ui/CHANGELOG.md
+/ui/CHECKLIST-wordpress-org.md
+
 # Composer dev tooling. Action Scheduler (/vendor/action-scheduler) is a
 # runtime dependency and DOES ship — see CLAUDE.md.
 /vendor/bin

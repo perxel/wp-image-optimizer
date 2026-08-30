@@ -9,6 +9,8 @@ additive only (see `README.md` → "Versioning").
   now guarded by `is_readable()`, so a plugin may strip `ui/showcase/` from its
   distributed build without fataling. No API change; a copy that still ships the
   showcase behaves exactly as before.
+- Add `CHECKLIST-wordpress-org.md` — the shared WordPress.org submission /
+  compliance checklist for Perxel plugins (docs only, no code).
 
 ## 0.14.0
 
