@@ -112,7 +112,12 @@
 			if ( saved.months && saved.months.length ) {
 				var want = {};
 				saved.months.forEach( function ( m ) { want[ m ] = 1; } );
-				monthBoxes().forEach( function ( cb ) { cb.checked = !! want[ cb.value ]; } );
+				monthBoxes().forEach( function ( cb ) {
+					cb.checked = !! want[ cb.value ];
+					// Open the year so a restored pick is visible, not buried.
+					var d = cb.checked && cb.closest( 'details' );
+					if ( d ) { d.open = true; }
+				} );
 				syncYearAll();
 			}
 		}
@@ -126,9 +131,28 @@
 			} );
 		}
 
+		// Right of the chevron: each year's total, or "<n> of <total>" while it
+		// has selected months — so picks show without expanding the year.
+		var metricKey = months && months.dataset.metric === 'pending' ? 'pending' : 'scope';
+
+		function syncYearInfo() {
+			form.querySelectorAll( '.pxio-year-count' ).forEach( function ( el ) {
+				var sel = 0;
+				form.querySelectorAll( '.pxio-month[data-year="' + el.dataset.year + '"]:checked' ).forEach( function ( cb ) {
+					sel += parseInt( cb.dataset[ metricKey ], 10 ) || 0;
+				} );
+				el.textContent = sel > 0
+					? sel.toLocaleString() + ' of ' + el.dataset.totalText
+					: el.dataset.totalText;
+				el.classList.toggle( 'is-selected', sel > 0 );
+			} );
+		}
+
 		function recompute() {
 			var isMonths = scope && scope.value === 'months';
 			if ( months ) { months.hidden = ! isMonths; }
+
+			syncYearInfo();
 
 			var sel     = selected();
 			var images  = sel[ 0 ];
@@ -169,16 +193,19 @@
 				form.querySelectorAll( '.pxio-month[data-year="' + e.target.dataset.year + '"]' ).forEach( function ( cb ) {
 					cb.checked = e.target.checked;
 				} );
+				var d = e.target.checked && e.target.closest( 'details' );
+				if ( d ) { d.open = true; }
 			} else if ( e.target && e.target.classList.contains( 'pxio-month' ) ) {
 				syncYearAll();
 			}
 			recompute();
 		} );
 
-		// The whole row is a click target, not just the 18px box.
+		// The whole row is a click target, not just the 18px box — but not the
+		// year summary line, where a click drives the native <details> toggle.
 		form.addEventListener( 'click', function ( e ) {
-			if ( e.target.closest( 'input, a, button, select, label' ) ) { return; }
-			var row = e.target.closest( '.pxui-row' );
+			if ( e.target.closest( 'input, a, button, select, label, summary' ) ) { return; }
+			var row = e.target.closest( '.pxui-row:not(.pxui-row--disclosure)' );
 			var cb  = row && row.querySelector( '.pxio-month, .pxio-year-all' );
 			if ( ! cb ) { return; }
 			cb.checked = ! cb.checked;

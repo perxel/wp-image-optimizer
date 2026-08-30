@@ -3,6 +3,15 @@
 Versioned independently of any plugin. Within a major version, changes are
 additive only (see `README.md` → "Versioning").
 
+## 0.12.0
+
+- `rows()` disclosure rows take an optional `content` — trusted HTML rendered
+  in the summary's right slot, just left of the chevron (a count, a status
+  value). Plain rows already had `content`; this makes a titled disclosure and
+  a plain row read the same on the right edge.
+- Additive — the chevron span is unchanged; `content` only adds markup before
+  it when the key is set.
+
 ## 0.11.0
 
 - **Breaking.** `Perxel_UI::panel()` and `Perxel_UI::danger_zone()` are removed,

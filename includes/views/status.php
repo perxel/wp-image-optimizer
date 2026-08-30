@@ -259,39 +259,71 @@ $per_image = (float) ( $scan['per_image'] ?? 1 );
 		)
 	);
 
-	// Month picker: one group per year, hidden until scope = months.
-	echo '<div id="pxio-months" hidden>';
+	// Month picker: one collapsible disclosure row per year (year left, count
+	// right, months revealed on click), hidden until scope = months. data-metric
+	// tells admin.js which per-month figure to sum for the "selected" count.
+	echo '<div id="pxio-months" data-metric="' . ( $skip_converted ? 'pending' : 'scope' ) . '" hidden>';
+
+	$year_rows = array();
 
 	foreach ( $by_year as $group_year => $group_months ) {
-		$rows = array(
-			array(
-				'label'   => sprintf( /* translators: %s: year. */ __( 'Select all of %s', 'perxel-image-optimizer' ), $group_year ),
-				'content' => '<input type="checkbox" class="pxio-year-all" data-year="' . esc_attr( $group_year ) . '" aria-label="' . esc_attr( sprintf( /* translators: %s: year. */ __( 'Select all of %s', 'perxel-image-optimizer' ), $group_year ) ) . '" />',
-			),
-		);
+		$all_label = sprintf( /* translators: %s: year. */ __( 'Select all of %s', 'perxel-image-optimizer' ), $group_year );
+
+		$month_list  = '<div class="pxio-year-months">';
+		$month_list .= '<div class="pxui-row">'
+			. '<span class="pxui-row__label">' . esc_html( $all_label ) . '</span>'
+			. '<span class="pxui-row__content"><input type="checkbox" class="pxui-checkbox pxio-year-all"'
+			. ' data-year="' . esc_attr( $group_year ) . '" aria-label="' . esc_attr( $all_label ) . '" /></span>'
+			. '</div>';
+
+		$y_scope   = 0;
+		$y_pending = 0;
 
 		foreach ( $group_months as $gm ) {
-			$rows[] = array(
-				'label'   => $gm['label'],
-				'sub'     => esc_html(
-					$skip_converted
-						/* translators: %s: count. */
-						? sprintf( _n( '%s pending', '%s pending', $gm['pending'], 'perxel-image-optimizer' ), number_format_i18n( $gm['pending'] ) )
-						/* translators: %s: count. */
-						: sprintf( _n( '%s image', '%s images', $gm['scope'], 'perxel-image-optimizer' ), number_format_i18n( $gm['scope'] ) )
-				),
-				'content' => '<input type="checkbox" class="pxui-checkbox pxio-month" name="months[]" form="pxio-prepare"'
-					. ' value="' . esc_attr( $gm['ym'] ) . '" data-year="' . esc_attr( $group_year ) . '"'
-					. ' data-scope="' . esc_attr( $gm['scope'] ) . '" data-pending="' . esc_attr( $gm['pending'] ) . '"'
-					. ' aria-label="' . esc_attr( $gm['label'] ) . '" />',
-			);
+			$y_scope   += $gm['scope'];
+			$y_pending += $gm['pending'];
+
+			$mm  = substr( $gm['ym'], 5, 2 ) . '/' . substr( $gm['ym'], 0, 4 );
+			$sub = $skip_converted
+				/* translators: %s: count. */
+				? sprintf( _n( '%s pending', '%s pending', $gm['pending'], 'perxel-image-optimizer' ), number_format_i18n( $gm['pending'] ) )
+				/* translators: %s: count. */
+				: sprintf( _n( '%s image', '%s images', $gm['scope'], 'perxel-image-optimizer' ), number_format_i18n( $gm['scope'] ) );
+
+			$month_list .= '<div class="pxui-row">'
+				. '<span class="pxui-row__label">' . esc_html( $mm )
+				. '<span class="pxui-row__sub">' . esc_html( $sub ) . '</span></span>'
+				. '<span class="pxui-row__content"><input type="checkbox" class="pxui-checkbox pxio-month" name="months[]" form="pxio-prepare"'
+				. ' value="' . esc_attr( $gm['ym'] ) . '" data-year="' . esc_attr( $group_year ) . '"'
+				. ' data-scope="' . esc_attr( $gm['scope'] ) . '" data-pending="' . esc_attr( $gm['pending'] ) . '"'
+				. ' aria-label="' . esc_attr( $gm['label'] ) . '" /></span>'
+				. '</div>';
 		}
 
+		$month_list .= '</div>';
+
+		$y_total_text = $skip_converted
+			/* translators: %s: count. */
+			? sprintf( _n( '%s pending', '%s pending', $y_pending, 'perxel-image-optimizer' ), number_format_i18n( $y_pending ) )
+			/* translators: %s: count. */
+			: sprintf( _n( '%s image', '%s images', $y_scope, 'perxel-image-optimizer' ), number_format_i18n( $y_scope ) );
+
+		$year_rows[] = array(
+			'summary' => (string) $group_year,
+			// admin.js swaps this to "<n> of <total>" (accent) while the year has
+			// selected months; back to the plain total when it has none.
+			'content' => '<span class="pxio-year-count" data-year="' . esc_attr( $group_year ) . '"'
+				. ' data-total-text="' . esc_attr( $y_total_text ) . '">' . esc_html( $y_total_text ) . '</span>',
+			'details' => $month_list,
+		);
+	}
+
+	if ( $year_rows ) {
 		echo Perxel_UI::rows(
 			array(
 				array(
-					'title' => (string) $group_year,
-					'rows'  => $rows,
+					'title' => __( 'Choose months', 'perxel-image-optimizer' ),
+					'rows'  => $year_rows,
 				),
 			)
 		);

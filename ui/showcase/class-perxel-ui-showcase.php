@@ -237,6 +237,12 @@ final class Perxel_UI_Showcase {
 							'details' => Perxel_UI::code( "# BEGIN Perxel Image Optimizer\n<IfModule mod_rewrite.c>\n  RewriteEngine On\n  RewriteCond %{HTTP_ACCEPT} image/webp\n  RewriteCond %{REQUEST_FILENAME}.webp -f\n  RewriteRule ^(.+)\\.(jpe?g|png)$ $1.$2.webp [T=image/webp,L]\n</IfModule>\n# END Perxel Image Optimizer" ),
 						),
 						array(
+							'summary' => '2025',
+							'sub'     => 'Disclosure with a right-edge value — a count sits just left of the chevron.',
+							'content' => '8 months &middot; 842 images',
+							'details' => Perxel_UI::code( "08/2025   420 images\n07/2025   180 images\n06/2025   242 images" ),
+						),
+						array(
 							'summary' => 'WebP conversion is supported',
 							'sub'     => 'Disclosure with an icon — the status dot reads pass/fail closed.',
 							'icon'    => 'good',

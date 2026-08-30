@@ -9,6 +9,15 @@
 #pxio-headline .pxui-row__label { flex:1 1 auto; }
 #pxio-headline .pxui-progress { margin-top:var(--pxui-s2); }
 
+/* Month picker — one collapsible disclosure row per year. The year's total
+ * sits at the right edge of the summary, next to the chevron; admin.js swaps it
+ * to "<n> of <total>" in brand-blue while that year has selected months. Months
+ * are a hairline-separated list in the reveal, indented under the year. */
+#pxio-months .pxio-year-count { color: var(--pxui-fg-muted); font-variant-numeric: tabular-nums; }
+#pxio-months .pxio-year-count.is-selected { color: var(--pxui-accent); font-weight: 600; }
+#pxio-months .pxio-year-months { border-top: 1px solid #eee; }
+#pxio-months .pxio-year-months .pxui-row { padding-left: var(--pxui-s6); }
+
 /* Media library column + attachment detail */
 .perxel-image-optimizer-cell { display: inline-block; }
 .column-perxel_image_optimizer { width: 160px; }

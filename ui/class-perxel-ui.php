@@ -176,11 +176,12 @@ final class Perxel_UI {
 	 * emoji) sized to the same frame.
 	 *
 	 * A row with a `summary` key becomes a disclosure instead: the summary text
-	 * sits where the label goes, a chevron takes the content slot, and `details`
-	 * (trusted HTML) reveals full-width below when the row is clicked. Native
-	 * `<details>` — no JS. `[ 'summary' => plain text, 'sub' => trusted HTML,
-	 * 'details' => trusted HTML, 'open' => bool, 'tone' => good|warn|bad,
-	 * 'icon' => … ]`.
+	 * sits where the label goes, the chevron takes the right edge (with optional
+	 * `content` trusted HTML — a count, a status — just left of it), and
+	 * `details` (trusted HTML) reveals full-width below when the row is clicked.
+	 * Native `<details>` — no JS. `[ 'summary' => plain text, 'sub' => trusted
+	 * HTML, 'content' => trusted HTML, 'details' => trusted HTML, 'open' => bool,
+	 * 'tone' => good|warn|bad, 'icon' => … ]`.
 	 *
 	 * @param array $groups Flat row list, or a list of groups.
 	 * @return string
@@ -235,7 +236,10 @@ final class Perxel_UI {
 					}
 
 					$out .= '</span>';
-					$out .= '<span class="pxui-row__content"><span class="pxui-row__chevron" aria-hidden="true"></span></span>';
+					$out .= '<span class="pxui-row__content">';
+					$out .= isset( $r['content'] ) ? $r['content'] : '';
+					$out .= '<span class="pxui-row__chevron" aria-hidden="true"></span>';
+					$out .= '</span>';
 					$out .= '</summary>';
 					$out .= '<div class="pxui-row__reveal">' . ( isset( $r['details'] ) ? $r['details'] : '' ) . '</div>';
 					$out .= '</details>';
