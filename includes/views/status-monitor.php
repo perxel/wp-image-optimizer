@@ -31,23 +31,16 @@ $icon_html = array(
 	'complete' => '<span class="pxui-row__icon pxui-row__icon--good" aria-hidden="true"></span>',
 );
 
-// The current calendar month is just where the runner is reading; progress is
-// counted in images (the bar), never in months.
-$month_line = ( '' !== $job['month_label'] ) ? $job['month_label'] : '';
-
+// Progress is counted in images, full stop - no month, no bar. The one-row
+// group shows a spinner, a state word, and "<done> / <total>" on the right.
 switch ( $state ) {
 	case 'stalled':
-		$headline = sprintf(
-			/* translators: 1: processed, 2: total. */
-			__( 'Conversion stalled at %1$s / %2$s', 'perxel-image-optimizer' ),
-			number_format_i18n( $processed ),
-			number_format_i18n( $total )
-		);
+		$headline  = __( 'Conversion stalled', 'perxel-image-optimizer' );
 		$sub_extra = '<span class="pxui-muted">' . esc_html__( 'No worker responded recently. Opening this page nudged it; if it keeps stalling see Settings → Environment (Loopback / WP-Cron).', 'perxel-image-optimizer' ) . '</span>';
 		break;
 
 	case 'paused':
-		$headline  = __( 'Paused', 'perxel-image-optimizer' ) . ( $month_line ? ' - ' . $month_line : '' );
+		$headline  = __( 'Paused', 'perxel-image-optimizer' );
 		$sub_extra = '';
 		break;
 
@@ -61,7 +54,7 @@ switch ( $state ) {
 		break;
 
 	default: // running.
-		$headline  = __( 'Converting…', 'perxel-image-optimizer' ) . ( $month_line ? ' ' . $month_line : '' );
+		$headline  = __( 'Converting…', 'perxel-image-optimizer' );
 		$sub_extra = '';
 		if ( 0 === $processed && ( time() - (int) $job['started_at'] ) > 25 ) {
 			$sub_extra = '<span class="pxui-muted">' . esc_html__( 'Waiting for a background worker. It runs on WP-Cron; keep this tab open or reload once to nudge it.', 'perxel-image-optimizer' ) . '</span>';
@@ -69,26 +62,20 @@ switch ( $state ) {
 		break;
 }
 
-$bar = Perxel_UI::progress_bar(
-	(int) $job['percent'],
-	array(
-		'id'    => 'pxio-bar',
-		'label' => '<span id="pxio-count">' . esc_html( sprintf( '%s / %s', number_format_i18n( $processed ), number_format_i18n( $total ) ) ) . '</span>',
-	)
-);
+$count_html = '<span id="pxio-count">' . esc_html( sprintf( '%s / %s', number_format_i18n( $processed ), number_format_i18n( $total ) ) ) . '</span>';
 
 echo '<div id="pxio-monitor" data-state="' . esc_attr( $state ) . '" data-poll="'
 	. esc_attr( in_array( $state, array( 'running', 'stalled' ), true ) ? '1' : '0' ) . '">';
 
-// Headline row built directly (not via Perxel_UI::rows) because it carries the
-// live #pxio-headline span, and rows() escapes its `label` field as plain text.
+// One-row status group, built directly (not via Perxel_UI::rows) because it
+// carries the live #pxio-headline / #pxio-count spans and rows() escapes `label`.
 echo '<div class="pxui-rows"><div class="pxui-rows__group"><div class="pxui-rows__card">'
 	. '<div class="pxui-row pxui-row--has-icon">'
 	. $icon_html[ $state ]
 	. '<span class="pxui-row__label"><span id="pxio-headline">' . esc_html( $headline ) . '</span>'
-	. '<span class="pxui-row__sub">' . $bar . ( $sub_extra ? '<div id="pxio-headnote">' . $sub_extra . '</div>' : '<div id="pxio-headnote"></div>' ) . '</span>'
+	. ( $sub_extra ? '<span class="pxui-row__sub" id="pxio-headnote">' . $sub_extra . '</span>' : '' )
 	. '</span>'
-	. '<span class="pxui-row__content"></span>'
+	. '<span class="pxui-row__content">' . $count_html . '</span>'
 	. '</div>'
 	. '</div></div></div>';
 

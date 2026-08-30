@@ -245,13 +245,8 @@
 				// either direction.
 				if ( d.phase !== 'running' || !! d.stalled !== wasStalled ) { reload(); return; }
 
-				var bar = document.querySelector( '#pxio-bar .pxui-progress__fill' );
-				if ( bar ) { bar.style.width = d.percent + '%'; }
-
 				setText( 'pxio-count', d.processed.toLocaleString() + ' / ' + d.total.toLocaleString() );
-				setText( 'pxio-headline', d.month_label
-					? 'Converting… ' + d.month_label
-					: 'Converting…' );
+				setText( 'pxio-headline', 'Converting…' );
 				var note = byId( 'pxio-headnote' );
 				if ( note && d.processed > 0 ) { note.textContent = ''; }
 				setText( 'pxio-m-converted', d.converted.toLocaleString() );

@@ -610,11 +610,6 @@ class Runner {
 	public static function progress() {
 		$state = self::state();
 
-		$planned          = max( 1, (int) $state['months_planned'] );
-		$remaining_months = count( $state['months'] );
-		$position         = $planned - $remaining_months + ( 'complete' === $state['phase'] ? 0 : 1 );
-		$position         = max( 1, min( $planned, $position ) );
-
 		$total     = max( (int) $state['total_candidates'], (int) $state['processed'] );
 		$remaining = max( 0, $total - (int) $state['processed'] );
 
@@ -639,9 +634,6 @@ class Runner {
 			'stalled'       => self::is_stale(),
 			'trigger'       => $state['trigger'],
 			'month'         => $state['cursor']['month'],
-			'month_label'   => self::month_label( $state['cursor']['month'] ),
-			'month_pos'     => $position,
-			'months_total'  => $planned,
 			'processed'     => (int) $state['processed'],
 			'converted'     => (int) $state['converted'],
 			'total'         => $total,
@@ -689,20 +681,6 @@ class Runner {
 			'webp_bytes'  => $webp,
 			'percent'     => max( 0, $percent ),
 		);
-	}
-
-	/**
-	 * @param string $ym 'YYYY-MM'.
-	 * @return string Localised "July 2024", or '' for an empty cursor.
-	 */
-	public static function month_label( $ym ) {
-		if ( '' === (string) $ym ) {
-			return '';
-		}
-
-		$ts = strtotime( $ym . '-01' );
-
-		return $ts ? date_i18n( 'F Y', $ts ) : $ym;
 	}
 
 	/**

@@ -4,11 +4,6 @@
  * (ui/assets/ui.css). Only image-optimizer-specific bits live here.
  */
 
-/* Status headline — a single-row group. Let the label column grow so the
- * running state's progress bar fills the row width; the action stays right. */
-#pxio-headline .pxui-row__label { flex:1 1 auto; }
-#pxio-headline .pxui-progress { margin-top:var(--pxui-s2); }
-
 /* Month picker — one collapsible disclosure row per year. The year's total
  * sits at the right edge of the summary, next to the chevron; admin.js swaps it
  * to "<n> of <total>" in brand-blue while that year has selected months. Months
