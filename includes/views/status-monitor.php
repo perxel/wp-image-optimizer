@@ -31,15 +31,9 @@ $icon_html = array(
 	'complete' => '<span class="pxui-row__icon pxui-row__icon--good" aria-hidden="true"></span>',
 );
 
-$month_line = ( '' !== $job['month_label'] )
-	? sprintf(
-		/* translators: 1: month name, 2: current month number, 3: total months. */
-		__( '%1$s · month %2$d of %3$d', 'perxel-image-optimizer' ),
-		$job['month_label'],
-		(int) $job['month_pos'],
-		(int) $job['months_total']
-	)
-	: '';
+// The current calendar month is just where the runner is reading; progress is
+// counted in images (the bar), never in months.
+$month_line = ( '' !== $job['month_label'] ) ? $job['month_label'] : '';
 
 switch ( $state ) {
 	case 'stalled':

@@ -162,15 +162,12 @@
 			var webp  = Math.round( src * avgFrac );
 			var saved = Math.max( 0, src - webp );
 			var pct   = src > 0 ? Math.round( saved / src * 100 ) : 0;
-			var count = checkedMonths().length;
 
 			setText( 'pxio-fig-images', images.toLocaleString() );
 			setText( 'pxio-fig-time', duration( images * perImage ) );
 			setText( 'pxio-fig-saved', '−' + pct + '%  ·  ≈ ' + bytes( saved ) );
 			setText( 'pxio-fig-disk', '≈ +' + bytes( webp ) );
-			setText( 'pxio-fig-scope', isMonths
-				? ( count + ' month' + ( count === 1 ? '' : 's' ) + ' selected' )
-				: scopeWord );
+			setText( 'pxio-fig-scope', isMonths ? 'across selected months' : scopeWord );
 
 			var warn = byId( 'pxio-run-warning' );
 			if ( warn ) {
@@ -253,7 +250,7 @@
 
 				setText( 'pxio-count', d.processed.toLocaleString() + ' / ' + d.total.toLocaleString() );
 				setText( 'pxio-headline', d.month_label
-					? 'Converting… ' + d.month_label + ' · month ' + d.month_pos + ' of ' + d.months_total
+					? 'Converting… ' + d.month_label
 					: 'Converting…' );
 				var note = byId( 'pxio-headnote' );
 				if ( note && d.processed > 0 ) { note.textContent = ''; }
