@@ -38,13 +38,15 @@ class Mailer {
 	 * Send a sample report now, so the address can be verified from Settings.
 	 *
 	 * @param string $to Recipient.
-	 * @return bool wp_mail() result.
+	 * @return true|string True when wp_mail() accepted the message, otherwise a
+	 *                     human-readable reason (invalid address, or whatever
+	 *                     PHPMailer reported on the `wp_mail_failed` hook).
 	 */
 	public static function send_test( $to ) {
 		$to = sanitize_email( $to );
 
 		if ( ! $to || ! is_email( $to ) ) {
-			return false;
+			return __( 'That address is not valid.', 'perxel-image-optimizer' );
 		}
 
 		$sample = array_merge(
@@ -64,7 +66,27 @@ class Mailer {
 
 		list( $subject, $body ) = self::compose( $sample, 'complete' );
 
-		return (bool) wp_mail( $to, '[test] ' . $subject, "This is a test of the Perxel Image Optimizer completion report.\n\n" . $body );
+		// wp_mail() only returns false on a hard PHPMailer failure and carries no
+		// detail; the reason arrives on `wp_mail_failed` as a WP_Error. Capture it
+		// for the duration of this one call so Settings can show what broke.
+		$reason  = '';
+		$catcher = static function ( $error ) use ( &$reason ) {
+			if ( is_wp_error( $error ) ) {
+				$reason = $error->get_error_message();
+			}
+		};
+
+		add_action( 'wp_mail_failed', $catcher );
+		$ok = wp_mail( $to, '[test] ' . $subject, "This is a test of the Perxel Image Optimizer completion report.\n\n" . $body );
+		remove_action( 'wp_mail_failed', $catcher );
+
+		if ( $ok ) {
+			return true;
+		}
+
+		return '' !== $reason
+			? $reason
+			: __( 'wp_mail() reported a failure with no detail - the host is likely blocking or silently dropping outbound mail. An SMTP plugin usually fixes this.', 'perxel-image-optimizer' );
 	}
 
 	/**

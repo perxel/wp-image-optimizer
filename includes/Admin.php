@@ -271,7 +271,7 @@ class Admin {
 
 		// While a run is active, opening this page makes sure a chunk is queued
 		// and pokes WP-Cron - covers hosts with no loopback and lost requests.
-		if ( in_array( $state, array( 'running', 'stalled' ), true ) ) {
+		if ( in_array( $state, array( 'queued', 'running', 'stalled' ), true ) ) {
 			Runner::nudge();
 		}
 
@@ -316,6 +316,7 @@ class Admin {
 				}
 				return $this->action_form( 'perxel_image_optimizer_scan', __( 'Scan again', 'perxel-image-optimizer' ) ) . $start;
 
+			case 'queued':
 			case 'running':
 				return $this->action_form( 'perxel_image_optimizer_pause', __( 'Pause', 'perxel-image-optimizer' ) )
 					. ' ' . $this->action_form(
@@ -381,7 +382,7 @@ class Admin {
 	 * Which state the Status page is in.
 	 *
 	 * @param array $snap Ajax::snapshot().
-	 * @return string cannot_convert|running|stalled|paused|complete|not_scanned|ready|serve_off|done
+	 * @return string cannot_convert|queued|running|stalled|paused|complete|not_scanned|ready|serve_off|done
 	 */
 	public static function status_state( array $snap ) {
 		if ( empty( $snap['environment']['webp_encode'] ) ) {
@@ -392,7 +393,10 @@ class Admin {
 
 		switch ( $job['phase'] ) {
 			case 'running':
-				return ! empty( $job['stalled'] ) ? 'stalled' : 'running';
+				if ( ! empty( $job['stalled'] ) ) {
+					return 'stalled';
+				}
+				return 0 === (int) $job['processed'] ? 'queued' : 'running';
 			case 'paused':
 				return 'paused';
 			case 'complete':
@@ -630,9 +634,16 @@ class Admin {
 		$sent = false;
 
 		if ( current_user_can( 'manage_options' ) && check_admin_referer( 'perxel_image_optimizer_test_email' ) ) {
-			$to   = isset( $_POST['email_report_to'] ) ? sanitize_email( wp_unslash( $_POST['email_report_to'] ) ) : '';
-			$to   = $to ? $to : Settings::report_recipient();
-			$sent = Mailer::send_test( $to );
+			$to     = isset( $_POST['email_report_to'] ) ? sanitize_email( wp_unslash( $_POST['email_report_to'] ) ) : '';
+			$to     = $to ? $to : Settings::report_recipient();
+			$result = Mailer::send_test( $to );
+			$sent   = ( true === $result );
+
+			set_transient(
+				'perxel_image_optimizer_test_mail_err_' . get_current_user_id(),
+				$sent ? '' : (string) $result,
+				MINUTE_IN_SECONDS
+			);
 		}
 
 		wp_safe_redirect(

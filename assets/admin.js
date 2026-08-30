@@ -224,6 +224,7 @@
 		if ( ! mon || mon.dataset.poll !== '1' ) { return; }
 
 		var wasStalled = mon.dataset.state === 'stalled';
+		var wasQueued = mon.dataset.state === 'queued';
 		var tries = 0;
 
 		function setText( id, txt ) {
@@ -241,24 +242,21 @@
 				var d = res.json.data;
 
 				// Re-render server-side only when the situation actually changes:
-				// the run ended/paused, or it crossed the stalled threshold in
-				// either direction.
-				if ( d.phase !== 'running' || !! d.stalled !== wasStalled ) { reload(); return; }
+				// the run ended/paused, it crossed the stalled threshold either
+				// way, or the first image landed (queued → running).
+				if ( d.phase !== 'running' || !! d.stalled !== wasStalled ||
+					( wasQueued && d.processed > 0 ) ) { reload(); return; }
 
 				setText( 'pxio-count', d.processed.toLocaleString() + ' / ' + d.total.toLocaleString() );
-				setText( 'pxio-headline', 'Converting…' );
-				var note = byId( 'pxio-headnote' );
-				if ( note && d.processed > 0 ) { note.textContent = ''; }
 				setText( 'pxio-m-converted', d.converted.toLocaleString() );
 				setText( 'pxio-m-remaining', d.remaining.toLocaleString() );
 				setText( 'pxio-m-saved', bytes( d.saved_bytes ) );
 				setText( 'pxio-m-disk', bytes( d.webp_bytes ) );
 				setText( 'pxio-failed', d.failed.toLocaleString() );
 				setText( 'pxio-large', d.too_large.toLocaleString() );
-				setText( 'pxio-rate-line', 'about ' + ( d.eta_seconds > 0 ? secs( d.eta_seconds ) : 'calculating' ) +
-					' left · ' + d.failed + ' failed · ' + d.too_large + ' too large' );
+				setText( 'pxio-rate-line', 'about ' + ( d.eta_seconds > 0 ? secs( d.eta_seconds ) : 'calculating' ) + ' left' );
 				if ( d.projected ) {
-					setText( 'pxio-proj-line', 'Projected −' + bytes( d.projected.saved_bytes ) +
+					setText( 'pxio-proj-line', '−' + bytes( d.projected.saved_bytes ) +
 						' (≈ ' + d.projected.percent + '%) · +' + bytes( d.projected.webp_bytes ) + ' disk' );
 				}
 			} ).catch( function () {

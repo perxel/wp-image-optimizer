@@ -154,15 +154,16 @@ class Settings {
 	}
 
 	/**
-	 * Where a completion report is sent: the configured address, or the site
-	 * admin email when the field is blank or invalid.
+	 * Where a completion report is sent: the configured address, or an empty
+	 * string when the field is blank or invalid - in which case no report is
+	 * sent. There is deliberately no silent fallback to the site admin email.
 	 *
 	 * @return string
 	 */
 	public static function report_recipient() {
 		$to = trim( (string) self::get( 'email_report_to' ) );
 
-		return ( '' !== $to && is_email( $to ) ) ? $to : (string) get_option( 'admin_email' );
+		return ( '' !== $to && is_email( $to ) ) ? $to : '';
 	}
 
 	/**

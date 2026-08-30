@@ -66,10 +66,24 @@ if ( $updated ) {
 	echo Perxel_UI::notice( 'success', esc_html__( 'Settings reset to defaults.', 'perxel-image-optimizer' ), array( 'dismissible' => true ) );
 }
 
-if ( 'sent' === $test_email ) {
-	echo Perxel_UI::notice( 'success', esc_html__( 'Test email sent.', 'perxel-image-optimizer' ), array( 'dismissible' => true ) );
-} elseif ( 'failed' === $test_email ) {
-	echo Perxel_UI::notice( 'error', esc_html__( 'Test email could not be sent. Check the address and your site mail configuration.', 'perxel-image-optimizer' ), array( 'dismissible' => true ) );
+if ( '' !== $test_email ) {
+	$mail_err_key = 'perxel_image_optimizer_test_mail_err_' . get_current_user_id();
+	$mail_err     = (string) get_transient( $mail_err_key );
+	delete_transient( $mail_err_key );
+
+	if ( 'sent' === $test_email ) {
+		echo Perxel_UI::notice(
+			'success',
+			esc_html__( 'Test email handed to the server. If it does not arrive, check spam, then your site mail configuration - "sent" only means the server accepted it.', 'perxel-image-optimizer' ),
+			array( 'dismissible' => true )
+		);
+	} else {
+		$msg = esc_html__( 'Test email could not be sent.', 'perxel-image-optimizer' );
+		if ( '' !== $mail_err ) {
+			$msg .= '<br><span class="pxui-muted">' . esc_html( $mail_err ) . '</span>';
+		}
+		echo Perxel_UI::notice( 'error', $msg, array( 'dismissible' => true ) );
+	}
 }
 
 /* --- Conversion --------------------------------------------------- */
@@ -237,8 +251,48 @@ $serve_sub = $serve_status . ' - ' . esc_html__(
 <?php
 /* --- Notifications ---------------------------------------------- */
 
-$email_to    = (string) $cfg['email_report_to'];
-$admin_email = (string) get_option( 'admin_email' );
+$email_to     = (string) $cfg['email_report_to'];
+$report_on    = ! empty( $cfg['email_report'] );
+$missing_addr = $report_on && '' === trim( $email_to );
+
+$notif_note = $missing_addr
+	? '<span class="pxui-warn">' . esc_html__( 'No address set - no report will be sent. Add one below, or turn the report off.', 'perxel-image-optimizer' ) . '</span>'
+	: '';
+
+$notif_rows = array(
+	array(
+		'label'   => __( 'Email a report when a bulk run finishes', 'perxel-image-optimizer' ),
+		'sub'     => esc_html__( 'Converted count, bandwidth saved, disk added, failures. Sent once per run (also on cancel).', 'perxel-image-optimizer' ),
+		'content' => Perxel_UI::toggle(
+			array(
+				'name'    => 'email_report',
+				'form'    => 'pxio-settings-form',
+				'checked' => $report_on,
+				'label'   => __( 'Email a report when a bulk run finishes', 'perxel-image-optimizer' ),
+			)
+		),
+	),
+	array(
+		'label'   => __( 'Send to', 'perxel-image-optimizer' ),
+		'sub'     => esc_html__( 'The report goes to this address. Leave it blank and no report is sent.', 'perxel-image-optimizer' ),
+		'content' => '<input type="email" id="pxio-email-to" name="email_report_to" form="pxio-settings-form"'
+			. ' value="' . esc_attr( $email_to ) . '" placeholder="you@example.com" class="regular-text" />',
+	),
+);
+
+// Test-send only makes sense once there's a saved address to send to.
+if ( '' !== trim( $email_to ) ) {
+	$notif_rows[] = array(
+		'label'   => __( 'Test', 'perxel-image-optimizer' ),
+		'sub'     => esc_html__( 'Sends a sample report now. Uses the address above; save first if you just changed it and have JavaScript off.', 'perxel-image-optimizer' ),
+		'content' => '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" id="pxio-test-email" style="display:inline">'
+			. '<input type="hidden" name="action" value="perxel_image_optimizer_test_email" />'
+			. '<input type="hidden" name="email_report_to" value="' . esc_attr( $email_to ) . '" />'
+			. wp_nonce_field( 'perxel_image_optimizer_test_email', '_wpnonce', true, false )
+			. '<button type="submit" class="button">' . esc_html__( 'Send test email', 'perxel-image-optimizer' ) . '</button>'
+			. '</form>',
+	);
+}
 ?>
 <div id="notifications">
 	<?php
@@ -246,42 +300,8 @@ $admin_email = (string) get_option( 'admin_email' );
 		array(
 			array(
 				'title' => __( 'Notifications', 'perxel-image-optimizer' ),
-				'rows'  => array(
-					array(
-						'label'   => __( 'Email a report when a bulk run finishes', 'perxel-image-optimizer' ),
-						'sub'     => esc_html__( 'Converted count, bandwidth saved, disk added, failures. Sent once per run (also on cancel).', 'perxel-image-optimizer' ),
-						'content' => Perxel_UI::toggle(
-							array(
-								'name'    => 'email_report',
-								'form'    => 'pxio-settings-form',
-								'checked' => ! empty( $cfg['email_report'] ),
-								'label'   => __( 'Email a report when a bulk run finishes', 'perxel-image-optimizer' ),
-							)
-						),
-					),
-					array(
-						'label'   => __( 'Send to', 'perxel-image-optimizer' ),
-						'sub'     => esc_html(
-							sprintf(
-								/* translators: %s: the site admin email. */
-								__( 'Leave blank to use the site admin address (%s).', 'perxel-image-optimizer' ),
-								$admin_email
-							)
-						),
-						'content' => '<input type="email" id="pxio-email-to" name="email_report_to" form="pxio-settings-form"'
-							. ' value="' . esc_attr( $email_to ) . '" placeholder="' . esc_attr( $admin_email ) . '" class="regular-text" />',
-					),
-					array(
-						'label'   => __( 'Test', 'perxel-image-optimizer' ),
-						'sub'     => esc_html__( 'Sends a sample report now. Uses the address above; save first if you just changed it and have JavaScript off.', 'perxel-image-optimizer' ),
-						'content' => '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" id="pxio-test-email" style="display:inline">'
-							. '<input type="hidden" name="action" value="perxel_image_optimizer_test_email" />'
-							. '<input type="hidden" name="email_report_to" value="' . esc_attr( $email_to ) . '" />'
-							. wp_nonce_field( 'perxel_image_optimizer_test_email', '_wpnonce', true, false )
-							. '<button type="submit" class="button">' . esc_html__( 'Send test email', 'perxel-image-optimizer' ) . '</button>'
-							. '</form>',
-					),
-				),
+				'note'  => $notif_note,
+				'rows'  => $notif_rows,
 			),
 		)
 	);

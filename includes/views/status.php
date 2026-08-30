@@ -8,6 +8,7 @@
  *
  * @var array  $snap  Perxel\ImageOptimizer\Ajax::snapshot().
  * @var string $state Perxel\ImageOptimizer\Admin::status_state() result.
+ *   queued|running|stalled|paused|complete route to views/status-monitor.php.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -70,10 +71,11 @@ $glance = static function () use ( $stats, $snap ) {
 /**
  * A "this run" figures group (label left, value right).
  *
- * @param array $figures [ [label, value, sub], … ].
- * @param string $title Group title.
+ * @param array  $figures [ [label, value, sub], … ].
+ * @param string $title   Group title.
+ * @param string $note    Trusted HTML footnote below the card.
  */
-$figure_group = static function ( array $figures, $title ) {
+$figure_group = static function ( array $figures, $title, $note = '' ) {
 	$rows = array();
 	foreach ( $figures as $f ) {
 		$rows[] = array(
@@ -90,6 +92,7 @@ $figure_group = static function ( array $figures, $title ) {
 			array(
 				'title' => $title,
 				'rows'  => $rows,
+				'note'  => $note,
 			),
 		)
 	);
@@ -112,9 +115,9 @@ if ( 'cannot_convert' === $state ) {
 	return;
 }
 
-/* --- running | stalled | paused | complete  - the monitor --- */
+/* --- queued | running | stalled | paused | complete  - the monitor --- */
 
-if ( in_array( $state, array( 'running', 'stalled', 'paused', 'complete' ), true ) ) {
+if ( in_array( $state, array( 'queued', 'running', 'stalled', 'paused', 'complete' ), true ) ) {
 	require __DIR__ . '/status-monitor.php';
 	return;
 }
@@ -366,6 +369,19 @@ $per_image = (float) ( $scan['per_image'] ?? 1 );
 		)
 		: esc_html__( 'Free space unreadable on this server.', 'perxel-image-optimizer' );
 
+	$run_note  = esc_html__( 'Runs in the background. Close the tab anytime.', 'perxel-image-optimizer' );
+	$report_to = ! empty( $snap['settings']['email_report'] ) ? \Perxel\ImageOptimizer\Settings::report_recipient() : '';
+	if ( '' !== $report_to ) {
+		$run_note .= ' ' . esc_html(
+			sprintf(
+				/* translators: %s: email address. */
+				__( 'A report goes to %s when it finishes.', 'perxel-image-optimizer' ),
+				$report_to
+			)
+		);
+	}
+	$run_note .= '<br>' . esc_html__( 'Figures are estimates from a library sample; the live run shows real numbers.', 'perxel-image-optimizer' );
+
 	echo $figure_group(
 		array(
 			array(
@@ -393,20 +409,9 @@ $per_image = (float) ( $scan['per_image'] ?? 1 );
 				'sub'   => $disk_sub,
 			),
 		),
-		__( 'This run', 'perxel-image-optimizer' )
+		__( 'This run', 'perxel-image-optimizer' ),
+		$run_note
 	);
-
-	$bg_line = __( 'Runs in the background. Close the tab anytime.', 'perxel-image-optimizer' );
-	if ( ! empty( $snap['settings']['email_report'] ) ) {
-		$bg_line .= ' ' . sprintf(
-			/* translators: %s: email address. */
-			__( 'A report goes to %s when it finishes.', 'perxel-image-optimizer' ),
-			\Perxel\ImageOptimizer\Settings::report_recipient()
-		);
-	}
-
-	echo '<p class="pxui-muted">' . esc_html( $bg_line ) . '</p>';
-	echo '<p class="pxui-muted">' . esc_html__( 'Figures are estimates from a library sample; the live run shows real numbers.', 'perxel-image-optimizer' ) . '</p>';
 	?>
 </form>
 <?php
