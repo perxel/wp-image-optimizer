@@ -57,6 +57,47 @@ class Sections {
 	}
 
 	/**
+	 * How many attachments the runner will actually walk for a set of months -
+	 * the live monitor's "N of TOTAL". One indexed COUNT, run once when a bulk
+	 * run starts (never on a page load).
+	 *
+	 * @param string[] $yms       'YYYY-MM' keys in scope.
+	 * @param bool     $skip_done  true = exclude records already settled under
+	 *                             the current settings signature.
+	 * @return int
+	 */
+	public static function pending_count( array $yms, $skip_done = true ) {
+		global $wpdb;
+
+		$ym_ints = array();
+		foreach ( $yms as $ym ) {
+			$n = (int) str_replace( '-', '', (string) $ym );
+			if ( $n > 0 ) {
+				$ym_ints[] = $n;
+			}
+		}
+
+		if ( empty( $ym_ints ) ) {
+			return 0;
+		}
+
+		// A comma list of integer YYYYMM keys - each value is (int) cast above,
+		// so direct interpolation is injection-safe. YEAR()*100 + MONTH() rather
+		// than DATE_FORMAT() keeps the month filter clear of wpdb::prepare()'s
+		// `%Y` mangling.
+		$in       = implode( ',', $ym_ints );
+		$month_in = "YEAR(p.post_date) * 100 + MONTH(p.post_date) IN ( {$in} )";
+
+		if ( $skip_done ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- integer month keys interpolated; signature is bound. One COUNT at run start.
+			return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->posts} p LEFT JOIN {$wpdb->postmeta} sig ON sig.post_id = p.ID AND sig.meta_key = %s WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND p.post_mime_type IN ( 'image/jpeg', 'image/png' ) AND {$month_in} AND ( sig.meta_id IS NULL OR sig.meta_value <> %s )", Converter::META_SIG, Settings::signature() ) );
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- integer month keys interpolated; no external data. One COUNT at run start.
+		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} p WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND p.post_mime_type IN ( 'image/jpeg', 'image/png' ) AND {$month_in}" );
+	}
+
+	/**
 	 * Attachment IDs in one calendar month that still need conversion work, ID
 	 * ascending, starting after $after_id.
 	 *

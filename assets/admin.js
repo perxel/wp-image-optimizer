@@ -1,10 +1,10 @@
 /* Perxel Image Optimizer - admin pages (Status + Settings).
  *
  * Both screens are server-rendered by PHP. This script only drives:
- *   - the prepare form: month picker + "This run" arithmetic (no round-trip),
+ *   - the prepare form: month picker + "This run" image-count / ETA (no round-trip),
  *   - the live monitor poll while a run is active,
  *   - the Settings dirty-state guard and the "Remove all WebP" purge loop.
- * Scan / Start / Pause / Cancel / Resume / Retry are plain form submits.
+ * Start / Pause / Cancel / Resume / Retry are plain form submits.
  */
 ( function () {
 	'use strict';
@@ -55,13 +55,8 @@
 
 		var scope    = byId( 'pxio-scope' );
 		var months   = byId( 'pxio-months' );
-		var avgSrc   = parseFloat( form.dataset.avgSrc ) || 0;
-		var avgFrac  = parseFloat( form.dataset.avgFrac ) || 0.7;
 		var perImage = parseFloat( form.dataset.perImage ) || 1;
-		var freeDisk = parseFloat( form.dataset.freeDisk ) || 0;
-		var scopeAll   = parseInt( form.dataset.scopeAll, 10 ) || 0;
-		var pendingAll = parseInt( form.dataset.pendingAll, 10 ) || 0;
-		var scopeWord  = scopeAll === pendingAll ? 'everything pending' : 'every image';
+		var scopeAll = parseInt( form.dataset.scopeAll, 10 ) || 0;
 		var STORE = 'pxioPrepare';
 
 		function monthBoxes() { return form.querySelectorAll( '.pxio-month' ); }
@@ -71,21 +66,19 @@
 			s = Math.max( 0, Math.round( s ) );
 			if ( s < 90 ) { return 'a few seconds'; }
 			var m = Math.round( s / 60 );
-			if ( m < 60 ) { return '≈ ' + m + ' min'; }
+			if ( m < 60 ) { return 'up to ≈ ' + m + ' min'; }
 			var h = m / 60;
-			return '≈ ' + ( h < 10 ? h.toFixed( 1 ).replace( /\.0$/, '' ) : Math.round( h ) ) + ' hr';
+			return 'up to ≈ ' + ( h < 10 ? h.toFixed( 1 ).replace( /\.0$/, '' ) : Math.round( h ) ) + ' hr';
 		}
 
-		// [ images in scope, pending in scope ] for the current selection.
-		function selected() {
-			if ( ! scope || scope.value !== 'months' ) { return [ scopeAll, pendingAll ]; }
+		// Images in scope for the current selection.
+		function selectedImages() {
+			if ( ! scope || scope.value !== 'months' ) { return scopeAll; }
 			var img = 0;
-			var pend = 0;
 			checkedMonths().forEach( function ( cb ) {
-				img  += parseInt( cb.dataset.scope, 10 ) || 0;
-				pend += parseInt( cb.dataset.pending, 10 ) || 0;
+				img += parseInt( cb.dataset.scope, 10 ) || 0;
 			} );
-			return [ img, pend ];
+			return img;
 		}
 
 		function setText( id, txt ) {
@@ -133,13 +126,11 @@
 
 		// Right of the chevron: each year's total, or "<n> of <total>" while it
 		// has selected months — so picks show without expanding the year.
-		var metricKey = months && months.dataset.metric === 'pending' ? 'pending' : 'scope';
-
 		function syncYearInfo() {
 			form.querySelectorAll( '.pxio-year-count' ).forEach( function ( el ) {
 				var sel = 0;
 				form.querySelectorAll( '.pxio-month[data-year="' + el.dataset.year + '"]:checked' ).forEach( function ( cb ) {
-					sel += parseInt( cb.dataset[ metricKey ], 10 ) || 0;
+					sel += parseInt( cb.dataset.scope, 10 ) || 0;
 				} );
 				el.textContent = sel > 0
 					? sel.toLocaleString() + ' of ' + el.dataset.totalText
@@ -154,44 +145,11 @@
 
 			syncYearInfo();
 
-			var sel     = selected();
-			var images  = sel[ 0 ];
-			var pending = sel[ 1 ];
-			// New savings come only from images that aren't WebP yet.
-			var src   = pending * avgSrc;
-			var webp  = Math.round( src * avgFrac );
-			var saved = Math.max( 0, src - webp );
-			var pct   = src > 0 ? Math.round( saved / src * 100 ) : 0;
+			var images = selectedImages();
 
 			setText( 'pxio-fig-images', images.toLocaleString() );
 			setText( 'pxio-fig-time', duration( images * perImage ) );
-			setText( 'pxio-fig-saved', '−' + pct + '%  ·  ≈ ' + bytes( saved ) );
-			setText( 'pxio-fig-disk', '≈ +' + bytes( webp ) );
-			setText( 'pxio-fig-scope', isMonths ? 'across selected months' : scopeWord );
-
-			// Plain-language lead line for the note - the four figures as one
-			// sentence a non-technical reader can act on.
-			if ( images < 1 ) {
-				setText( 'pxio-run-summary', 'Pick one or more months to see the estimate.' );
-			} else {
-				var dur = duration( images * perImage );
-				var timePhrase = dur === 'a few seconds'
-					? 'takes only a few seconds'
-					: 'takes about ' + dur.replace( '≈ ', '' );
-				setText( 'pxio-run-summary',
-					'Converting ' + images.toLocaleString() + ' image' + ( images === 1 ? '' : 's' ) +
-					( isMonths ? ' across the selected months' : '' ) + ' ' + timePhrase +
-					'. Your visitors save about ' + bytes( saved ) + ' (a ' + pct + '% cut per image); ' +
-					'your server gains about ' + bytes( webp ) + '.' );
-			}
-
-			var warn = byId( 'pxio-run-warning' );
-			if ( warn ) {
-				warn.innerHTML = ( freeDisk > 0 && webp > freeDisk * 0.8 )
-					? '<div class="notice notice-warning pxui-notice inline"><p>' +
-						'Estimated disk added (' + bytes( webp ) + ') is near the free space the server reports (' + bytes( freeDisk ) + ').</p></div>'
-					: '';
-			}
+			setText( 'pxio-fig-scope', isMonths ? 'across selected months' : 'whole library' );
 
 			var start = document.querySelector( 'button[form="pxio-prepare"]' );
 			if ( start ) { start.disabled = images < 1; }

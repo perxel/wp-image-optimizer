@@ -80,21 +80,17 @@ class Scanner {
 
 	/**
 	 * Cheap dashboard counts - no library walk. The attachment total is always
-	 * live (wp_count_attachments()); "pending" is known only once scanned.
+	 * live (wp_count_attachments()); `scanned` says whether Scan has ever run.
 	 *
-	 * @return array{attachments:int,pending:int,scanned:bool}
+	 * @return array{attachments:int,scanned:bool}
 	 */
 	public static function summary() {
 		$counts      = (array) wp_count_attachments();
 		$attachments = (int) ( $counts['image/jpeg'] ?? 0 ) + (int) ( $counts['image/png'] ?? 0 );
 
-		$scan    = Scan::data();
-		$scanned = ! empty( $scan['scanned_at'] );
-
 		return array(
 			'attachments' => $attachments,
-			'pending'     => $scanned ? (int) $scan['pending'] : 0,
-			'scanned'     => $scanned,
+			'scanned'     => ! empty( Scan::data()['scanned_at'] ),
 		);
 	}
 }

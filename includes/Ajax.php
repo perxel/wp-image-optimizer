@@ -76,6 +76,9 @@ class Ajax {
 			Failures::clear_one( $id );
 		}
 
+		// The Optimization page refreshes its cached figures when they are stale.
+		Scan::mark_stale();
+
 		wp_send_json_success(
 			array(
 				'id'     => $id,
@@ -101,6 +104,7 @@ class Ajax {
 
 		$removed = Converter::remove_attachment( $id );
 		Failures::clear_one( $id );
+		Scan::mark_stale();
 
 		wp_send_json_success(
 			array(

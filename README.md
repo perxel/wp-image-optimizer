@@ -9,10 +9,12 @@ account, free. Your images never leave your host.
 - **Serving** — a managed `.htaccess` block: Apache serves the `.webp` when the
   browser sends `Accept: image/webp`. Falls back to `<img>` → `<picture>`
   rewriting on nginx or when `.htaccess` isn't writable.
-- **Bulk run** — a light scan estimates the work, then a background job (Action
-  Scheduler) converts the library newest→oldest, one calendar month at a time.
-  Pause / Resume / Cancel; progress is durable across a tab close or a mid-run
-  kill. Optional completion email.
+- **Bulk run** — the Optimization screen summarises what will run (image count,
+  estimated time, the settings in effect), then a background job (Action
+  Scheduler) converts the library newest→oldest, one calendar month at a time,
+  fast-skipping images that already have a current `.webp`. Pause / Resume /
+  Cancel; progress is durable across a tab close or a mid-run kill. Optional
+  completion email.
 - **Per-attachment** — Convert / Reconvert / Remove buttons in the Media list
   table and the attachment detail panel.
 - **New uploads** — converted automatically, shortly after upload.

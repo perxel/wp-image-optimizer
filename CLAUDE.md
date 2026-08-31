@@ -39,26 +39,35 @@ main file (not Composer). `Plugin::boot()` on `plugins_loaded` wires everything.
 admin screens.
 
 Key classes: `Runner` (the AS chunk runner + job state), `Sections` (month
-enumeration + per-month pending-ID query), `Scan` (**the single source of every
-library-wide figure** - see below), `Estimator` (scan → "this run" projection,
-math mirrored in `admin.js`), `Catchup` (deferred new-upload conversion),
-`Failures` (incrementally-maintained failed / too-large index), `Mailer`
-(completion email). There is no `Metrics` class and no "recalculate" - `Scan`
-replaced both.
+enumeration + per-month pending-ID query - the runner's internal skip signal),
+`Scan` (**the single source of every library-wide figure** - see below),
+`Estimator` (scan → "this run" projection: image count + ETA, math mirrored in
+`admin.js`), `Catchup` (deferred new-upload conversion), `Failures`
+(incrementally-maintained failed / too-large index), `Mailer` (completion
+email). There is no `Metrics` class and no "recalculate" - `Scan` replaced both.
 
 Per-attachment meta written by `Converter` (and read only in SQL, never
 unserialised, to find pending work / sum figures):
 - `_perxel_image_optimizer_sig` - the settings signature; present & current ⇒
-  "settled under these settings" (done / no-gain / deterministic skip).
+  "settled under these settings" (done / no-gain / deterministic skip). Drives
+  the runner's per-month skip query (`Sections::pending_ids`), the catch-up
+  pending check, and `Scan`'s `settled` count (⇒ the `done` / `serve_off`
+  state). **Not** surfaced as a user-facing "N pending" number - a fresh WebP
+  set left by an older build has no `_sig`, so that count was misleading; the
+  prepare screen shows the whole-library total instead and the runner fast-skips
+  images that already have a current `.webp` (a `filemtime` check, no decode).
 - `_perxel_image_optimizer_saved` / `_perxel_image_optimizer_webp` - flat integer
   byte tallies (source − webp, and webp) for this attachment's current WebP set.
 
-**`Scan::run()`** (the "Scan library" button, synchronous, cheap even at 10k):
-grouped `COUNT()` per month for totals + pending, two indexed `SUM()` over the
-flat byte keys for the **exact** library-wide "saved" / "on disk", a
-~120-attachment `_wp_attachment_metadata` sample for the pre-run size estimate.
-No image decode, no file reads, no library walk. Everything the "At a glance"
-tiles and the prepare screen show comes from the one cached
+**`Scan::run()`** (synchronous, cheap even at 10k): the Optimization page runs
+it on load **only when the cache is stale** (settings saved, a run finished,
+older than a day, or per-attachment Media action) - never on other admin pages,
+no button. A grouped `COUNT()` per month, two indexed `SUM()` over the flat byte
+keys for the **exact** library-wide "saved" / "on disk", two indexed `COUNT()`s
+(`_webp` rows = "converted", current `_sig` rows = "settled"), a ~120-attachment
+`_wp_attachment_metadata` sample for the pre-run size estimate. No image decode,
+no file reads, no library walk, no per-row meta join. Everything the "At a
+glance" tiles and the prepare screen show comes from the one cached
 `perxel_image_optimizer_scan` option (`Scan::stats()` / `Scan::data()`).
 
 ## `vendor/action-scheduler/` - bundled, committed, not Composer-managed
@@ -118,13 +127,17 @@ Two `?page=` screens under **Media → WebP**, both inside `Perxel_UI_Layout` wi
 shared sidebar (Settings is registered then `remove_submenu_page`d so only "WebP"
 shows in WP's menu):
 
-- **Status** (`views/status.php` + `views/status-monitor.php`) - state chosen by
-  `Admin::status_state()`: `not_scanned` → `ready` (the prepare form: scope +
-  month picker + client-side "this run" estimate) → the live `running` /
-  `stalled` / `paused` / `complete` monitor. Scan / Start / Pause / Cancel /
-  Resume / Retry are plain form POSTs to `admin_post_*` handlers that redirect
-  back. "At a glance" numbers come straight from the last `Scan` - one button,
-  one refresh, exact. `assets/admin.js` does only the prepare-form arithmetic and
+- **Optimization** (`views/status.php` + `views/status-monitor.php`) - state
+  chosen by `Admin::status_state()`: `ready` (the prepare screen: an intro
+  sentence, a "This run" card = whole-library image count + megapixel-skip line +
+  ETA, a scope + month picker, a read-only "Settings in effect" recap linking to
+  Settings, then "At a glance") → the live `running` / `stalled` / `paused` /
+  `complete` monitor; `serve_off` / `done` once `settled` covers the library.
+  There is **no Scan button and no `not_scanned` state** - `render_status()`
+  refreshes a stale `Scan` on load. Start / Pause / Cancel / Resume / Retry /
+  "Back to summary" are plain form POSTs to `admin_post_*` handlers that redirect
+  back (`handle_scan` is now just the completion-screen ack + `Scan::run()`).
+  `assets/admin.js` does only the prepare-form arithmetic (image count + ETA) and
   the monitor poll (`wp_ajax_perxel_image_optimizer_progress` every ~3s; a phase
   change triggers `location.reload()`).
 - **Settings** (`views/settings.php`) - environment, conversion settings (plain

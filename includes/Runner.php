@@ -178,21 +178,24 @@ class Runner {
 			return false;
 		}
 
-		$estimate = Estimator::project( 'months' === $scope ? $chosen : null, $skip_converted );
+		$estimate = Estimator::project( 'months' === $scope ? $chosen : null );
 
 		$state = self::defaults();
 
-		$state['phase']            = 'running';
-		$state['trigger']          = 'bulk';
-		$state['scope']            = $scope;
-		$state['months']           = $chosen;
-		$state['months_planned']   = count( $chosen );
-		$state['skip_converted']   = $skip_converted;
-		$state['cursor']           = array(
+		$state['phase']          = 'running';
+		$state['trigger']        = 'bulk';
+		$state['scope']          = $scope;
+		$state['months']         = $chosen;
+		$state['months_planned'] = count( $chosen );
+		$state['skip_converted'] = $skip_converted;
+		$state['cursor']         = array(
 			'month'   => $chosen[0],
 			'last_id' => 0,
 		);
-		$state['total_candidates'] = (int) $estimate['images'];
+		// total_candidates is the monitor's "N of TOTAL" - what the runner will
+		// actually walk, not every image in scope (settled records are filtered
+		// out in SQL by Sections::pending_count / pending_ids).
+		$state['total_candidates'] = Sections::pending_count( $chosen, $skip_converted );
 		$state['estimate']         = array(
 			'saved_bytes' => (int) $estimate['saved_bytes'],
 			'webp_bytes'  => (int) $estimate['webp_bytes'],

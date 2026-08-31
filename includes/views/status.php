@@ -122,28 +122,7 @@ if ( in_array( $state, array( 'queued', 'running', 'stalled', 'paused', 'complet
 	return;
 }
 
-/* --- not_scanned --- */
-
-if ( 'not_scanned' === $state ) {
-	echo Perxel_UI::rows(
-		array(
-			array(
-				'icon'    => '<span class="dashicons dashicons-search"></span>',
-				'label'   => __( 'Library not scanned yet', 'perxel-image-optimizer' ),
-				'sub'     => esc_html__( 'A quick scan counts what still needs converting and estimates the run - no images are touched.', 'perxel-image-optimizer' ),
-				'content' => '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">'
-					. '<input type="hidden" name="action" value="perxel_image_optimizer_scan" />'
-					. wp_nonce_field( 'perxel_image_optimizer_scan', '_wpnonce', true, false )
-					. '<button type="submit" class="button button-primary">' . esc_html__( 'Scan library', 'perxel-image-optimizer' ) . '</button>'
-					. '</form>',
-			),
-		)
-	);
-	echo $glance();
-	return;
-}
-
-/* --- serve_off | done (scanned, nothing pending) --- */
+/* --- serve_off | done (whole library converted) --- */
 
 if ( 'serve_off' === $state ) {
 	$enable_serve_form = '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline-block;margin-left:8px">'
@@ -165,9 +144,11 @@ if ( 'done' === $state ) {
 		array(
 			array(
 				'icon'  => 'good',
-				'label' => __( 'All images are converted and served as WebP.', 'perxel-image-optimizer' ),
+				'label' => empty( $snap['settings']['serve'] )
+					? __( 'Every image is handled under the current settings.', 'perxel-image-optimizer' )
+					: __( 'All images are converted and served as WebP.', 'perxel-image-optimizer' ),
 				'sub'   => ! empty( $scan['scanned_at'] )
-					? esc_html( sprintf( /* translators: %s: human time diff. */ __( 'Scanned %s ago.', 'perxel-image-optimizer' ), human_time_diff( (int) $scan['scanned_at'] ) ) )
+					? esc_html( sprintf( /* translators: %s: human time diff. */ __( 'Last checked %s ago.', 'perxel-image-optimizer' ), human_time_diff( (int) $scan['scanned_at'] ) ) )
 					: '',
 			),
 		)
@@ -178,81 +159,141 @@ if ( 'done' === $state ) {
 
 /* --- ready: the prepare form --- */
 
-$skip_converted = ! empty( $snap['settings']['skip_converted'] );
-$pending        = (int) $scan['pending'];
+$cfg            = (array) $snap['settings'];
+$skip_converted = ! empty( $cfg['skip_converted'] );
+$serve_on       = ! empty( $cfg['serve'] );
 $total          = (int) ( $scan['total'] ?? $snap['summary']['attachments'] );
-$scope_base     = $skip_converted ? $pending : $total;
-$est_all        = \Perxel\ImageOptimizer\Estimator::project( null, $skip_converted );
+$est_all        = \Perxel\ImageOptimizer\Estimator::project( null );
 
-$scanned_ago = ! empty( $scan['scanned_at'] )
-	? sprintf( /* translators: %s: human time diff. */ __( 'Scanned %s ago.', 'perxel-image-optimizer' ), human_time_diff( (int) $scan['scanned_at'] ) )
-	: '';
+// Effective megapixel ceiling: the Settings override, or the server's computed
+// safe value.
+$mp_ceiling = (int) ( $cfg['skip_megapixels'] ?? 0 );
+if ( $mp_ceiling <= 0 ) {
+	$mp_ceiling = (int) ( $env['safe_megapixels'] ?? 0 );
+}
 
-$notice = esc_html(
-	sprintf(
-		/* translators: 1: pending count, 2: library total. */
-		__( '%1$s of %2$s images aren\'t WebP yet.', 'perxel-image-optimizer' ),
-		number_format_i18n( $pending ),
-		number_format_i18n( $total )
-	)
+if ( $total < 1 ) {
+	echo Perxel_UI::rows(
+		array(
+			array(
+				'icon'  => '<span class="dashicons dashicons-format-image"></span>',
+				'label' => __( 'No images in the Media Library yet', 'perxel-image-optimizer' ),
+				'sub'   => esc_html__( 'Upload some JPEG or PNG images and they will show up here.', 'perxel-image-optimizer' ),
+			),
+		)
+	);
+	echo $glance();
+	return;
+}
+
+/* Intro: one plain sentence describing what the run does. */
+echo Perxel_UI::notice(
+	'info',
+	$skip_converted
+		? esc_html(
+			sprintf(
+				/* translators: %s: image count. */
+				__( 'Goes through all %s images in the Media Library, newest first, and creates a WebP copy for any that don\'t have one. Images that already have one are skipped (about a second each).', 'perxel-image-optimizer' ),
+				number_format_i18n( $total )
+			)
+		)
+		: esc_html(
+			sprintf(
+				/* translators: %s: image count. */
+				__( 'Re-encodes all %s images in the Media Library to WebP, newest first, replacing the current copies. "Skip already-converted images" is off in Settings.', 'perxel-image-optimizer' ),
+				number_format_i18n( $total )
+			)
+		)
 );
-if ( ! $skip_converted ) {
-	$notice .= ' ' . esc_html__( 'Re-encoding is on, so the run re-processes converted images too.', 'perxel-image-optimizer' );
-}
-if ( $scanned_ago ) {
-	$notice .= ' <span class="pxui-muted">' . esc_html( $scanned_ago ) . '</span>';
-}
-if ( ! empty( $scan['stale'] ) ) {
-	$notice .= ' <span class="pxui-muted">' . esc_html__( '(may be out of date, scan again)', 'perxel-image-optimizer' ) . '</span>';
-}
-echo Perxel_UI::notice( 'info', $notice );
 
-// Per-year, per-month rows. data-* carry the numbers admin.js needs to
-// recompute the "This run" figures without a round-trip.
-$by_year = array();
-foreach ( (array) $snap['sections'] as $section ) {
-	$ym      = $section['ym'];
-	$m_total = isset( $scan['months'][ $ym ]['total'] ) ? (int) $scan['months'][ $ym ]['total'] : 0;
-	$m_due   = isset( $scan['months'][ $ym ]['pending'] ) ? (int) $scan['months'][ $ym ]['pending'] : 0;
-	$m_scope = $skip_converted ? $m_due : $m_total;
-	if ( $m_scope < 1 ) {
-		continue;
-	}
-	$by_year[ $section['year'] ][] = array(
-		'ym'      => $ym,
-		'label'   => $section['label'],
-		'scope'   => $m_scope,
-		'pending' => $m_due,
+/* "This run" figures - image count + ETA update in JS as months are ticked. */
+$eta      = (int) $est_all['eta_seconds'];
+$eta_text = $eta < 90
+	? esc_html__( 'a few seconds', 'perxel-image-optimizer' )
+	: esc_html__( 'up to', 'perxel-image-optimizer' ) . ' &asymp; ' . esc_html( human_time_diff( 0, $eta ) );
+
+$pace_sub = ! empty( $scan['pace_measured'] )
+	? esc_html__( "Based on your last run's speed here.", 'perxel-image-optimizer' )
+	: esc_html__( 'Rough guess until the first run measures this server.', 'perxel-image-optimizer' );
+if ( $skip_converted ) {
+	$pace_sub .= ' ' . esc_html__( 'Less if many images already have a WebP copy.', 'perxel-image-optimizer' );
+}
+
+$run_rows = array(
+	array(
+		'label' => __( 'Images', 'perxel-image-optimizer' ),
+		'id'    => 'pxio-fig-images',
+		'value' => esc_html( number_format_i18n( (int) $est_all['images'] ) ),
+		'sub'   => '<span id="pxio-fig-scope">' . esc_html__( 'whole library', 'perxel-image-optimizer' ) . '</span>',
+	),
+);
+
+if ( $mp_ceiling > 0 ) {
+	$run_rows[] = array(
+		'label' => __( 'Skipped', 'perxel-image-optimizer' ),
+		/* translators: %d: megapixels. */
+		'value' => esc_html( sprintf( __( 'over %d MP', 'perxel-image-optimizer' ), $mp_ceiling ) ),
+		'sub'   => esc_html__( 'Larger images risk running out of memory on this server.', 'perxel-image-optimizer' ),
 	);
 }
 
-$avg_src   = (float) ( $scan['avg_src'] ?? 0 );
-$avg_frac  = (float) ( $scan['avg_frac'] ?? 0.7 );
+$run_rows[] = array(
+	'label' => __( 'Estimated time', 'perxel-image-optimizer' ),
+	'id'    => 'pxio-fig-time',
+	'value' => $eta_text,
+	'sub'   => $pace_sub,
+);
+
+$run_note  = esc_html__( 'Runs in the background - close the tab anytime.', 'perxel-image-optimizer' );
+$report_to = ! empty( $cfg['email_report'] ) ? \Perxel\ImageOptimizer\Settings::report_recipient() : '';
+if ( '' !== $report_to ) {
+	$run_note .= ' ' . esc_html(
+		sprintf(
+			/* translators: %s: email address. */
+			__( 'A report goes to %s when it finishes.', 'perxel-image-optimizer' ),
+			$report_to
+		)
+	);
+}
+
+echo $figure_group( $run_rows, __( 'This run', 'perxel-image-optimizer' ), $run_note );
+
+// Per-year, per-month rows. data-scope carries each month's image count so
+// admin.js can sum the selection without a round-trip.
+$by_year = array();
+foreach ( (array) $snap['sections'] as $section ) {
+	$ym    = $section['ym'];
+	$count = isset( $scan['months'][ $ym ]['total'] )
+		? (int) $scan['months'][ $ym ]['total']
+		: (int) $section['count'];
+	if ( $count < 1 ) {
+		continue;
+	}
+	$by_year[ $section['year'] ][] = array(
+		'ym'    => $ym,
+		'label' => $section['label'],
+		'count' => $count,
+	);
+}
+
 $per_image = (float) ( $scan['per_image'] ?? 1 );
 ?>
 <form id="pxio-prepare" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"
-	data-avg-src="<?php echo esc_attr( $avg_src ); ?>"
-	data-avg-frac="<?php echo esc_attr( $avg_frac ); ?>"
 	data-per-image="<?php echo esc_attr( $per_image ); ?>"
-	data-free-disk="<?php echo esc_attr( $free_disk ); ?>"
-	data-scope-all="<?php echo esc_attr( $scope_base ); ?>"
-	data-pending-all="<?php echo esc_attr( $pending ); ?>">
+	data-scope-all="<?php echo esc_attr( $est_all['images'] ); ?>">
 	<input type="hidden" name="action" value="perxel_image_optimizer_start" />
 	<?php
 	wp_nonce_field( 'perxel_image_optimizer_start' );
 
-	$convert_rows = array(
+	$scope_rows = array(
 		array(
 			'label'   => __( 'Scope', 'perxel-image-optimizer' ),
 			'content' => '<select id="pxio-scope" name="scope">'
 				. '<option value="all">' . esc_html(
 					sprintf(
-						$skip_converted
-							/* translators: %s: count. */
-							? __( 'Everything pending (%s)', 'perxel-image-optimizer' )
-							/* translators: %s: count. */
-							: __( 'Every image (%s)', 'perxel-image-optimizer' ),
-						number_format_i18n( $scope_base )
+						/* translators: %s: count. */
+						__( 'Whole library (%s)', 'perxel-image-optimizer' ),
+						number_format_i18n( $total )
 					)
 				) . '</option>'
 				. '<option value="months">' . esc_html__( 'Choose months', 'perxel-image-optimizer' ) . '</option>'
@@ -260,23 +301,18 @@ $per_image = (float) ( $scan['per_image'] ?? 1 );
 		),
 	);
 
-	// Serving is off by default (never enabled on activation). The choice moves
-	// to the title bar: "Start conversion" vs "Enable serving & start conversion"
-	// (see Admin::status_actions), so nothing is needed in this form.
-
 	echo Perxel_UI::rows(
 		array(
 			array(
-				'title' => __( 'What to convert', 'perxel-image-optimizer' ),
-				'rows'  => $convert_rows,
+				'title' => __( 'Scope', 'perxel-image-optimizer' ),
+				'rows'  => $scope_rows,
 			),
 		)
 	);
 
-	// Month picker: one collapsible disclosure row per year (year left, count
-	// right, months revealed on click), hidden until scope = months. data-metric
-	// tells admin.js which per-month figure to sum for the "selected" count.
-	echo '<div id="pxio-months" data-metric="' . ( $skip_converted ? 'pending' : 'scope' ) . '" hidden>';
+	// Month picker: one collapsible disclosure row per year, hidden until
+	// scope = months.
+	echo '<div id="pxio-months" hidden>';
 
 	$year_rows = array();
 
@@ -290,37 +326,29 @@ $per_image = (float) ( $scan['per_image'] ?? 1 );
 			. ' data-year="' . esc_attr( $group_year ) . '" aria-label="' . esc_attr( $all_label ) . '" /></span>'
 			. '</div>';
 
-		$y_scope   = 0;
-		$y_pending = 0;
+		$y_count = 0;
 
 		foreach ( $group_months as $gm ) {
-			$y_scope   += $gm['scope'];
-			$y_pending += $gm['pending'];
+			$y_count += $gm['count'];
 
-			$mm  = substr( $gm['ym'], 5, 2 ) . '/' . substr( $gm['ym'], 0, 4 );
-			$sub = $skip_converted
-				/* translators: %s: count. */
-				? sprintf( _n( '%s pending', '%s pending', $gm['pending'], 'perxel-image-optimizer' ), number_format_i18n( $gm['pending'] ) )
-				/* translators: %s: count. */
-				: sprintf( _n( '%s image', '%s images', $gm['scope'], 'perxel-image-optimizer' ), number_format_i18n( $gm['scope'] ) );
+			$mm = substr( $gm['ym'], 5, 2 ) . '/' . substr( $gm['ym'], 0, 4 );
+			/* translators: %s: count. */
+			$sub = sprintf( _n( '%s image', '%s images', $gm['count'], 'perxel-image-optimizer' ), number_format_i18n( $gm['count'] ) );
 
 			$month_list .= '<div class="pxui-row">'
 				. '<span class="pxui-row__label">' . esc_html( $mm )
 				. '<span class="pxui-row__sub">' . esc_html( $sub ) . '</span></span>'
 				. '<span class="pxui-row__content"><input type="checkbox" class="pxui-checkbox pxio-month" name="months[]" form="pxio-prepare"'
 				. ' value="' . esc_attr( $gm['ym'] ) . '" data-year="' . esc_attr( $group_year ) . '"'
-				. ' data-scope="' . esc_attr( $gm['scope'] ) . '" data-pending="' . esc_attr( $gm['pending'] ) . '"'
+				. ' data-scope="' . esc_attr( $gm['count'] ) . '"'
 				. ' aria-label="' . esc_attr( $gm['label'] ) . '" /></span>'
 				. '</div>';
 		}
 
 		$month_list .= '</div>';
 
-		$y_total_text = $skip_converted
-			/* translators: %s: count. */
-			? sprintf( _n( '%s pending', '%s pending', $y_pending, 'perxel-image-optimizer' ), number_format_i18n( $y_pending ) )
-			/* translators: %s: count. */
-			: sprintf( _n( '%s image', '%s images', $y_scope, 'perxel-image-optimizer' ), number_format_i18n( $y_scope ) );
+		/* translators: %s: count. */
+		$y_total_text = sprintf( _n( '%s image', '%s images', $y_count, 'perxel-image-optimizer' ), number_format_i18n( $y_count ) );
 
 		$year_rows[] = array(
 			'summary' => (string) $group_year,
@@ -343,109 +371,49 @@ $per_image = (float) ( $scan['per_image'] ?? 1 );
 		);
 	}
 
-	echo '<p class="pxui-muted">' . esc_html(
-		$skip_converted
-			? __( 'Fully-converted months aren\'t listed.', 'perxel-image-optimizer' )
-			: __( 'Every month with images is listed.', 'perxel-image-optimizer' )
-	) . '</p>';
+	echo '<p class="pxui-muted">' . esc_html__( 'Every month with images is listed.', 'perxel-image-optimizer' ) . '</p>';
 	echo '</div>';
-
-	// "This run" figures, recomputed in JS on every checkbox change.
-	echo '<div id="pxio-run-warning"></div>';
-
-	$eta      = (int) $est_all['eta_seconds'];
-	$eta_text = $eta > 0 ? '&asymp; ' . esc_html( human_time_diff( 0, $eta ) ) : esc_html__( 'a few seconds', 'perxel-image-optimizer' );
-
-	$pace_sub = ! empty( $scan['pace_measured'] )
-		? esc_html__( "From your last run's speed here.", 'perxel-image-optimizer' )
-		: esc_html__( 'Rough guess. The first run measures your server.', 'perxel-image-optimizer' );
-
-	$saved_sub = 'measured' === ( $scan['frac_source'] ?? 'default' )
-		? esc_html(
-			sprintf(
-				/* translators: %s: count of images. */
-				__( 'Average of the %s images converted here so far.', 'perxel-image-optimizer' ),
-				number_format_i18n( (int) ( $scan['converted'] ?? 0 ) )
-			)
-		)
-		: esc_html__( 'Rough estimate. The live run uses your real ratio.', 'perxel-image-optimizer' );
-
-	$disk_sub = $free_disk > 0
-		? esc_html(
-			sprintf(
-				/* translators: %s: formatted size. */
-				__( 'Server reports about %s free. On shared hosting that can be the whole disk, not your quota.', 'perxel-image-optimizer' ),
-				size_format( $free_disk, 1 )
-			)
-		)
-		: esc_html__( 'Free space unreadable on this server.', 'perxel-image-optimizer' );
-
-	// Plain-language lead line for the note - one sentence pulling the four
-	// figures together for a non-technical reader. admin.js rewrites the span
-	// on every selection change (recompute()); this is the no-JS fallback.
-	$eta_phrase = ( $eta < 90 )
-		? __( 'takes only a few seconds', 'perxel-image-optimizer' )
-		/* translators: %s: duration, e.g. "18 mins". */
-		: sprintf( __( 'takes about %s', 'perxel-image-optimizer' ), human_time_diff( 0, $eta ) );
-
-	$run_summary = esc_html(
-		sprintf(
-			/* translators: 1: image count, 2: time phrase e.g. "takes about 18 mins", 3: bandwidth saved, 4: percent, 5: disk added. */
-			__( 'Converting %1$s images %2$s. Your visitors save about %3$s (a %4$d%% cut per image); your server gains about %5$s.', 'perxel-image-optimizer' ),
-			number_format_i18n( (int) $est_all['images'] ),
-			$eta_phrase,
-			size_format( (int) $est_all['saved_bytes'], 1 ),
-			(int) $est_all['percent'],
-			size_format( (int) $est_all['webp_bytes'], 1 )
-		)
-	);
-
-	$run_note  = esc_html__( 'Runs in the background. Close the tab anytime.', 'perxel-image-optimizer' );
-	$report_to = ! empty( $snap['settings']['email_report'] ) ? \Perxel\ImageOptimizer\Settings::report_recipient() : '';
-	if ( '' !== $report_to ) {
-		$run_note .= ' ' . esc_html(
-			sprintf(
-				/* translators: %s: email address. */
-				__( 'A report goes to %s when it finishes.', 'perxel-image-optimizer' ),
-				$report_to
-			)
-		);
-	}
-	$run_note .= '<br>' . esc_html__( 'Figures are estimates from a library sample; the live run shows real numbers.', 'perxel-image-optimizer' );
-
-	$run_note = '<span id="pxio-run-summary">' . $run_summary . '</span><br>' . $run_note;
-
-	echo $figure_group(
-		array(
-			array(
-				'label' => __( 'Images', 'perxel-image-optimizer' ),
-				'id'    => 'pxio-fig-images',
-				'value' => esc_html( number_format_i18n( (int) $est_all['images'] ) ),
-				'sub'   => '<span id="pxio-fig-scope">' . esc_html( $skip_converted ? __( 'everything pending', 'perxel-image-optimizer' ) : __( 'every image', 'perxel-image-optimizer' ) ) . '</span>',
-			),
-			array(
-				'label' => __( 'Estimated time', 'perxel-image-optimizer' ),
-				'id'    => 'pxio-fig-time',
-				'value' => $eta_text,
-				'sub'   => $pace_sub,
-			),
-			array(
-				'label' => __( 'Bandwidth saved', 'perxel-image-optimizer' ),
-				'id'    => 'pxio-fig-saved',
-				'value' => '&minus;' . (int) $est_all['percent'] . '%&ensp;&middot;&ensp;&asymp; ' . esc_html( size_format( (int) $est_all['saved_bytes'], 0 ) ),
-				'sub'   => $saved_sub,
-			),
-			array(
-				'label' => __( 'Disk added', 'perxel-image-optimizer' ),
-				'id'    => 'pxio-fig-disk',
-				'value' => '&asymp; +' . esc_html( size_format( (int) $est_all['webp_bytes'], 0 ) ),
-				'sub'   => $disk_sub,
-			),
-		),
-		__( 'This run', 'perxel-image-optimizer' ),
-		$run_note
-	);
 	?>
 </form>
 <?php
+
+/* "Settings in effect" - a read-only recap; the controls live on Settings. */
+$sizes_cfg = (array) $cfg['sizes'];
+$sizes_txt = in_array( '*', $sizes_cfg, true )
+	? __( 'all registered sizes', 'perxel-image-optimizer' )
+	/* translators: %s: count. */
+	: sprintf( _n( '%s size', '%s sizes', count( $sizes_cfg ), 'perxel-image-optimizer' ), number_format_i18n( count( $sizes_cfg ) ) );
+
+echo Perxel_UI::rows(
+	array(
+		array(
+			'title' => __( 'Settings in effect', 'perxel-image-optimizer' ),
+			'rows'  => array(
+				array(
+					'label'   => __( 'Quality', 'perxel-image-optimizer' ),
+					'content' => esc_html( sprintf( 'JPEG %d · PNG %d', (int) $cfg['jpeg_quality'], (int) $cfg['png_quality'] ) ),
+				),
+				array(
+					'label'   => __( 'PNG files', 'perxel-image-optimizer' ),
+					'content' => esc_html( ! empty( $cfg['convert_png'] ) ? __( 'converted', 'perxel-image-optimizer' ) : __( 'left as PNG', 'perxel-image-optimizer' ) ),
+				),
+				array(
+					'label'   => __( 'Sizes', 'perxel-image-optimizer' ),
+					'content' => esc_html( $sizes_txt ),
+				),
+				array(
+					'label'   => __( 'Re-convert existing', 'perxel-image-optimizer' ),
+					'content' => esc_html( $skip_converted ? __( 'off - existing WebP kept', 'perxel-image-optimizer' ) : __( 'on - every image re-encoded', 'perxel-image-optimizer' ) ),
+				),
+				array(
+					'label'   => __( 'Serving', 'perxel-image-optimizer' ),
+					'content' => esc_html( $serve_on ? __( 'on', 'perxel-image-optimizer' ) : __( 'off', 'perxel-image-optimizer' ) ),
+				),
+			),
+			'note'  => '<a href="' . esc_url( $settings_url ) . '">' . esc_html__( 'Change these in Settings', 'perxel-image-optimizer' ) . ' &rarr;</a>',
+		),
+	)
+);
+
+echo $glance();
 // phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped

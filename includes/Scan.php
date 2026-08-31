@@ -8,15 +8,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * The one function that produces every library-wide figure the admin screens
- * show - pending counts, coverage, exact bytes saved, exact bytes on disk - and
- * the per-month breakdown behind the prepare screen.
+ * show - coverage, exact bytes saved, exact bytes on disk - and the per-month
+ * breakdown behind the prepare screen.
  *
- * A page visit never runs it; the "Scan library" button does. It is all cheap
- * SQL: grouped `COUNT()` per month, two `SUM()` over the flat
- * `_perxel_image_optimizer_saved` / `_perxel_image_optimizer_webp` meta keys
+ * The Optimization page refreshes it on load when the cache has gone stale
+ * (settings saved, a run finished, or older than a day) - never on other admin
+ * pages. It is all cheap SQL: a grouped `COUNT()` per month, two `SUM()` over the
+ * flat `_perxel_image_optimizer_saved` / `_perxel_image_optimizer_webp` meta keys
  * (written by `Converter` on every convert / remove), plus a ~120-attachment
  * `_wp_attachment_metadata` sample for the pre-run size estimate. No image
- * decode, no file reads, no library walk. Result cached in one option.
+ * decode, no file reads, no library walk, and - since it no longer hunts
+ * per-attachment "pending" state - no per-row meta join. Result cached in one
+ * option.
  *
  * The byte totals are exact for everything converted by this plugin. WebP files
  * left by other tools that were never recorded aren't counted - there is no
@@ -93,30 +96,28 @@ class Scan {
 	 *
 	 * @return array{
 	 *   scanned:bool, scanned_at:int, stale:bool,
-	 *   attachments:int, settled:int, pending:int, converted:int,
-	 *   coverage_pct:int, saved_bytes:int, webp_bytes:int, src_bytes:int,
-	 *   saved_pct:int
+	 *   attachments:int, converted:int, settled:int, coverage_pct:int,
+	 *   saved_bytes:int, webp_bytes:int, src_bytes:int, saved_pct:int
 	 * }
 	 */
 	public static function stats() {
 		$d = self::data();
 
-		$total   = (int) ( $d['total'] ?? 0 );
-		$pending = (int) ( $d['pending'] ?? 0 );
-		$settled = max( 0, $total - $pending );
-		$saved   = (int) ( $d['saved_bytes'] ?? 0 );
-		$webp    = (int) ( $d['webp_bytes'] ?? 0 );
-		$src     = $saved + $webp;
+		$total     = (int) ( $d['total'] ?? 0 );
+		$converted = (int) ( $d['converted'] ?? 0 );
+		$settled   = (int) ( $d['settled'] ?? 0 );
+		$saved     = (int) ( $d['saved_bytes'] ?? 0 );
+		$webp      = (int) ( $d['webp_bytes'] ?? 0 );
+		$src       = $saved + $webp;
 
 		return array(
 			'scanned'      => ! empty( $d['scanned_at'] ),
 			'scanned_at'   => (int) ( $d['scanned_at'] ?? 0 ),
 			'stale'        => ! empty( $d['stale'] ),
 			'attachments'  => $total,
+			'converted'    => $converted,
 			'settled'      => $settled,
-			'pending'      => $pending,
-			'converted'    => (int) ( $d['converted'] ?? 0 ),
-			'coverage_pct' => $total > 0 ? (int) round( $settled / $total * 100 ) : 0,
+			'coverage_pct' => $total > 0 ? min( 100, (int) round( $settled / $total * 100 ) ) : 0,
 			'saved_bytes'  => $saved,
 			'webp_bytes'   => $webp,
 			'src_bytes'    => $src,
@@ -134,16 +135,13 @@ class Scan {
 
 		$signature = Settings::signature();
 
-		// The Scan button is the single source of every library-wide figure: a
-		// handful of grouped COUNT()/SUM() aggregates with no WP_Query
-		// equivalent, run synchronously on one explicit user action. The whole
+		// The single source of every library-wide figure: a handful of grouped
+		// COUNT()/SUM() aggregates with no WP_Query equivalent. The Optimization
+		// page runs it on load only when the cache has gone stale. The whole
 		// result set is cached in the `perxel_image_optimizer_scan` option (see
 		// update_option below), which is the intended cache layer - per-row
-		// object caching here would be redundant and defeat the "one button, one
-		// exact refresh" contract.
+		// object caching here would be redundant.
 		//
-		// YEAR()/MONTH() rather than DATE_FORMAT() so the pending query survives
-		// wpdb::prepare() (which mangles a literal `%Y`).
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$totals = $wpdb->get_results(
 			"SELECT YEAR(post_date) AS y, MONTH(post_date) AS m, COUNT(*) AS c
@@ -153,42 +151,15 @@ class Scan {
 			 GROUP BY y, m"
 		);
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- aggregate scan query, see the note at the top of run().
-		$pending = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT YEAR(p.post_date) AS y, MONTH(p.post_date) AS m, COUNT(*) AS c
-				 FROM {$wpdb->posts} p
-				 LEFT JOIN {$wpdb->postmeta} sig
-				   ON sig.post_id = p.ID AND sig.meta_key = %s
-				 WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
-				   AND p.post_mime_type IN ( 'image/jpeg', 'image/png' )
-				   AND ( sig.meta_id IS NULL OR sig.meta_value <> %s )
-				 GROUP BY y, m",
-				Converter::META_SIG,
-				$signature
-			)
-		);
-
-		$pending_by_ym = array();
-		foreach ( (array) $pending as $row ) {
-			$pending_by_ym[ sprintf( '%04d-%02d', $row->y, $row->m ) ] = (int) $row->c;
-		}
-
-		$months        = array();
-		$total_all     = 0;
-		$total_pending = 0;
+		$months    = array();
+		$total_all = 0;
 
 		foreach ( (array) $totals as $row ) {
 			$ym    = sprintf( '%04d-%02d', $row->y, $row->m );
 			$count = (int) $row->c;
-			$due   = isset( $pending_by_ym[ $ym ] ) ? $pending_by_ym[ $ym ] : 0;
 
-			$months[ $ym ]  = array(
-				'total'   => $count,
-				'pending' => $due,
-			);
-			$total_all     += $count;
-			$total_pending += $due;
+			$months[ $ym ] = array( 'total' => $count );
+			$total_all    += $count;
 		}
 
 		krsort( $months );
@@ -205,6 +176,17 @@ class Scan {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- aggregate scan query, see the note at the top of run().
 		$converted = (int) $wpdb->get_var(
 			$wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key = %s", Converter::META_WEBP )
+		);
+		// Attachments settled under the current settings - done, no-gain, or a
+		// deterministic skip (PNG conversion off, too large). The signal the
+		// runner writes and the "whole library handled" check reads.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- aggregate scan query, see the note at the top of run().
+		$settled = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value = %s",
+				Converter::META_SIG,
+				$signature
+			)
 		);
 
 		list( $avg_src, $fallback_frac, $avg_mp, $avg_files ) = self::sample();
@@ -223,8 +205,8 @@ class Scan {
 		$data = array(
 			'months'        => $months,
 			'total'         => $total_all,
-			'pending'       => $total_pending,
 			'converted'     => $converted,
+			'settled'       => min( $settled, $total_all ),
 			'saved_bytes'   => $saved_total,
 			'webp_bytes'    => $webp_total,
 			'avg_src'       => $avg_src,

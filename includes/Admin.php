@@ -272,6 +272,14 @@ class Admin {
 			return;
 		}
 
+		// Refresh the cached library figures when they've gone stale (settings
+		// saved, a run finished, or older than a day) - unless a run is active,
+		// in which case the live monitor owns the screen. Cheap grouped SQL, no
+		// library walk, so it is fine on a page load.
+		if ( ! Runner::is_active() && Scan::is_stale() ) {
+			Scan::run();
+		}
+
 		$snap  = Ajax::snapshot();
 		$state = self::status_state( $snap );
 
@@ -306,31 +314,22 @@ class Admin {
 	 * @return string Trusted HTML.
 	 */
 	private function status_actions( $state, array $snap ) {
-		$scan_pending = (int) ( $snap['scan']['pending'] ?? 0 );
-
 		switch ( $state ) {
-			case 'not_scanned':
-				return $this->action_form( 'perxel_image_optimizer_scan', __( 'Scan library', 'perxel-image-optimizer' ), 'primary' );
-
 			case 'ready':
-			case 'serve_off':
-			case 'done':
-				$start = '';
-				if ( 'ready' === $state && $scan_pending > 0 ) {
-					if ( empty( $snap['settings']['serve'] ) ) {
-						// Serving is off. The plain button runs without it (enable
-						// later in Settings); the primary button is the explicit
-						// opt-in - handle_start() reads the enable_serve field.
-						$start = ' <button type="submit" form="pxio-prepare" class="button">'
-							. esc_html__( 'Start conversion', 'perxel-image-optimizer' ) . '</button>'
-							. ' <button type="submit" form="pxio-prepare" name="enable_serve" value="1" class="button button-primary">'
-							. esc_html__( 'Enable serving & start conversion', 'perxel-image-optimizer' ) . '</button>';
-					} else {
-						$start = ' <button type="submit" form="pxio-prepare" class="button button-primary">'
-							. esc_html__( 'Start conversion', 'perxel-image-optimizer' ) . '</button>';
-					}
+				if ( (int) $snap['summary']['attachments'] < 1 ) {
+					return ''; // Nothing to convert - the screen shows an empty-library note.
 				}
-				return $this->action_form( 'perxel_image_optimizer_scan', __( 'Scan again', 'perxel-image-optimizer' ) ) . $start;
+				if ( ! empty( $snap['settings']['serve'] ) ) {
+					return ' <button type="submit" form="pxio-prepare" class="button button-primary">'
+						. esc_html__( 'Start conversion', 'perxel-image-optimizer' ) . '</button>';
+				}
+				// Serving is off. The plain button runs without it (enable later
+				// in Settings); the primary button is the explicit opt-in -
+				// handle_start() reads the enable_serve field.
+				return ' <button type="submit" form="pxio-prepare" class="button">'
+					. esc_html__( 'Start conversion', 'perxel-image-optimizer' ) . '</button>'
+					. ' <button type="submit" form="pxio-prepare" name="enable_serve" value="1" class="button button-primary">'
+					. esc_html__( 'Enable serving & start conversion', 'perxel-image-optimizer' ) . '</button>';
 
 			case 'queued':
 			case 'running':
@@ -353,7 +352,7 @@ class Admin {
 					);
 
 			case 'complete':
-				return $this->action_form( 'perxel_image_optimizer_scan', __( 'Scan library', 'perxel-image-optimizer' ), 'primary' );
+				return $this->action_form( 'perxel_image_optimizer_scan', __( 'Back to summary', 'perxel-image-optimizer' ), 'primary' );
 		}
 
 		return '';
@@ -398,7 +397,7 @@ class Admin {
 	 * Which state the Status page is in.
 	 *
 	 * @param array $snap Ajax::snapshot().
-	 * @return string cannot_convert|queued|running|stalled|paused|complete|not_scanned|ready|serve_off|done
+	 * @return string cannot_convert|queued|running|stalled|paused|complete|ready|serve_off|done
 	 */
 	public static function status_state( array $snap ) {
 		if ( empty( $snap['environment']['webp_encode'] ) ) {
@@ -419,19 +418,22 @@ class Admin {
 				return 'complete';
 		}
 
-		if ( empty( $snap['scan']['scanned_at'] ) ) {
-			return 'not_scanned';
+		$total     = (int) $snap['summary']['attachments'];
+		$settled   = (int) $snap['stats']['settled'];
+		$converted = (int) $snap['stats']['converted'];
+
+		// Every image settled under the current settings (converted, no-gain, or
+		// a deterministic skip). Once that covers the whole library there is
+		// nothing to prepare - show the "all done" or "converted but not served"
+		// screen instead of the run form.
+		if ( $total > 0 && $settled >= $total ) {
+			if ( $converted > 0 && empty( $snap['settings']['serve'] ) ) {
+				return 'serve_off';
+			}
+			return 'done';
 		}
 
-		if ( (int) $snap['scan']['pending'] > 0 ) {
-			return 'ready';
-		}
-
-		if ( empty( $snap['settings']['serve'] ) && (int) $snap['stats']['converted'] > 0 ) {
-			return 'serve_off';
-		}
-
-		return 'done';
+		return 'ready';
 	}
 
 	/*
@@ -569,11 +571,13 @@ class Admin {
 	 */
 
 	/**
-	 * Run the light library scan.
+	 * Dismiss a finished run's summary and refresh the cached library figures.
+	 * Backs the "Back to summary" button on the completion screen; the prepare
+	 * screen refreshes the scan on its own when stale.
 	 */
 	public function handle_scan() {
 		if ( current_user_can( 'manage_options' ) && check_admin_referer( 'perxel_image_optimizer_scan' ) ) {
-			Runner::acknowledge_complete(); // Dismiss a finished run's summary.
+			Runner::acknowledge_complete();
 			Scan::run();
 		}
 		$this->redirect_to_status();

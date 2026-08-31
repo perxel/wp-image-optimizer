@@ -57,11 +57,11 @@ The `.htaccess` swap is Apache-only. On nginx the plugin rewrites `<img>` tags t
 = 1.0.0 =
 * First public release.
 * Local WebP conversion via WP_Image_Editor - no CDN, no external service, free.
-* Scan-first, month-scoped background bulk run on Action Scheduler: pause, resume,
-  cancel, durable progress, optional completion email.
+* Month-scoped background bulk run on Action Scheduler: pause, resume, cancel,
+  durable progress, optional completion email.
 * Per-attachment Convert / Reconvert / Remove buttons in the Media library, and
   automatic conversion of new uploads.
 * Serving via a managed `.htaccess` block on Apache/LiteSpeed, with an `<img>` to
   `<picture>` fallback elsewhere.
-* Two admin screens under Media > WebP - Optimization (scan, prepare, live
-  monitor) and Settings - in a shared sidebar layout, server-rendered.
+* Two admin screens under Media > WebP - Optimization (prepare + live monitor)
+  and Settings - in a shared sidebar layout, server-rendered.
