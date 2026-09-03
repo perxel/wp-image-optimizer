@@ -4,7 +4,7 @@ Tags: webp, images, performance, optimization, media
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 1.0.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -58,23 +58,17 @@ The `.htaccess` swap is Apache-only. On nginx the plugin rewrites `<img>` tags t
 
 == Changelog ==
 
-= 1.1.0 =
-* Fast mode - an opt-in second way to run the bulk conversion, chosen on the
-  prepare screen. The browser tab drives the encode loop directly, so the
-  server works continuously instead of waiting on WP-Cron; on shared hosting
-  with no working loopback this is dramatically faster.
-* Fast mode pauses itself when the host starts throttling (slow batches, memory
-  pressure) and resumes after a cooldown that lengthens if it keeps happening.
-* Live Gentle / Balanced / Turbo speed control on the running monitor.
-* Closing the tab, Stop, or Cancel never reverts converted files - the run
-  parks and resumes from where it left off.
-* Background mode is unchanged and remains the default.
-
 = 1.0.0 =
 * First public release.
 * Local WebP conversion via WP_Image_Editor - no CDN, no external service, free.
-* Month-scoped background bulk run on Action Scheduler: pause, resume, cancel,
-  durable progress, optional completion email.
+* Month-scoped bulk run with two drivers: a background run on Action Scheduler
+  (pause, resume, cancel, durable progress, optional completion email) and an
+  opt-in Fast mode where the browser tab drives the encode loop directly, for
+  shared hosting with no working WP-Cron loopback. Fast mode self-pauses when
+  the host throttles and resumes after an escalating cooldown; a live Gentle /
+  Balanced / Turbo control sits on the running monitor.
+* Closing the tab, Stop, or Cancel never reverts converted files - the run
+  parks and resumes from where it left off.
 * Per-attachment Convert / Reconvert / Remove buttons in the Media library, and
   automatic conversion of new uploads.
 * Serving via a managed `.htaccess` block on Apache/LiteSpeed, with an `<img>` to

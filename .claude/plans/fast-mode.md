@@ -1,6 +1,6 @@
 # Fast mode — tab-driven conversion
 
-Status: **shipped** in 1.1.0. Implementation notes below the design match the
+Status: **shipped** in 1.0.0. Implementation notes below the design match the
 code; the "Files touched" table is what actually landed.
 
 A second way to run the bulk conversion: the browser tab drives the encode loop
