@@ -445,7 +445,7 @@ class Runner {
 		}
 
 		if ( function_exists( 'set_time_limit' ) ) {
-			@set_time_limit( 0 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+			@set_time_limit( 0 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- long-running batch conversion deliberately lifts the execution-time limit.
 		}
 		wp_raise_memory_limit( 'image' );
 
@@ -605,7 +605,7 @@ class Runner {
 		self::persist_intensity( $intensity );
 
 		if ( function_exists( 'set_time_limit' ) ) {
-			@set_time_limit( 0 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+			@set_time_limit( 0 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- long-running batch conversion deliberately lifts the execution-time limit.
 		}
 		wp_raise_memory_limit( 'image' );
 

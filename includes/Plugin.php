@@ -45,7 +45,8 @@ class Plugin {
 			return;
 		}
 
-		load_plugin_textdomain( 'perxel-image-optimizer', false, dirname( plugin_basename( PERXEL_IMAGE_OPTIMIZER_FILE ) ) . '/languages' );
+		// Translations: WordPress.org auto-loads them for a hosted plugin since
+		// WP 4.6, so no load_plugin_textdomain() call and no bundled /languages.
 
 		// Front + admin: serving layer.
 		( new Serve() )->register();
