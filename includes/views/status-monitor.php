@@ -24,6 +24,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $job       = $snap['job'];
 $failures  = (array) $snap['failures'];
+$driver    = isset( $job['driver'] ) ? (string) $job['driver'] : 'background';
+$preason   = isset( $job['pause_reason'] ) ? (string) $job['pause_reason'] : '';
 $processed = (int) $job['processed'];
 $total     = (int) $job['total'];
 $saved     = (int) $job['saved_bytes'];
@@ -59,7 +61,15 @@ switch ( $state ) {
 	case 'paused':
 		$phase_title = __( 'Paused', 'perxel-image-optimizer' );
 		$row_icon    = '<span class="dashicons dashicons-controls-pause"></span>';
-		$sentence    = esc_html__( 'Converted files are kept. Resume continues from here.', 'perxel-image-optimizer' );
+		if ( 'auto_throttle' === $preason ) {
+			$sentence = esc_html__( 'Paused automatically to stay within your host\'s limits. It resumes on its own - keep this tab open.', 'perxel-image-optimizer' );
+		} elseif ( 'auto_giveup' === $preason ) {
+			$sentence = esc_html__( 'Paused - your host is throttling this run heavily. Try Background mode, or resume later.', 'perxel-image-optimizer' );
+		} elseif ( 'tab_closed' === $preason ) {
+			$sentence = esc_html__( 'The tab was closed, so the run paused. Converted files are kept. Resume to carry on.', 'perxel-image-optimizer' );
+		} else {
+			$sentence = esc_html__( 'Converted files are kept. Resume continues from here.', 'perxel-image-optimizer' );
+		}
 		break;
 
 	case 'complete':
@@ -165,6 +175,27 @@ if ( $is_done ) {
 	);
 }
 
+/* --- Fast mode: the live speed control (monitor-only, persisted to Settings). --- */
+
+if ( 'fast' === $driver && in_array( $state, array( 'running', 'stalled', 'paused' ), true ) ) {
+	$intensity_now  = \Perxel\ImageOptimizer\Throttle::intensity( $snap['settings']['fast_intensity'] ?? 'balanced' );
+	$intensity_opts = '';
+	foreach ( array(
+		'gentle'   => __( 'Gentle - easiest on the host', 'perxel-image-optimizer' ),
+		'balanced' => __( 'Balanced', 'perxel-image-optimizer' ),
+		'turbo'    => __( 'Turbo - fastest, hits the host hardest', 'perxel-image-optimizer' ),
+	) as $val => $opt_label ) {
+		$intensity_opts .= '<option value="' . esc_attr( $val ) . '"' . selected( $intensity_now, $val, false ) . '>'
+			. esc_html( $opt_label ) . '</option>';
+	}
+
+	$rows[] = array(
+		'label'   => __( 'Speed', 'perxel-image-optimizer' ),
+		'sub'     => esc_html__( 'Takes effect on the next batch.', 'perxel-image-optimizer' ),
+		'content' => '<select id="pxio-intensity">' . $intensity_opts . '</select>',
+	);
+}
+
 /* --- "Not converted" - a disclosure row inside the same group. --- */
 
 if ( $failures ) {
@@ -203,7 +234,9 @@ if ( $failures ) {
 $note_lines = array();
 
 if ( in_array( $state, array( 'queued', 'running' ), true ) ) {
-	$note_lines[] = esc_html__( 'You can close this tab - it keeps running in the background, at a pace your server can handle.', 'perxel-image-optimizer' );
+	$note_lines[] = ( 'fast' === $driver )
+		? esc_html__( 'Keep this tab open - closing it pauses the run. Reopen this page and Resume to carry on.', 'perxel-image-optimizer' )
+		: esc_html__( 'You can close this tab - it keeps running in the background, at a pace your server can handle.', 'perxel-image-optimizer' );
 }
 
 $meta_parts = array();
@@ -222,13 +255,25 @@ if ( $since > 0 ) {
 		: sprintf( esc_html__( 'Started %s', 'perxel-image-optimizer' ), $rel );
 }
 
-$meta_parts[] = '<a href="' . esc_url( $log_url ) . '">' . esc_html__( 'View background activity', 'perxel-image-optimizer' ) . '</a>';
+if ( 'fast' !== $driver ) {
+	$meta_parts[] = '<a href="' . esc_url( $log_url ) . '">' . esc_html__( 'View background activity', 'perxel-image-optimizer' ) . '</a>';
+}
 $note_lines[] = implode( ' &middot; ', $meta_parts );
 
 /* --- Render. --- */
 
-echo '<div id="pxio-monitor" data-state="' . esc_attr( $state ) . '" data-poll="'
-	. esc_attr( in_array( $state, array( 'queued', 'running', 'stalled' ), true ) ? '1' : '0' ) . '">';
+// Fast runs are pumped by assets/admin.js (bindFastRunner); the 3s progress
+// poll is for the background driver and for a fast tab that finds itself locked.
+$poll = ( 'fast' !== $driver && in_array( $state, array( 'queued', 'running', 'stalled' ), true ) ) ? '1' : '0';
+
+echo '<div id="pxio-monitor"'
+	. ' data-state="' . esc_attr( $state ) . '"'
+	. ' data-driver="' . esc_attr( $driver ) . '"'
+	. ' data-pause-reason="' . esc_attr( $preason ) . '"'
+	. ' data-resume-after="' . esc_attr( (int) ( $job['resume_after'] ?? 0 ) ) . '"'
+	. ' data-poll="' . esc_attr( $poll ) . '">';
+
+echo '<div id="pxio-throttle-banner" class="pxio-banner" hidden></div>';
 
 echo Perxel_UI::rows(
 	array(

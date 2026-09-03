@@ -25,6 +25,8 @@ class Ajax {
 	public function register() {
 		$map = array(
 			'perxel_image_optimizer_progress'    => 'progress',
+			'perxel_image_optimizer_fast_step'   => 'fast_step',
+			'perxel_image_optimizer_fast_pause'  => 'fast_pause',
 			'perxel_image_optimizer_convert_one' => 'convert_one',
 			'perxel_image_optimizer_remove_one'  => 'remove_one',
 			'perxel_image_optimizer_purge_start' => 'purge_start',
@@ -44,13 +46,68 @@ class Ajax {
 	public function progress() {
 		$this->guard();
 
+		// A fast run whose driving tab vanished parks itself as paused.
+		Runner::reconcile_fast_stale();
+
 		// Keep the worker alive while the tab is open (no-op if a chunk is
-		// already queued; spawn_cron() self-throttles).
+		// already queued; spawn_cron() self-throttles). Background driver only.
 		Runner::nudge();
 
 		wp_send_json_success(
 			Runner::progress() + array( 'failures' => Failures::listing( 100 ) )
 		);
+	}
+
+	/**
+	 * Fast mode: run one browser-pumped conversion batch and return progress.
+	 * Called in a loop by assets/admin.js while the Optimization tab is open.
+	 */
+	public function fast_step() {
+		if ( ! check_ajax_referer( self::NONCE, 'nonce', false ) ) {
+			wp_send_json_error( array( 'reason' => 'bad nonce' ), 403 );
+		}
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'reason' => 'forbidden' ), 403 );
+		}
+
+		$token = isset( $_POST['token'] ) ? sanitize_text_field( wp_unslash( $_POST['token'] ) ) : '';
+
+		if ( '' === $token ) {
+			wp_send_json_error( array( 'reason' => 'missing token' ), 400 );
+		}
+
+		$intensity = isset( $_POST['intensity'] ) ? sanitize_key( wp_unslash( $_POST['intensity'] ) ) : 'balanced';
+		$force     = ! empty( $_POST['force'] );
+
+		$out = Runner::fast_step( $token, $intensity, $force );
+
+		// A fresh nonce every step keeps a multi-hour run from outliving the
+		// 12–24 h nonce window; the JS swaps it in.
+		$out['nonce'] = wp_create_nonce( self::NONCE );
+
+		wp_send_json_success( $out );
+	}
+
+	/**
+	 * Fast mode: park the run because its driving tab is closing. Hit by
+	 * navigator.sendBeacon() from `beforeunload`, so it must be quick and must
+	 * not rely on a response being read.
+	 */
+	public function fast_pause() {
+		if ( ! check_ajax_referer( self::NONCE, 'nonce', false ) ) {
+			wp_send_json_error( array( 'reason' => 'bad nonce' ), 403 );
+		}
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'reason' => 'forbidden' ), 403 );
+		}
+
+		$token = isset( $_POST['token'] ) ? sanitize_text_field( wp_unslash( $_POST['token'] ) ) : '';
+
+		Runner::fast_pause_from( $token );
+
+		wp_send_json_success();
 	}
 
 	/**

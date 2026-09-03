@@ -24,14 +24,14 @@ account, free. Your images never leave your host.
 1. Copy this folder to `wp-content/plugins/perxel-image-optimizer/` (or install
    the release zip).
 2. Activate **Perxel Image Optimizer** from the Plugins screen.
-3. Open **Media → WebP**.
+3. Open **Media → Optimization**.
 
 Slug `perxel-image-optimizer`, text domain `perxel-image-optimizer`, namespace
 `Perxel\ImageOptimizer\`.
 
 ## Admin
 
-**Media → WebP** — two screens inside a shared sidebar layout:
+**Media → Optimization** — two screens inside a shared sidebar layout:
 
 - **Status** — the numbers at a glance (library, coverage, bandwidth saved) and a
   single action: *Convert N images*, or a success state when everything is done.

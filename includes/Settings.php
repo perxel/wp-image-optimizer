@@ -34,6 +34,7 @@ class Settings {
 			'skip_converted'    => true, // bulk runs skip images that already have a current WebP copy
 			'email_report'      => false,
 			'email_report_to'   => '',
+			'fast_intensity'    => 'balanced', // fast-mode pacing: gentle|balanced|turbo. Not part of signature().
 		);
 	}
 
@@ -105,6 +106,13 @@ class Settings {
 
 		if ( array_key_exists( 'sizes', $input ) ) {
 			$clean['sizes'] = self::sanitize_sizes( $input['sizes'] );
+		}
+
+		if ( array_key_exists( 'fast_intensity', $input ) ) {
+			$intensity               = is_string( $input['fast_intensity'] ) ? $input['fast_intensity'] : '';
+			$clean['fast_intensity'] = in_array( $intensity, array( 'gentle', 'balanced', 'turbo' ), true )
+				? $intensity
+				: 'balanced';
 		}
 
 		update_option( self::OPTION, $clean, false );

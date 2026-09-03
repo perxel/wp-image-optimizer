@@ -49,8 +49,8 @@ class Admin {
 	public function menu() {
 		add_submenu_page(
 			'upload.php',
-			__( 'WebP', 'perxel-image-optimizer' ),
-			__( 'WebP', 'perxel-image-optimizer' ),
+			__( 'Optimization', 'perxel-image-optimizer' ),
+			__( 'Optimization', 'perxel-image-optimizer' ),
 			'manage_options',
 			self::PAGE,
 			array( $this, 'render_status' )
@@ -271,6 +271,10 @@ class Admin {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
+
+		// A fast run whose driving tab went away (no `tab_closed` beacon) parks
+		// itself here, so the screen shows "paused - resume" not "stalled".
+		Runner::reconcile_fast_stale();
 
 		// Refresh the cached library figures when they've gone stale (settings
 		// saved, a run finished, or older than a day) - unless a run is active,
@@ -590,6 +594,7 @@ class Admin {
 	public function handle_start() {
 		if ( current_user_can( 'manage_options' ) && check_admin_referer( 'perxel_image_optimizer_start' ) ) {
 			$scope  = ( isset( $_POST['scope'] ) && 'months' === sanitize_key( wp_unslash( $_POST['scope'] ) ) ) ? 'months' : 'all';
+			$driver = ( isset( $_POST['driver'] ) && 'fast' === sanitize_key( wp_unslash( $_POST['driver'] ) ) ) ? 'fast' : 'background';
 			$months = isset( $_POST['months'] ) ? array_map( 'sanitize_text_field', (array) wp_unslash( $_POST['months'] ) ) : array();
 
 			// When serving is off, the title bar offers "Enable serving & start
@@ -605,6 +610,7 @@ class Admin {
 				array(
 					'scope'  => $scope,
 					'months' => $months,
+					'driver' => $driver,
 				)
 			);
 		}

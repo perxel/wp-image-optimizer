@@ -23,6 +23,7 @@ $options = array(
 	'perxel_image_optimizer_job',
 	'perxel_image_optimizer_scan',
 	'perxel_image_optimizer_pace',
+	'perxel_image_optimizer_pace_fast',
 	'perxel_image_optimizer_failures',
 	'perxel_image_optimizer_serve_mode',
 	'perxel_image_optimizer_purge',

@@ -244,7 +244,7 @@ $run_rows[] = array(
 	'sub'   => $pace_sub,
 );
 
-$run_note  = esc_html__( 'Runs in the background - close the tab anytime.', 'perxel-image-optimizer' );
+$run_note  = '<span id="pxio-run-note">' . esc_html__( 'Background mode runs on a schedule - close the tab anytime.', 'perxel-image-optimizer' ) . '</span>';
 $report_to = ! empty( $cfg['email_report'] ) ? \Perxel\ImageOptimizer\Settings::report_recipient() : '';
 if ( '' !== $report_to ) {
 	$run_note .= ' ' . esc_html(
@@ -277,13 +277,41 @@ foreach ( (array) $snap['sections'] as $section ) {
 }
 
 $per_image = (float) ( $scan['per_image'] ?? 1 );
+
+$per_image_fast = \Perxel\ImageOptimizer\Runner::fast_pace();
+if ( $per_image_fast <= 0 ) {
+	$per_image_fast = $per_image;
+}
 ?>
 <form id="pxio-prepare" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"
 	data-per-image="<?php echo esc_attr( $per_image ); ?>"
+	data-per-image-fast="<?php echo esc_attr( $per_image_fast ); ?>"
 	data-scope-all="<?php echo esc_attr( $est_all['images'] ); ?>">
 	<input type="hidden" name="action" value="perxel_image_optimizer_start" />
 	<?php
 	wp_nonce_field( 'perxel_image_optimizer_start' );
+
+	$driver_rows = array(
+		array(
+			'label'   => __( 'Background', 'perxel-image-optimizer' ),
+			'sub'     => esc_html__( 'Runs on a schedule. Close the tab whenever - it keeps going. Slower on shared hosting with no cron.', 'perxel-image-optimizer' ),
+			'content' => '<input type="radio" name="driver" value="background" class="pxui-checkbox pxio-driver" checked />',
+		),
+		array(
+			'label'   => __( 'Fast', 'perxel-image-optimizer' ),
+			'sub'     => esc_html__( 'Keeps this tab open and works your server continuously. Pauses itself if the host pushes back. Much faster.', 'perxel-image-optimizer' ),
+			'content' => '<input type="radio" name="driver" value="fast" class="pxui-checkbox pxio-driver" />',
+		),
+	);
+
+	echo Perxel_UI::rows(
+		array(
+			array(
+				'title' => __( 'How to run it', 'perxel-image-optimizer' ),
+				'rows'  => $driver_rows,
+			),
+		)
+	);
 
 	$scope_rows = array(
 		array(

@@ -13,6 +13,20 @@
 #pxio-months .pxio-year-months { border-top: 1px solid #eee; }
 #pxio-months .pxio-year-months .pxui-row { padding-left: var(--pxui-s6); }
 
+/* Fast mode: the auto-pause / throttle banner above the monitor rows. */
+.pxio-banner {
+	margin: 0 0 var(--pxui-s4, 12px);
+	padding: 10px 14px;
+	border-left: 4px solid var(--pxui-accent, #082ae5);
+	border-radius: 4px;
+	background: var(--pxui-bg-subtle, #fff);
+	box-shadow: 0 1px 2px rgba( 0, 0, 0, 0.06 );
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.pxio-banner button { margin-left: 8px; vertical-align: baseline; }
+
 /* Media library column + attachment detail */
 .perxel-image-optimizer-cell { display: inline-block; }
 .column-perxel_image_optimizer { width: 160px; }

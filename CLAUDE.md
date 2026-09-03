@@ -11,11 +11,26 @@ month-scoped **background** bulk run (Action Scheduler), per-attachment buttons,
 deferred conversion of new uploads. No WP-CLI, no external service - built for
 shared hosting.
 
-Background work runs on **Action Scheduler** (bundled, `vendor/action-scheduler/`).
-That means WP-Cron plus AS's own async loopback - the plugin is no longer
-"no cron". The runner walks the library newest→oldest one calendar month at a
-time; a mid-chunk kill resumes from the cursor. See
-`.claude/plans/webp-bulk-conversion-redesign.md` for the full design.
+The bulk run has **two drivers**, chosen on the prepare form (`Runner`'s
+`driver` field, `handle_start` reads it):
+
+- **`background`** (default) - pumped by **Action Scheduler** (bundled,
+  `vendor/action-scheduler/`): WP-Cron plus AS's own async loopback, so the
+  plugin is no longer "no cron". Close the tab, it keeps going. Slow on shared
+  hosting where the loopback is blocked (one ~90s chunk per cron tick).
+- **`fast`** - pumped by the browser: `assets/admin.js` (`bindFastRunner`) calls
+  the `…_fast_step` AJAX endpoint in a loop while the Optimization tab is open,
+  each call doing a time-boxed batch synchronously. No AS, no cron. `Throttle`
+  owns the pacing: intensity profiles (gentle/balanced/turbo = batch budget +
+  inter-request gap), adaptive batch size, and a pace-spike / memory auto-pause
+  with an escalating cooldown (30s→10m). Closing the tab parks the run as
+  `paused` (a `beforeunload` beacon, or the 60s `FAST_STALE_AFTER` heartbeat).
+
+Both share the `Runner` state machine, the month cursor walk, `process_batch()`,
+`Failures`, and finish/email/scan-refresh. A mid-batch kill resumes from the
+cursor and never reverts converted files. See
+`.claude/plans/webp-bulk-conversion-redesign.md` and
+`.claude/plans/fast-mode.md` for the full design.
 
 Slug / text domain `perxel-image-optimizer`, namespace `Perxel\ImageOptimizer\`,
 prefix `perxel_image_optimizer_` / `PERXEL_IMAGE_OPTIMIZER_`.
@@ -38,7 +53,10 @@ main file (not Composer). `Plugin::boot()` on `plugins_loaded` wires everything.
 `Ajax::snapshot()` is the single (cheap - no library walk) source of state for the
 admin screens.
 
-Key classes: `Runner` (the AS chunk runner + job state), `Sections` (month
+Key classes: `Runner` (job state machine + the month cursor walk + the shared
+`process_batch()` inner loop + both drivers: `run_chunk()` for AS, `fast_step()`
+for the tab), `Throttle` (fast-mode pacing policy only - intensity profiles,
+adaptive batch size, auto-pause decision + cooldown ladder), `Sections` (month
 enumeration + per-month pending-ID query - the runner's internal skip signal),
 `Scan` (**the single source of every library-wide figure** - see below),
 `Estimator` (scan → "this run" projection: image count + ETA, math mirrored in
@@ -123,8 +141,8 @@ into each Perxel plugin. It is NOT specific to this plugin.
 
 ## Admin screens
 
-Two `?page=` screens under **Media → WebP**, both inside `Perxel_UI_Layout` with a
-shared sidebar (Settings is registered then `remove_submenu_page`d so only "WebP"
+Two `?page=` screens under **Media → Optimization**, both inside `Perxel_UI_Layout` with a
+shared sidebar (Settings is registered then `remove_submenu_page`d so only "Optimization"
 shows in WP's menu):
 
 - **Optimization** (`views/status.php` + `views/status-monitor.php`) - state
@@ -134,12 +152,16 @@ shows in WP's menu):
   Settings, then "At a glance") → the live `running` / `stalled` / `paused` /
   `complete` monitor; `serve_off` / `done` once `settled` covers the library.
   There is **no Scan button and no `not_scanned` state** - `render_status()`
-  refreshes a stale `Scan` on load. Start / Pause / Cancel / Resume / Retry /
-  "Back to summary" are plain form POSTs to `admin_post_*` handlers that redirect
-  back (`handle_scan` is now just the completion-screen ack + `Scan::run()`).
-  `assets/admin.js` does only the prepare-form arithmetic (image count + ETA) and
-  the monitor poll (`wp_ajax_perxel_image_optimizer_progress` every ~3s; a phase
-  change triggers `location.reload()`).
+  refreshes a stale `Scan` on load. The prepare form also carries a **"How to
+  run it"** radio (`driver`: background / fast). Start / Pause / Cancel / Resume /
+  Retry / "Back to summary" are plain form POSTs to `admin_post_*` handlers that
+  redirect back (`handle_scan` is now just the completion-screen ack +
+  `Scan::run()`). `assets/admin.js` does the prepare-form arithmetic (image
+  count + ETA, per driver), the background monitor poll
+  (`wp_ajax_perxel_image_optimizer_progress` every ~3s; a phase change triggers
+  `location.reload()`), and — for a fast run — the `bindFastRunner` pump loop
+  (`…_fast_step` back-to-back, `…_fast_pause` beacon on unload, a live
+  intensity `<select>`, an auto-pause / throttle banner).
 - **Settings** (`views/settings.php`) - environment, conversion settings (plain
   form POST → `admin_post_perxel_image_optimizer_save_settings` → `Settings::update()`),
   serving toggle + self-test, **Notifications** (opt-in completion email +
@@ -154,12 +176,17 @@ shows in WP's menu):
 (`handle_enable_serve`), or the Settings toggle. Each path calls
 `Settings::update(['serve'=>true])` then `Serve::reconcile()`.
 
-AJAX (`Ajax.php`) is now only the monitor poll + the per-attachment Media buttons
-(`convert_one` / `remove_one`) + the purge loop. Everything else is `admin_post`.
+AJAX (`Ajax.php`): the monitor poll, the fast-mode pump (`fast_step` /
+`fast_pause`), the per-attachment Media buttons (`convert_one` / `remove_one`),
+and the purge loop. Everything else is `admin_post`.
 
 House UX rule: dead-simple, 1–2 steps to run the function; keep configuration on
 its own page so a client can be told "go here, click this, done". One primary
 action per screen. Never add a step or a second primary button without reason.
+(The `driver` radio is a mode choice on the existing form, not a second primary
+button — one "Start conversion" still submits it. The fast-mode intensity control
+is monitor-only, persisted to `fast_intensity`; it is deliberately absent from
+Settings.)
 
 ## Before committing
 
