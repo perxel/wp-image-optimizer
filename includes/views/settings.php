@@ -52,12 +52,24 @@ $quality_select = static function ( $id, $name, $current ) use ( $quality_steps 
 	return $out . '</select>';
 };
 
-// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- Perxel_UI escapes structure; values escaped inline below.
+/**
+ * Echo trusted Perxel_UI markup. The kit escapes every structural attribute and
+ * the title/label text fields (see ui/class-perxel-ui.php); the `content` /
+ * `sub` / `note` HTML is the caller's to escape, and every dynamic value below
+ * is passed through esc_html() / esc_attr() / esc_url() before it reaches here.
+ * This closure is the one place output escaping is deferred to the kit, so a
+ * stray unescaped echo added later still trips the sniff.
+ *
+ * @param string $html Markup returned by a Perxel_UI:: renderer.
+ */
+$render = static function ( $html ) {
+	echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted Perxel_UI markup; see closure docblock.
+};
 
 if ( $updated ) {
-	echo Perxel_UI::notice( 'success', esc_html__( 'Settings saved.', 'perxel-image-optimizer' ), array( 'dismissible' => true ) );
+	$render( Perxel_UI::notice( 'success', esc_html__( 'Settings saved.', 'perxel-image-optimizer' ), array( 'dismissible' => true ) ) );
 } elseif ( $reset ) {
-	echo Perxel_UI::notice( 'success', esc_html__( 'Settings reset to defaults.', 'perxel-image-optimizer' ), array( 'dismissible' => true ) );
+	$render( Perxel_UI::notice( 'success', esc_html__( 'Settings reset to defaults.', 'perxel-image-optimizer' ), array( 'dismissible' => true ) ) );
 }
 
 if ( '' !== $test_email ) {
@@ -66,17 +78,19 @@ if ( '' !== $test_email ) {
 	delete_transient( $mail_err_key );
 
 	if ( 'sent' === $test_email ) {
-		echo Perxel_UI::notice(
-			'success',
-			esc_html__( 'Test email handed to the server. If it does not arrive, check spam, then your site mail configuration - "sent" only means the server accepted it.', 'perxel-image-optimizer' ),
-			array( 'dismissible' => true )
+		$render(
+			Perxel_UI::notice(
+				'success',
+				esc_html__( 'Test email handed to the server. If it does not arrive, check spam, then your site mail configuration - "sent" only means the server accepted it.', 'perxel-image-optimizer' ),
+				array( 'dismissible' => true )
+			)
 		);
 	} else {
 		$msg = esc_html__( 'Test email could not be sent.', 'perxel-image-optimizer' );
 		if ( '' !== $mail_err ) {
 			$msg .= '<br><span class="pxui-muted">' . esc_html( $mail_err ) . '</span>';
 		}
-		echo Perxel_UI::notice( 'error', $msg, array( 'dismissible' => true ) );
+		$render( Perxel_UI::notice( 'error', $msg, array( 'dismissible' => true ) ) );
 	}
 }
 
@@ -123,7 +137,7 @@ foreach ( (array) $snap['sizes'] as $name ) {
 	<?php
 	wp_nonce_field( 'perxel_image_optimizer_settings' );
 
-	echo Perxel_UI::rows(
+	$markup = Perxel_UI::rows(
 		array(
 			array(
 				'title' => __( 'Conversion', 'perxel-image-optimizer' ),
@@ -196,6 +210,7 @@ foreach ( (array) $snap['sizes'] as $name ) {
 			),
 		)
 	);
+	$render( $markup );
 	// "Save settings" lives in the sticky title bar (Admin::render_settings), wired here via the form id.
 	?>
 </form>
@@ -210,7 +225,7 @@ $serve_sub = esc_html__(
 ?>
 <div id="serving">
 	<?php
-	echo Perxel_UI::rows(
+	$markup = Perxel_UI::rows(
 		array(
 			array(
 				'title' => __( 'Serving', 'perxel-image-optimizer' ),
@@ -231,6 +246,7 @@ $serve_sub = esc_html__(
 			),
 		)
 	);
+	$render( $markup );
 	?>
 </div>
 
@@ -282,7 +298,7 @@ if ( '' !== trim( $email_to ) ) {
 ?>
 <div id="notifications">
 	<?php
-	echo Perxel_UI::rows(
+	$markup = Perxel_UI::rows(
 		array(
 			array(
 				'title' => __( 'Notifications', 'perxel-image-optimizer' ),
@@ -291,13 +307,14 @@ if ( '' !== trim( $email_to ) ) {
 			),
 		)
 	);
+	$render( $markup );
 	?>
 </div>
 
 <?php
 /* --- Danger zone ------------------------------------------------- */
 
-echo Perxel_UI::rows(
+$markup = Perxel_UI::rows(
 	array(
 		array(
 			'title'  => __( 'Danger zone', 'perxel-image-optimizer' ),
@@ -325,6 +342,7 @@ echo Perxel_UI::rows(
 		),
 	)
 );
+$render( $markup );
 echo '<p id="pxio-purge-out" class="pxui-muted"></p>';
 
 /* --- Environment --------------------------------------------------- */
@@ -381,7 +399,7 @@ if ( 'apache' === $srv['mode'] ) {
 	);
 }
 
-echo Perxel_UI::rows(
+$markup = Perxel_UI::rows(
 	array(
 		array(
 			'title' => __( 'Environment', 'perxel-image-optimizer' ),
@@ -402,5 +420,4 @@ echo Perxel_UI::rows(
 		),
 	)
 );
-
-// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
+$render( $markup );

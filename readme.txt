@@ -1,6 +1,6 @@
 === Perxel Image Optimizer ===
 Contributors: phucbm
-Tags: webp, images, performance, optimization, media
+Tags: webp, convert to webp, image optimization, media library, webp images
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
