@@ -1,10 +1,10 @@
 === Perxel Image Optimizer ===
 Contributors: phucbm
-Tags: webp, images, performance, optimization, media
+Tags: webp, convert to webp, image optimization, media library, webp images
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -57,6 +57,12 @@ The `.htaccess` swap is Apache-only. On nginx the plugin rewrites `<img>` tags t
 `<picture>` with a WebP source instead.
 
 == Changelog ==
+
+= 1.0.1 =
+* Tightened output-escaping suppressions in the admin views to per-file
+  targeted ignores, addressing the plugin review's escaping feedback.
+* Media Library scripts/styles now load only on the Media list and the
+  single-attachment edit screen.
 
 = 1.0.0 =
 * First public release.

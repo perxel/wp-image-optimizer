@@ -132,8 +132,15 @@ class Admin {
 			'media_page_' . self::PAGE_UI,
 		);
 
-		$on_page  = in_array( $hook, $page_hooks, true );
-		$on_media = in_array( $hook, array( 'upload.php', 'post.php' ), true );
+		$on_page = in_array( $hook, $page_hooks, true );
+
+		// The Media library list, and the single-attachment edit screen only -
+		// not every post.php edit screen.
+		$on_media = 'upload.php' === $hook;
+		if ( 'post.php' === $hook ) {
+			$screen   = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+			$on_media = $screen && 'attachment' === $screen->post_type;
+		}
 
 		if ( ! $on_page && ! $on_media ) {
 			return;
@@ -455,11 +462,9 @@ class Admin {
 		$snap = Ajax::snapshot();
 
 		// Display-only flash flags set by our own redirects; no nonce to check.
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended
-		$updated    = isset( $_GET['updated'] );
-		$reset      = isset( $_GET['reset'] );
-		$test_email = isset( $_GET['test_email'] ) ? sanitize_key( wp_unslash( $_GET['test_email'] ) ) : '';
-		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+		$updated    = isset( $_GET['updated'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only flash flag from our own redirect.
+		$reset      = isset( $_GET['reset'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only flash flag from our own redirect.
+		$test_email = isset( $_GET['test_email'] ) ? sanitize_key( wp_unslash( $_GET['test_email'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only flash flag from our own redirect.
 
 		if ( ! $this->ui_ready() ) {
 			echo '<div class="wrap"><h1>' . esc_html__( 'Perxel Image Optimizer', 'perxel-image-optimizer' ) . '</h1>';

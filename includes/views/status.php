@@ -22,7 +22,20 @@ $env          = $snap['environment'];
 $settings_url = admin_url( 'upload.php?page=' . \Perxel\ImageOptimizer\Admin::PAGE_SETTINGS );
 $free_disk    = isset( $env['free_disk'] ) ? (int) $env['free_disk'] : 0;
 
-// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- Perxel_UI escapes structure; dynamic values escaped inline.
+/**
+ * Echo trusted Perxel_UI markup. The kit escapes every structural attribute and
+ * the title/label text fields (see ui/class-perxel-ui.php); the `content` /
+ * `sub` / `note` / `value` HTML is the caller's to escape, and every dynamic
+ * value below is passed through esc_html() / esc_attr() / esc_url() before it
+ * reaches here. This closure is the one place output escaping is deferred to the
+ * kit, so a stray unescaped echo added later still trips the sniff.
+ *
+ * @param string $html Markup from a Perxel_UI:: renderer or the $glance /
+ *                      $figure_group closures below.
+ */
+$render = static function ( $html ) {
+	echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted Perxel_UI markup; see closure docblock.
+};
 
 /**
  * The "At a glance" tiles - exact figures from the last scan (Scan::stats()).
@@ -101,7 +114,7 @@ $figure_group = static function ( array $figures, $title, $note = '' ) {
 /* --- cannot_convert --- */
 
 if ( 'cannot_convert' === $state ) {
-	echo Perxel_UI::rows(
+	$markup = Perxel_UI::rows(
 		array(
 			array(
 				'icon'    => 'bad',
@@ -111,7 +124,8 @@ if ( 'cannot_convert' === $state ) {
 			),
 		)
 	);
-	echo $glance();
+	$render( $markup );
+	$render( $glance() );
 	return;
 }
 
@@ -131,16 +145,17 @@ if ( 'serve_off' === $state ) {
 		. '<button type="submit" class="button button-small button-primary">' . esc_html__( 'Serve WebP now', 'perxel-image-optimizer' ) . '</button>'
 		. '</form>';
 
-	echo Perxel_UI::notice(
+	$markup = Perxel_UI::notice(
 		'warning',
 		esc_html__( 'Every image is converted, but WebP is not being served yet.', 'perxel-image-optimizer' ) . $enable_serve_form
 	);
-	echo $glance();
+	$render( $markup );
+	$render( $glance() );
 	return;
 }
 
 if ( 'done' === $state ) {
-	echo Perxel_UI::rows(
+	$markup = Perxel_UI::rows(
 		array(
 			array(
 				'icon'  => 'good',
@@ -153,7 +168,8 @@ if ( 'done' === $state ) {
 			),
 		)
 	);
-	echo $glance();
+	$render( $markup );
+	$render( $glance() );
 	return;
 }
 
@@ -173,7 +189,7 @@ if ( $mp_ceiling <= 0 ) {
 }
 
 if ( $total < 1 ) {
-	echo Perxel_UI::rows(
+	$markup = Perxel_UI::rows(
 		array(
 			array(
 				'icon'  => '<span class="dashicons dashicons-format-image"></span>',
@@ -182,12 +198,13 @@ if ( $total < 1 ) {
 			),
 		)
 	);
-	echo $glance();
+	$render( $markup );
+	$render( $glance() );
 	return;
 }
 
 /* Intro: one plain sentence describing what the run does. */
-echo Perxel_UI::notice(
+$markup = Perxel_UI::notice(
 	'info',
 	$skip_converted
 		? esc_html(
@@ -205,6 +222,7 @@ echo Perxel_UI::notice(
 			)
 		)
 );
+$render( $markup );
 
 /* "This run" figures - image count + ETA update in JS as months are ticked. */
 $eta      = (int) $est_all['eta_seconds'];
@@ -256,7 +274,7 @@ if ( '' !== $report_to ) {
 	);
 }
 
-echo $figure_group( $run_rows, __( 'This run', 'perxel-image-optimizer' ), $run_note );
+$render( $figure_group( $run_rows, __( 'This run', 'perxel-image-optimizer' ), $run_note ) );
 
 // Per-year, per-month rows. data-scope carries each month's image count so
 // admin.js can sum the selection without a round-trip.
@@ -304,7 +322,7 @@ if ( $per_image_fast <= 0 ) {
 		),
 	);
 
-	echo Perxel_UI::rows(
+	$markup = Perxel_UI::rows(
 		array(
 			array(
 				'title' => __( 'How to run it', 'perxel-image-optimizer' ),
@@ -312,6 +330,7 @@ if ( $per_image_fast <= 0 ) {
 			),
 		)
 	);
+	$render( $markup );
 
 	$scope_rows = array(
 		array(
@@ -329,7 +348,7 @@ if ( $per_image_fast <= 0 ) {
 		),
 	);
 
-	echo Perxel_UI::rows(
+	$markup = Perxel_UI::rows(
 		array(
 			array(
 				'title' => __( 'Scope', 'perxel-image-optimizer' ),
@@ -337,6 +356,7 @@ if ( $per_image_fast <= 0 ) {
 			),
 		)
 	);
+	$render( $markup );
 
 	// Month picker: one collapsible disclosure row per year, hidden until
 	// scope = months.
@@ -389,7 +409,7 @@ if ( $per_image_fast <= 0 ) {
 	}
 
 	if ( $year_rows ) {
-		echo Perxel_UI::rows(
+		$markup = Perxel_UI::rows(
 			array(
 				array(
 					'title' => __( 'Choose months', 'perxel-image-optimizer' ),
@@ -397,6 +417,7 @@ if ( $per_image_fast <= 0 ) {
 				),
 			)
 		);
+		$render( $markup );
 	}
 
 	echo '<p class="pxui-muted">' . esc_html__( 'Every month with images is listed.', 'perxel-image-optimizer' ) . '</p>';
@@ -412,7 +433,7 @@ $sizes_txt = in_array( '*', $sizes_cfg, true )
 	/* translators: %s: count. */
 	: sprintf( _n( '%s size', '%s sizes', count( $sizes_cfg ), 'perxel-image-optimizer' ), number_format_i18n( count( $sizes_cfg ) ) );
 
-echo Perxel_UI::rows(
+$markup = Perxel_UI::rows(
 	array(
 		array(
 			'title' => __( 'Settings in effect', 'perxel-image-optimizer' ),
@@ -442,6 +463,6 @@ echo Perxel_UI::rows(
 		),
 	)
 );
+$render( $markup );
 
-echo $glance();
-// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
+$render( $glance() );

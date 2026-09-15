@@ -34,7 +34,19 @@ $is_done   = 'complete' === $state;
 $elapsed   = (int) $job['started_at'] > 0 ? ( time() - (int) $job['started_at'] ) : 0;
 $log_url   = admin_url( 'tools.php?page=action-scheduler&s=perxel_image_optimizer&status=&orderby=schedule&order=desc' );
 
-// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- Perxel_UI escapes structure; dynamic values escaped inline.
+/**
+ * Echo trusted Perxel_UI markup. The kit escapes every structural attribute and
+ * the title/label text fields (see ui/class-perxel-ui.php); the `content` /
+ * `sub` / `note` HTML is the caller's to escape, and every dynamic value below
+ * is passed through esc_html() / esc_attr() / esc_url() before it gets here.
+ * This closure is the one place output escaping is deferred to the kit, so a
+ * stray unescaped echo added later still trips the sniff.
+ *
+ * @param string $html Markup returned by a Perxel_UI:: renderer.
+ */
+$render = static function ( $html ) {
+	echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted Perxel_UI markup; see closure docblock.
+};
 
 /*
  * Per-phase: the group title, the first row's label + icon (spinner while
@@ -275,7 +287,7 @@ echo '<div id="pxio-monitor"'
 
 echo '<div id="pxio-throttle-banner" class="pxio-banner" hidden></div>';
 
-echo Perxel_UI::rows(
+$markup = Perxel_UI::rows(
 	array(
 		array(
 			'title' => $phase_title,
@@ -284,7 +296,6 @@ echo Perxel_UI::rows(
 		),
 	)
 );
+$render( $markup );
 
 echo '</div>'; // #pxio-monitor
-
-// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
