@@ -114,22 +114,24 @@ own finding, now settled. No readme change needed.
 ## The reply email — READY TO SEND
 
 Reply **into the existing thread** (same subject, do not start a new email),
-from `phucbm` / `phucbm.dev@gmail.com`.
+from `phucbm` / `phucbm.dev@gmail.com`. Plain text, copy-paste as-is:
 
-> Hello,
->
-> Thanks for the review. An updated version is uploaded.
->
-> **Ownership** — I've added a DNS TXT record at the root of `perxel.com` with the value `wordpressorg-phucbm-verification`.
->
-> **Escaping** — fixed the flagged output and went through the rest of the plugin's admin views and output paths for the same pattern.
->
-> **On originality** — I've looked at the closest free, local options (Converter for Media, Squeeze, EWWW's local mode, core's Modern Image Formats). This plugin sits between the server-side batch approach and the browser-WASM approach: it encodes through WordPress's own `WP_Image_Editor` (GD/Imagick — no binaries, no `exec()`, no API, no CDN), so output matches the site's existing thumbnail sizes and doesn't depend on the machine of whoever runs it. The bulk run can be driven from the open admin tab with throttling that eases off when the host pushes back, so it still completes on hosting where the WP-Cron loopback doesn't work. Conversion is non-destructive and serving is reversible (`.htaccess` on Apache/LiteSpeed, `<picture>` fallback elsewhere). It's aimed at site owners on budget shared hosting who want WebP without a CDN, a subscription, or touching configuration — one screen: scan, click, done.
->
-> The slug `perxel-image-optimizer` is unchanged.
->
-> Thanks,
-> Phuc
+```txt
+Hello,
+
+Thanks for the review. An updated version is uploaded.
+
+Ownership - I've added a DNS TXT record at the root of perxel.com with the value wordpressorg-phucbm-verification.
+
+Escaping - fixed the flagged output and went through the rest of the plugin's admin views and output paths for the same pattern.
+
+On originality - I've looked at the closest free, local options (Converter for Media, Squeeze, EWWW's local mode, core's Modern Image Formats). This plugin sits between the server-side batch approach and the browser-WASM approach: it encodes through WordPress's own WP_Image_Editor (GD/Imagick - no binaries, no exec(), no API, no CDN), so output matches the site's existing thumbnail sizes and doesn't depend on the machine of whoever runs it. The bulk run can be driven from the open admin tab with throttling that eases off when the host pushes back, so it still completes on hosting where the WP-Cron loopback doesn't work. Conversion is non-destructive and serving is reversible (.htaccess on Apache/LiteSpeed, <picture> fallback elsewhere). It's aimed at site owners on budget shared hosting who want WebP without a CDN, a subscription, or touching configuration - one screen: scan, click, done.
+
+The slug perxel-image-optimizer is unchanged.
+
+Thanks,
+Phuc
+```
 
 ## Remaining steps
 
