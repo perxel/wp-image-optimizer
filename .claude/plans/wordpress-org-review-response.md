@@ -1,7 +1,8 @@
 # WordPress.org plugin review — response tracker
 
 Working doc for the pended `perxel-image-optimizer` submission. Started
-2026-09-07, paused 2026-09-09. Come back here to finish and send.
+2026-09-07, finalized 2026-09-15 — ready to send. Final email is in
+**"The reply email — READY TO SEND"** below.
 
 ## The review (received 2026-09-06)
 
@@ -20,20 +21,14 @@ Three checklist items:
 
 ## Status
 
-### 1. Ownership — OPEN, user handling it
+### 1. Ownership — DONE (user's own action, outside this repo)
 
-Account email `phucbm.dev@gmail.com` (gmail) does not match the declared
-Author "Perxel" / `https://perxel.com` / `https://github.com/perxel/wp-image-optimizer`.
+Account email `phucbm.dev@gmail.com` (gmail) did not match the declared Author
+"Perxel" / `https://perxel.com` / `https://github.com/perxel/wp-image-optimizer`.
 
-Options (user said "I will solve this" — method not yet confirmed):
-- DNS TXT at `perxel.com` root, value `wordpressorg-phucbm-verification` (easiest)
-- Change WordPress.org profile email to an `@perxel.com` address
-- Transfer submission to a WordPress.org account under `perxel.com` (reply with
-  the username — do NOT resubmit)
-- Rename plugin display name **and** slug to drop "Perxel" affiliation
-
-The draft email has a bracketed placeholder for whichever route is taken. If the
-*transfer* route is chosen, the whole email changes — redo it.
+**Resolved via DNS TXT record**: `wordpressorg-phucbm-verification` added at the
+`perxel.com` root, per the reviewer's instructions. Confirmed by the user
+2026-09-15. Nothing in this repo to change for this item.
 
 ### 2. Escaping — DONE (committed)
 
@@ -108,30 +103,24 @@ When it ships:
 - `Converter` already negotiates GD vs Imagick — add an output-format axis
   alongside that
 
-### `Tested up to: 7.1` in readme.txt — UNRESOLVED
+### `Tested up to: 7.1` in readme.txt — RESOLVED, kept as-is
 
-I flagged this as "no WP 7.x exists" (my knowledge cutoff is Jan 2026: WP was on
-6.x since 6.0 / May 2022, latest ~6.7–6.8, no 7.0 announced). User pushed back
-("said who?"). **Not verified this session.** The reviewer's email did NOT flag
-it — this is my finding, not theirs.
+I'd flagged this as "no WP 7.x exists" (my knowledge cutoff is Jan 2026: WP was
+on 6.x since 6.0 / May 2022, latest ~6.7–6.8, no 7.0 announced then). User
+confirmed 2026-09-15 that `7.1` is real and has been tested against — kept
+unchanged. The reviewer's email never flagged this line either way; it was my
+own finding, now settled. No readme change needed.
 
-Rule: `Tested up to:` must be an actually-released WP version and Plugin Check
-errors if it's higher than current. Before resubmitting: check
-`https://api.wordpress.org/core/version-check/1.7/` or
-`wordpress.org/download/releases/` and set it to a real version that's been
-tested. Left out of the draft email deliberately — raise only if changed.
+## The reply email — READY TO SEND
 
-## The draft reply email (final version as of 2026-09-09)
-
-Reply into the existing thread. Fill the ownership bracket.
+Reply **into the existing thread** (same subject, do not start a new email),
+from `phucbm` / `phucbm.dev@gmail.com`.
 
 > Hello,
 >
 > Thanks for the review. An updated version is uploaded.
 >
-> **Ownership** — *[keep one:]*
-> [I've added a DNS TXT record at the root of `perxel.com` with the value `wordpressorg-phucbm-verification`.]
-> [I've changed my WordPress.org profile email to an address under `perxel.com`.]
+> **Ownership** — I've added a DNS TXT record at the root of `perxel.com` with the value `wordpressorg-phucbm-verification`.
 >
 > **Escaping** — fixed the flagged output and went through the rest of the plugin's admin views and output paths for the same pattern.
 >
@@ -142,19 +131,18 @@ Reply into the existing thread. Fill the ownership bracket.
 > Thanks,
 > Phuc
 
-## Next steps when resuming
+## Remaining steps
 
-1. User confirms the ownership method → lock the email bracket (or fully rewrite
-   if transfer route).
-2. Verify current WP version → fix `Tested up to:` in `readme.txt` if 7.1 is
-   wrong.
-3. Decide: ship free AVIF now as the hard differentiator, or send the
-   positioning-only reply?
-4. Optional: test Converter for Media on a `DISABLE_WP_CRON` + blocked-loopback
-   host to have a first-hand answer for reviewer pushback.
-5. `composer run build` → upload the new zip via "Add your plugin" as `phucbm`.
-6. Push `webp/plugin-review-fixes`, merge to `main` (or however the user wants
-   it), then send the reply.
+1. ~~User confirms the ownership method~~ — done, DNS TXT.
+2. ~~Verify current WP version~~ — done, 7.1 kept.
+3. `composer run build` → produces `dist/perxel-image-optimizer.zip` — upload via
+   "Add your plugin" while logged in as `phucbm`.
+4. Send the reply email above into the existing thread.
+5. Optional / later: ship free AVIF as the hard originality differentiator (see
+   above) — not needed for this round.
+6. Push/merge `webp/plugin-review-fixes` whenever convenient — independent of
+   the submission, since the .org zip is built from the working tree regardless
+   of what's on `origin/main`.
 
 ## Confirmed plugin facts (from this session's code reads)
 
