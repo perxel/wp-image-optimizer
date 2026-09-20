@@ -3,6 +3,7 @@
 /.git
 /.github
 /.idea
+/.wordpress-org
 /.claude
 /bin
 /dist

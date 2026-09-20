@@ -45,6 +45,11 @@ conversion options, serving, notifications, cleanup).
 2. Activate the plugin through the Plugins screen.
 3. Go to Media > Optimization.
 
+== Screenshots ==
+
+1. Optimization: the prepare screen shows the whole-library image count, an estimated time, and a choice of Background or Fast run.
+2. Settings: JPEG/PNG quality, sizes to convert, serving, and completion-email options.
+
 == Frequently Asked Questions ==
 
 = Does it modify my original images? =
