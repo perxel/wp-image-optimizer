@@ -54,7 +54,7 @@ Every Perxel plugin follows these; they are owned by the starter.
 - `.env.local` holds credentials: never commit it (it is in `.gitignore`).
 - `bin/*.sh` derive the slug from the main plugin file, so they are byte-identical
   across plugins - never hard-code a slug in them. Per-plugin Plugin Check
-  suppressions go in `.plugin-check-ignore`.
+  suppressions go in `lint.yml` -> `ignore-codes`.
 - `languages/` is optional; `.org` auto-loads translations.
 
 ## Layout
@@ -69,8 +69,7 @@ vendor/perxel-ui/            Shared Perxel admin-UI kit - vendored, see below
 vendor/action-scheduler/     Bundled background job runner - see below
 .github/workflows/           lint.yml (PHPCS + Plugin Check), release.yml
 README.md                   Public-facing GitHub page only (see "Documentation rules")
-bin/                        build-zip.sh, plugin-check.sh, update-ui.sh - identical in every plugin
-.plugin-check-ignore        Documented Plugin Check false positives (mirrored in lint.yml)
+bin/                        build-zip.sh, update-ui.sh - identical in every plugin
 .claude/assets-src/         Master/source art for the listing assets - committed, not shipped
 ```
 
@@ -246,8 +245,7 @@ Rules that are not obvious and cost real time when re-derived per plugin:
 
 The split that bites: **Plugin Check runs its own ruleset, not `phpcs.xml.dist`.**
 Any suppression for a documented false positive goes in *both* places -
-`phpcs.xml.dist` (for `composer run lint`) and `lint.yml` -> `ignore-codes`
-(mirrored in `.plugin-check-ignore`, which `bin/plugin-check.sh` reads).
+`phpcs.xml.dist` (for `composer run lint`) and `lint.yml` -> `ignore-codes`.
 
 ## Releasing
 

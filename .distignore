@@ -18,7 +18,6 @@
 .distignore
 .gitignore
 .editorconfig
-.plugin-check-ignore
 .env.local
 CLAUDE.md
 README.md
