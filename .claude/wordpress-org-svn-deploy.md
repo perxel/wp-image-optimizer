@@ -67,11 +67,19 @@ manual SVN commit is needed.
 - The `v` in a `vX.Y.Z` tag is stripped by the action on a release event, giving SVN
   tag `X.Y.Z`. On `workflow_dispatch` it cannot infer the version, which is why the
   workflow passes `VERSION` explicitly.
-- The `wordpress/plugin-check-action` in `lint.yml` derives the expected text domain
-  from the checkout folder (the repo name). If the repo name differs from the slug it
-  reports a text-domain mismatch on every string. Set its `slug` input to the plugin
-  slug in the new plugin's workflow (this repo's CI still fails on this - known, not
-  blocking).
+- `wordpress/plugin-check-action` (in `lint.yml`) derives the expected slug from the
+  checkout folder, i.e. the GitHub repo name. If that differs from the plugin slug it
+  reports a text-domain mismatch on every string and fails CI. Fix (in use here):
+  ```yaml
+  - uses: wordpress/plugin-check-action@v1
+    with:
+      slug: <plugin-slug>
+      exclude-files: phpcs.xml.dist      # dev-only files .distignore keeps out
+      exclude-directories: bin           # of the zip; the check scans the raw repo
+  ```
+  Without the excludes it reports `application_detected` errors on dev files such as
+  `phpcs.xml.dist` and `bin/*.sh`. Adjust the list to the new plugin's dev-only files.
+  Remaining output is warnings only (e.g. unprefixed template-scope variables).
 - 1.0.1 was deployed by hand (a local script, since removed) before this automation
   existed. If automation ever breaks, the fallback is plain `svn`: `svn co
   https://plugins.svn.wordpress.org/<slug>`, copy the distignore-filtered build into
