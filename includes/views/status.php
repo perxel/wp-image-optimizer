@@ -1,13 +1,13 @@
 <?php
 /**
  * Optimization screen - cheap glance, then one of: not-scanned, prepare, or the live
- * monitor. All server-rendered; assets/admin.js only does the prepare-form
+ * monitor. All server-rendered; assets/js/admin.js only does the prepare-form
  * arithmetic and the monitor poll.
  *
  * @package Perxel_Image_Optimizer
  *
- * @var array  $snap  Perxel\ImageOptimizer\Ajax::snapshot().
- * @var string $state Perxel\ImageOptimizer\Admin::status_state() result.
+ * @var array  $snap  Perxel_Image_Optimizer\Ajax::snapshot().
+ * @var string $state Perxel_Image_Optimizer\Admin::status_state() result.
  *   queued|running|stalled|paused|complete route to views/status-monitor.php.
  */
 
@@ -19,12 +19,12 @@ $job          = $snap['job'];
 $scan         = $snap['scan'];
 $stats        = $snap['stats'];
 $env          = $snap['environment'];
-$settings_url = admin_url( 'upload.php?page=' . \Perxel\ImageOptimizer\Admin::PAGE_SETTINGS );
+$settings_url = admin_url( 'upload.php?page=' . \Perxel_Image_Optimizer\Admin::PAGE_SETTINGS );
 $free_disk    = isset( $env['free_disk'] ) ? (int) $env['free_disk'] : 0;
 
 /**
  * Echo trusted Perxel_UI markup. The kit escapes every structural attribute and
- * the title/label text fields (see ui/class-perxel-ui.php); the `content` /
+ * the title/label text fields (see vendor/perxel-ui/class-perxel-ui.php); the `content` /
  * `sub` / `note` / `value` HTML is the caller's to escape, and every dynamic
  * value below is passed through esc_html() / esc_attr() / esc_url() before it
  * reaches here. This closure is the one place output escaping is deferred to the
@@ -179,7 +179,7 @@ $cfg            = (array) $snap['settings'];
 $skip_converted = ! empty( $cfg['skip_converted'] );
 $serve_on       = ! empty( $cfg['serve'] );
 $total          = (int) ( $scan['total'] ?? $snap['summary']['attachments'] );
-$est_all        = \Perxel\ImageOptimizer\Estimator::project( null );
+$est_all        = \Perxel_Image_Optimizer\Estimator::project( null );
 
 // Effective megapixel ceiling: the Settings override, or the server's computed
 // safe value.
@@ -263,7 +263,7 @@ $run_rows[] = array(
 );
 
 $run_note  = '<span id="pxio-run-note">' . esc_html__( 'Background mode runs on a schedule - close the tab anytime.', 'perxel-image-optimizer' ) . '</span>';
-$report_to = ! empty( $cfg['email_report'] ) ? \Perxel\ImageOptimizer\Settings::report_recipient() : '';
+$report_to = ! empty( $cfg['email_report'] ) ? \Perxel_Image_Optimizer\Settings::report_recipient() : '';
 if ( '' !== $report_to ) {
 	$run_note .= ' ' . esc_html(
 		sprintf(
@@ -296,7 +296,7 @@ foreach ( (array) $snap['sections'] as $section ) {
 
 $per_image = (float) ( $scan['per_image'] ?? 1 );
 
-$per_image_fast = \Perxel\ImageOptimizer\Runner::fast_pace();
+$per_image_fast = \Perxel_Image_Optimizer\Runner::fast_pace();
 if ( $per_image_fast <= 0 ) {
 	$per_image_fast = $per_image;
 }

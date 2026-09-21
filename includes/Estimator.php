@@ -1,6 +1,6 @@
 <?php
 
-namespace Perxel\ImageOptimizer;
+namespace Perxel_Image_Optimizer;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Turns cached scan data into a "this run" projection: image count and estimated
  * time, plus an upper-bound bandwidth / disk projection.
  *
- * Deliberately just arithmetic on Scan::data() - assets/admin.js mirrors the
+ * Deliberately just arithmetic on Scan::data() - assets/js/admin.js mirrors the
  * image count and the ETA so the prepare screen updates as months are ticked
  * without a round-trip. The scan no longer tracks which images are already
  * converted, so `images` counts every image in scope and the byte figures are an

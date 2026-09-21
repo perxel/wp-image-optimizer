@@ -1,6 +1,6 @@
 <?php
 /**
- * Perxel shared admin UI — master layout (feature sidebar + main).
+ * Perxel shared admin UI - master layout (feature sidebar + main).
  *
  * Usage from a plugin admin-page callback:
  *
@@ -58,16 +58,16 @@ final class Perxel_UI_Layout {
 	/**
 	 * Own the browser <title> for one or more of the kit's admin pages.
 	 *
-	 * WordPress builds a screen's <title> from its menu entry — "Page ‹ Site —
-	 * WordPress" — and a page kept off the menu with `remove_submenu_page()` (the
+	 * WordPress builds a screen's <title> from its menu entry - "Page ‹ Site -
+	 * WordPress" - and a page kept off the menu with `remove_submenu_page()` (the
 	 * usual pattern for a settings screen reached only from within the UI) loses
-	 * even that, leaving a bare " ‹ Site — WordPress" in the tab. For a kit
+	 * even that, leaving a bare " ‹ Site - WordPress" in the tab. For a kit
 	 * screen the sidebar already carries the wp-admin chrome, so the tab reads as
 	 * `Site • Page • Plugin` instead.
 	 *
 	 * Call on `admin_menu` with the same slugs passed to `add_submenu_page()`.
 	 * Each value is that page's name; `$plugin` is appended to all of them.
-	 * Additive and idempotent — safe to call repeatedly; later keys win.
+	 * Additive and idempotent - safe to call repeatedly; later keys win.
 	 *
 	 * @param array  $map    `[ page_slug => page name ]`.
 	 * @param string $plugin Plugin name, appended after the page name.
@@ -122,7 +122,7 @@ final class Perxel_UI_Layout {
 	 * heading), `base` (admin file for sidebar links, default admin.php),
 	 * `links` (`[ label => url ]` shown right in the footer), `author`
 	 * (`[ 'name' => string, 'url' => string ]` shown left in the footer),
-	 * `actions` (trusted HTML — buttons pinned to the right of the title bar; the
+	 * `actions` (trusted HTML - buttons pinned to the right of the title bar; the
 	 * house home for a page's Save button, wired to its form with the HTML5
 	 * `form` attribute), `wrap_class`, `text_domain`.
 	 * See ui/README.md.

@@ -1,11 +1,14 @@
-.idea/
-.DS_Store
-node_modules/
+# Ignore vendor/ contents, but keep the committed shared admin-UI kit.
+# (Must exclude the entries, not the dir, or the negation can't re-include.)
 /vendor/*
+!/vendor/perxel-ui/
 !/vendor/action-scheduler/
+/node_modules/
 composer.lock
 package-lock.json
-dist/
-languages/*.mo
+.DS_Store
 *.log
-
+/.idea/
+/dist/
+.env.local
+languages/*.mo

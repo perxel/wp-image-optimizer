@@ -59,8 +59,8 @@
 			<property name="prefixes" type="array">
 				<element value="perxel_image_optimizer"/>
 				<element value="PERXEL_IMAGE_OPTIMIZER"/>
-				<element value="Perxel\ImageOptimizer"/>
-				<!-- Shared admin UI kit (ui/), versioned independently. -->
+				<element value="Perxel_Image_Optimizer"/>
+				<!-- Shared admin UI kit (vendor/perxel-ui/), versioned independently. -->
 				<element value="perxel_ui"/>
 				<element value="PERXEL_UI"/>
 				<element value="Perxel_UI"/>
@@ -82,7 +82,6 @@
 		variables read by a static analyser as globals, but they are not.
 	-->
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound">
-		<exclude-pattern>/ui/partials/*</exclude-pattern>
 		<exclude-pattern>/includes/views/*</exclude-pattern>
 		<exclude-pattern>/uninstall.php</exclude-pattern>
 	</rule>

@@ -4,7 +4,7 @@
  *
  * @package Perxel_Image_Optimizer
  *
- * @var array  $snap       Perxel\ImageOptimizer\Ajax::snapshot().
+ * @var array  $snap       Perxel_Image_Optimizer\Ajax::snapshot().
  * @var bool   $updated    Whether the settings form just saved.
  * @var bool   $reset      Whether settings were just reset to defaults.
  * @var string $test_email '', 'sent' or 'failed' after a test-email attempt.
@@ -54,7 +54,7 @@ $quality_select = static function ( $id, $name, $current ) use ( $quality_steps 
 
 /**
  * Echo trusted Perxel_UI markup. The kit escapes every structural attribute and
- * the title/label text fields (see ui/class-perxel-ui.php); the `content` /
+ * the title/label text fields (see vendor/perxel-ui/class-perxel-ui.php); the `content` /
  * `sub` / `note` HTML is the caller's to escape, and every dynamic value below
  * is passed through esc_html() / esc_attr() / esc_url() before it reaches here.
  * This closure is the one place output escaping is deferred to the kit, so a

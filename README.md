@@ -41,9 +41,6 @@ open the [plugin page](https://wordpress.org/plugins/perxel-image-optimizer/).
 2. Activate **Perxel Image Optimizer** from the Plugins screen.
 3. Open **Media → Optimization**.
 
-Slug `perxel-image-optimizer`, text domain `perxel-image-optimizer`, namespace
-`Perxel\ImageOptimizer\`.
-
 ## Admin
 
 **Media → Optimization** — two screens inside a shared sidebar layout:
@@ -53,16 +50,6 @@ Slug `perxel-image-optimizer`, text domain `perxel-image-optimizer`, namespace
 - **Settings** — environment probe, conversion settings, serving toggle +
   self-test, the sample-based saving estimate, and the danger zone (remove all
   `.webp`, remove the `.htaccess` block).
-
-## Shared admin UI (`ui/`)
-
-`ui/` is a standalone, separately-versioned admin-UI kit (layout + a few
-server-rendered components on top of native wp-admin CSS). It is meant to be
-copied verbatim into other Perxel plugins; overwriting it cannot break plugin
-behaviour or fatal. See [`ui/README.md`](ui/README.md). The kit ships a
-maintainer-only component showcase under `ui/showcase/`; that folder is stripped
-from the distributed build (`.distignore`) and `ui/loader.php` tolerates its
-absence.
 
 ## Requirements
 

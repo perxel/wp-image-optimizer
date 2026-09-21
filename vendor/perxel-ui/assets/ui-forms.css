@@ -1,0 +1,698 @@
+/**
+ * Perxel shared admin UI - forms layer.
+ *
+ * Loaded right after ui.css (same handle family, depends on `perxel-ui`).
+ * Everything here relies on the tokens declared on `.pxui-wrap` in ui.css.
+ *
+ * Covers: the row-group settings list, native form controls restyled
+ * (checkbox → square box, radio → filled dot, `.pxui-toggle` → iOS
+ * switch), and the loading spinner.
+ */
+
+/* ------------------------------------------------------------------ *
+ * Row group - iOS-style settings list. Each group is an optional title
+ * above a rounded card of rows; the card is the only element that carries
+ * a shadow. Each row is a flex line: label left, content right - text, a
+ * toggle, a <select> or a button.
+ * ------------------------------------------------------------------ */
+
+.pxui-rows {
+    margin:0 0 var(--pxui-s6);
+    display:flex;
+    flex-direction:column;
+    gap:var(--pxui-s6);
+}
+
+.pxui-rows__title {
+    margin:0 0 var(--pxui-s2);
+    padding-left:var(--pxui-s2);
+    font-size:11px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    color:var(--pxui-fg-muted);
+}
+
+.pxui-rows__note {
+    margin:var(--pxui-s2) 0 0;
+    padding-left:var(--pxui-s2);
+    font-size:12px;
+    line-height:1.5;
+    color:var(--pxui-fg-muted);
+}
+
+.pxui-rows__card {
+    background:#f9f9f9;
+    border-radius:var(--pxui-radius);
+    overflow:hidden;
+}
+
+.pxui-row {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:var(--pxui-s4);
+    min-height:44px;
+    padding:var(--pxui-s1) var(--pxui-s4);
+    font-size:13px;
+}
+
+.pxui-row + .pxui-row { border-top:1px solid #eee; }
+
+/* Two fixed columns: the label side takes whatever room is left, the value
+   side is capped at 300px (and shrinks below that on a narrow screen). Never
+   a flex-grow tug-of-war between them. */
+.pxui-row__label { flex:1 1 auto; min-width:0; color:var(--pxui-fg); }
+.pxui-row__sub { display:block; margin-top:2px; font-size:12px; color:var(--pxui-fg-muted); }
+
+.pxui-row__content {
+    flex:0 1 300px;
+    min-width:0;
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+    gap:var(--pxui-s2);
+    text-align:right;
+    color:var(--pxui-fg-muted);
+    font-variant-numeric:tabular-nums;
+    max-width:300px;
+}
+
+/* A text field / textarea fills the 300px value column so every field lines up
+   at the same width regardless of its content. */
+.pxui-row__content input[type="text"],
+.pxui-row__content input[type="password"],
+.pxui-row__content input[type="email"],
+.pxui-row__content input[type="url"],
+.pxui-row__content input[type="search"],
+.pxui-row__content textarea { flex:1 1 100%; width:100%; }
+
+/* Inner controls stay flat - the wrapper owns the only shadow. */
+.pxui-row__content .button,
+.pxui-row__content select,
+.pxui-row__content input { box-shadow:none; }
+
+/* A lone action button in a row uses core's `.button-small` (add the class in
+   markup). Keep it from stretching on the flex cross-axis and match the 30px
+   height of the row's text fields so it sits on the same baseline - never
+   restyle bare `.button` here, it must still match `.button` everywhere
+   else. */
+.pxui-row__content .button.button-small {
+    flex:0 0 auto;
+    align-self:center;
+    display:inline-flex;
+    align-items:center;
+    min-height:30px;
+}
+
+/* A <select> as row content reads as the row's value: no chrome at rest,
+   border + full-contrast text on hover, brand outline on focus. */
+.pxui-row__content select {
+    border-color:transparent;
+    background-color:transparent;
+    color:var(--pxui-fg-muted);
+    transition:border-color .12s ease, color .12s ease, background-color .12s ease;
+}
+
+.pxui-row__content select:hover {
+    border-color:var(--pxui-border);
+    color:var(--pxui-fg);
+}
+
+.pxui-row__content select:focus {
+    border-color:var(--pxui-accent);
+    background-color:var(--pxui-bg);
+    color:var(--pxui-fg);
+}
+
+/* Text-like inputs and textareas used as row content (or inside a disclosure
+   reveal) share one field treatment: hairline box at rest - the value is
+   editable, so it always reads as a field - muted border on hover, brand ring
+   on focus, the same radius as the <select>. A textarea gets `font:inherit` so
+   it never falls back to the browser monospace default; add `.pxui-mono` for a
+   deliberate monospace field. */
+.pxui-row__content input[type="text"],
+.pxui-row__content input[type="password"],
+.pxui-row__content input[type="number"],
+.pxui-row__content input[type="email"],
+.pxui-row__content input[type="url"],
+.pxui-row__content input[type="search"],
+.pxui-row__content textarea,
+.pxui-row__reveal input[type="text"],
+.pxui-row__reveal input[type="password"],
+.pxui-row__reveal input[type="email"],
+.pxui-row__reveal input[type="url"],
+.pxui-row__reveal input[type="search"],
+.pxui-row__reveal textarea {
+    min-height:30px;
+    padding:var(--pxui-s1) var(--pxui-s2);
+    border:1px solid var(--pxui-border);
+    border-radius:var(--pxui-radius);
+    background-color:var(--pxui-bg);
+    color:var(--pxui-fg);
+    font:inherit;
+    line-height:1.5;
+    transition:border-color .12s ease, box-shadow .12s ease;
+}
+
+.pxui-row__content textarea,
+.pxui-row__reveal textarea {
+    min-height:76px;
+    width:100%;
+    resize:vertical;
+}
+
+.pxui-row__content .pxui-mono,
+.pxui-row__reveal .pxui-mono {
+    font-family:var(--pxui-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+    font-size:12px;
+}
+
+.pxui-row__content input[type="number"] {
+    width:6em;
+    text-align:right;
+}
+
+/* A readonly field reads as a value you can copy, not one you edit. */
+.pxui-row__content input:read-only,
+.pxui-row__content textarea:read-only,
+.pxui-row__reveal input:read-only,
+.pxui-row__reveal textarea:read-only {
+    background-color:#f6f7f7;
+    color:var(--pxui-fg-muted);
+}
+
+.pxui-row__content input[type="text"]:hover,
+.pxui-row__content input[type="password"]:hover,
+.pxui-row__content input[type="number"]:hover,
+.pxui-row__content input[type="email"]:hover,
+.pxui-row__content input[type="url"]:hover,
+.pxui-row__content input[type="search"]:hover,
+.pxui-row__content textarea:hover,
+.pxui-row__reveal input:hover,
+.pxui-row__reveal textarea:hover {
+    border-color:var(--pxui-fg-muted);
+}
+
+.pxui-row__content input[type="text"]:focus,
+.pxui-row__content input[type="password"]:focus,
+.pxui-row__content input[type="number"]:focus,
+.pxui-row__content input[type="email"]:focus,
+.pxui-row__content input[type="url"]:focus,
+.pxui-row__content input[type="search"]:focus,
+.pxui-row__content textarea:focus,
+.pxui-row__reveal input:focus,
+.pxui-row__reveal textarea:focus {
+    border-color:var(--pxui-accent);
+    box-shadow:0 0 0 1px var(--pxui-accent);
+    outline:none;
+}
+
+/* Narrow screens (wp-admin's own breakpoint): the row stacks - label on top,
+   the value column goes full width beneath. */
+@media (max-width:782px) {
+    .pxui-row {
+        flex-wrap:wrap;
+        align-items:flex-start;
+    }
+
+    .pxui-row__content {
+        flex-basis:100%;
+        max-width:none;
+        margin-top:var(--pxui-s2);
+        justify-content:flex-start;
+        text-align:left;
+    }
+}
+
+/* Group title bar - the title on the left, an optional action on the right.
+   The action renders as a small underlined link, never a full button, so it
+   sits on the title line without shouting. */
+.pxui-rows__titlebar {
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:var(--pxui-s4);
+}
+
+.pxui-rows__titlebar .pxui-rows__title { margin-bottom:0; }
+
+.pxui-rows__title-action { flex:0 0 auto; }
+
+.pxui-rows__title-action a,
+.pxui-rows__title-action button,
+.pxui-rows__title-action .button {
+    padding:0;
+    border:0;
+    min-height:0;
+    height:auto;
+    background:none;
+    box-shadow:none;
+    font-size:11px;
+    font-weight:600;
+    line-height:1;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    color:var(--pxui-accent);
+    text-decoration:underline;
+    cursor:pointer;
+}
+
+.pxui-rows__title-action a:hover,
+.pxui-rows__title-action button:hover,
+.pxui-rows__title-action .button:hover { color:var(--pxui-accent-dark, var(--pxui-accent)); }
+
+.pxui-rows__title-action button:disabled { opacity:.5; cursor:default; text-decoration:none; }
+
+.pxui-rows__titlebar + .pxui-rows__card { margin-top:var(--pxui-s2); }
+
+.pxui-row--good .pxui-row__content { color:var(--pxui-good); font-weight:600; }
+.pxui-row--warn .pxui-row__content { color:var(--pxui-warn); font-weight:600; }
+.pxui-row--bad .pxui-row__content { color:var(--pxui-bad); font-weight:600; }
+
+/* Leading row icon - a fixed 20px square before the label, centred against
+   the label + sub. Any glyph (dashicon, <svg>, emoji) is scaled into the
+   frame so rows line up regardless of the icon used. When a row carries one,
+   the label group sits left and the content value is pushed to the right. */
+.pxui-row--has-icon,
+.pxui-row--has-icon .pxui-row__summary { justify-content:flex-start; }
+.pxui-row--has-icon .pxui-row__content { margin-left:auto; }
+
+.pxui-row__icon {
+    flex:0 0 auto;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:20px;
+    height:20px;
+    font-size:16px;
+    line-height:1;
+}
+
+.pxui-row__icon > * { max-width:100%; max-height:100%; }
+.pxui-row__icon .dashicons { width:20px; height:20px; font-size:20px; }
+.pxui-row__icon img,
+.pxui-row__icon svg { display:block; width:auto; height:auto; }
+
+/* Preset status dots - filled circle + glyph in the tone colour. */
+.pxui-row__icon--good,
+.pxui-row__icon--warn,
+.pxui-row__icon--bad {
+    border-radius:50%;
+    color:#fff;
+    font-size:11px;
+    font-weight:700;
+}
+
+.pxui-row__icon--good { background:var(--pxui-good); }
+.pxui-row__icon--warn { background:var(--pxui-warn); }
+.pxui-row__icon--bad  { background:var(--pxui-bad); }
+
+.pxui-row__icon--good::before { content:"\2713"; }
+.pxui-row__icon--warn::before { content:"!"; }
+.pxui-row__icon--bad::before  { content:"\2715"; }
+
+/* Neutral "not checked yet" - a small grey dot, no glyph. */
+.pxui-row__icon--muted::before {
+    content:"";
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:var(--pxui-fg-muted);
+}
+
+/* Disclosure row - a native <details>. The <summary> is the row line (label
+   left, chevron right); the reveal drops full-width below. */
+.pxui-row--disclosure { display:block; padding:0; }
+
+.pxui-row__summary {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:var(--pxui-s4);
+    min-height:44px;
+    padding:var(--pxui-s1) var(--pxui-s4);
+    list-style:none;
+    cursor:pointer;
+}
+
+.pxui-row__summary::-webkit-details-marker { display:none; }
+.pxui-row__summary:focus-visible { outline:2px solid var(--pxui-accent); outline-offset:-2px; }
+
+.pxui-row__chevron {
+    display:block;
+    width:7px;
+    height:7px;
+    border-right:2px solid var(--pxui-fg-muted);
+    border-bottom:2px solid var(--pxui-fg-muted);
+    transform:rotate(-45deg);
+    transition:transform .15s ease;
+}
+
+.pxui-row--disclosure[open] .pxui-row__chevron { transform:rotate(45deg); }
+
+.pxui-row__reveal {
+    padding:0 var(--pxui-s4) var(--pxui-s3);
+}
+
+@media (prefers-reduced-motion:reduce) {
+    .pxui-row__chevron { transition:none; }
+}
+
+/* Danger group - a row group for destructive actions: red title, red hairline
+   card over the warning tint, buttons in the warning colour. A screen's
+   cleanup / destructive-action section. */
+.pxui-rows__group--danger .pxui-rows__title { color:var(--pxui-bad); }
+.pxui-rows__group--danger .pxui-rows__note { color:#a8595b; }
+
+.pxui-rows__group--danger .pxui-rows__card {
+    background:var(--pxui-bad-bg);
+}
+
+.pxui-rows__group--danger .pxui-row + .pxui-row,
+.pxui-rows__group--danger .pxui-row--disclosure + .pxui-row {
+    border-top-color:#f0cdce;
+}
+
+.pxui-rows__group--danger .pxui-row__content .button {
+    color:var(--pxui-bad);
+    border-color:var(--pxui-bad);
+    background:#fff;
+    transition:color .12s ease, background-color .12s ease, border-color .12s ease;
+}
+
+.pxui-rows__group--danger .pxui-row__content .button:hover,
+.pxui-rows__group--danger .pxui-row__content .button:focus {
+    color:#fff;
+    background:var(--pxui-bad);
+    border-color:var(--pxui-bad);
+}
+
+/* ------------------------------------------------------------------ *
+ * Form controls - a checkbox is a square box with a brand tick, a radio
+ * a filled brand dot. Add `.pxui-toggle` to a checkbox for an iOS switch
+ * (pill track + sliding knob) - see below. Scoped to `.pxui-wrap`.
+ * ------------------------------------------------------------------ */
+
+.pxui-wrap input[type="checkbox"],
+.pxui-wrap input[type="radio"] {
+    -webkit-appearance:none;
+    appearance:none;
+    position:relative;
+    flex:none;
+    width:18px;
+    height:18px;
+    margin:0 var(--pxui-s2) 0 0;
+    border:1px solid var(--pxui-border);
+    background:#fff;
+    box-shadow:none;
+    cursor:pointer;
+    vertical-align:text-bottom;
+    transition:background .15s ease, border-color .15s ease;
+}
+
+.pxui-wrap input[type="checkbox"] { border-radius:5px; }
+.pxui-wrap input[type="radio"] { border-radius:50%; }
+
+.pxui-wrap input[type="checkbox"]:focus-visible,
+.pxui-wrap input[type="radio"]:focus-visible { outline:2px solid var(--pxui-accent); outline-offset:2px; }
+
+.pxui-wrap input[type="checkbox"]:disabled,
+.pxui-wrap input[type="radio"]:disabled { opacity:.5; cursor:default; }
+
+/* Checkbox → square box, brand tick when on. */
+.pxui-wrap input[type="checkbox"]:checked {
+    border-color:var(--pxui-accent);
+    background:var(--pxui-accent)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E")
+    center / 12px no-repeat;
+}
+
+/* Radio → filled dot. */
+.pxui-wrap input[type="radio"]:checked { border-color:var(--pxui-accent); background:var(--pxui-accent); }
+
+.pxui-wrap input[type="radio"]:checked::before {
+    content:"";
+    position:absolute;
+    top:4px;
+    left:4px;
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:#fff;
+}
+
+/* ------------------------------------------------------------------ *
+ * Toggle - add `.pxui-toggle` to an `<input type="checkbox">` for an
+ * iOS switch: pill track, sliding knob, brand fill when on.
+ * `Perxel_UI::toggle()` emits it.
+ * ------------------------------------------------------------------ */
+
+.pxui-wrap input[type="checkbox"].pxui-toggle {
+    width:38px;
+    height:22px;
+    border:none;
+    border-radius:var(--pxui-radius-pill);
+    background:var(--pxui-border);
+    vertical-align:middle;
+}
+
+.pxui-wrap input[type="checkbox"].pxui-toggle:checked { background:var(--pxui-accent); }
+
+.pxui-wrap input[type="checkbox"].pxui-toggle::before {
+    content:"";
+    position:absolute;
+    top:2px;
+    left:2px;
+    width:18px;
+    height:18px;
+    margin:0;
+    border-radius:50%;
+    background:#fff;
+    box-shadow:0 1px 2px rgba(0, 0, 0, .25);
+    transition:transform .15s ease;
+}
+
+.pxui-wrap input[type="checkbox"].pxui-toggle:checked::before { transform:translateX(16px); }
+
+/* ------------------------------------------------------------------ *
+ * Checkbox group - a "pick several" list rendered as selectable pills.
+ * The real `<input type="checkbox">` stays in the DOM (form state,
+ * keyboard, a11y) but is visually hidden; the pill is the control -
+ * hairline border at rest, brand fill when its checkbox is checked.
+ * Flows inline and wraps; sits happily as `.pxui-row__content`.
+ * ------------------------------------------------------------------ */
+
+.pxui-checks {
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+    gap:var(--pxui-s1);
+}
+
+.pxui-check {
+    display:inline-flex;
+    flex-direction:column;
+    gap:1px;
+    padding:4px 8px;
+    border:1px solid var(--pxui-border);
+    border-radius:var(--pxui-radius);
+    background:var(--pxui-bg);
+    line-height:1.3;
+    text-align:left;
+    cursor:pointer;
+    transition:border-color .12s ease, background-color .12s ease, box-shadow .12s ease;
+}
+
+.pxui-check:hover {
+    border-color:var(--pxui-fg-muted);
+    background:var(--pxui-bg-subtle);
+}
+
+.pxui-check:has(input:checked) {
+    border-color:var(--pxui-accent);
+    background:var(--pxui-brand-bg);
+}
+
+.pxui-check:has(input:checked):hover {
+    border-color:var(--pxui-accent-dark);
+    box-shadow:inset 0 0 0 1px var(--pxui-accent-dark);
+}
+
+.pxui-check:has(input:focus-visible) {
+    outline:2px solid var(--pxui-accent);
+    outline-offset:2px;
+}
+
+/* Visually hide the checkbox - the pill carries the state. */
+.pxui-wrap .pxui-checks input[type="checkbox"] {
+    position:absolute;
+    width:1px;
+    height:1px;
+    margin:-1px;
+    padding:0;
+    border:0;
+    opacity:0;
+    pointer-events:none;
+}
+
+.pxui-check__label { font-weight:600; color:var(--pxui-fg); }
+.pxui-check:has(input:checked) .pxui-check__label { color:var(--pxui-accent-dark); }
+
+.pxui-check__sub { font-size:12px; color:var(--pxui-fg-muted); }
+
+/* ------------------------------------------------------------------ *
+ * Spinner - inline loading state
+ * ------------------------------------------------------------------ */
+
+.pxui-spinner {
+    display:inline-block;
+    width:16px;
+    height:16px;
+    border:2px solid var(--pxui-border);
+    border-top-color:var(--pxui-accent);
+    border-radius:50%;
+    vertical-align:middle;
+    animation:pxui-spin .6s linear infinite;
+}
+
+@keyframes pxui-spin {
+    to { transform:rotate(360deg); }
+}
+
+@media (prefers-reduced-motion:reduce) {
+    .pxui-spinner { animation-duration:2s; }
+}
+
+/* ------------------------------------------------------------------ *
+ * Media picker - a hidden <input> holding the attachment ID(s), a
+ * preview list, and Choose / Remove buttons. `Perxel_UI::media()`.
+ * Wired to wp.media by ui.js. Sits happily as `.pxui-row__content`.
+ * ------------------------------------------------------------------ */
+
+.pxui-media {
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:flex-end;
+    gap:var(--pxui-s2);
+}
+
+.pxui-media__list {
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+    gap:var(--pxui-s1);
+}
+
+/* `display:flex` above beats the UA `[hidden]` rule at equal specificity. */
+.pxui-media__list[hidden] { display:none; }
+
+.pxui-media__item {
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:40px;
+    min-height:40px;
+    max-width:120px;
+    border:1px solid var(--pxui-border);
+    border-radius:var(--pxui-radius);
+    background:var(--pxui-bg);
+    overflow:hidden;
+}
+
+.pxui-media__item img {
+    display:block;
+    max-width:100%;
+    max-height:120px;
+}
+
+.pxui-media__file {
+    padding:var(--pxui-s1) var(--pxui-s2);
+    font-size:12px;
+    color:var(--pxui-fg-muted);
+    word-break:break-all;
+    text-align:left;
+}
+
+.pxui-media__drop {
+    position:absolute;
+    top:2px;
+    right:2px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:18px;
+    height:18px;
+    padding:0;
+    border:0;
+    border-radius:50%;
+    background:rgba(0, 0, 0, .6);
+    color:#fff;
+    font-size:13px;
+    line-height:1;
+    cursor:pointer;
+    opacity:0;
+    transition:opacity .12s ease;
+}
+
+.pxui-media__item:hover .pxui-media__drop,
+.pxui-media__drop:focus-visible { opacity:1; }
+
+.pxui-media__actions {
+    display:inline-flex;
+    align-items:center;
+    gap:var(--pxui-s2);
+}
+
+.pxui-media__clear {
+    padding:0;
+    border:0;
+    background:none;
+    color:var(--pxui-bad);
+    font-size:12px;
+    cursor:pointer;
+}
+
+.pxui-media__clear:hover { text-decoration:underline; }
+
+@media (prefers-reduced-motion:reduce) {
+    .pxui-media__drop { transition:none; }
+}
+
+/* ------------------------------------------------------------------ *
+ * Colour picker - a native <input type="color"> swatch beside a hex
+ * text field, kept in sync by ui.js. `Perxel_UI::color()`.
+ * ------------------------------------------------------------------ */
+
+.pxui-color {
+    display:inline-flex;
+    align-items:center;
+    gap:var(--pxui-s2);
+}
+
+.pxui-wrap .pxui-color__swatch {
+    flex:0 0 auto;
+    width:28px;
+    height:28px;
+    padding:0;
+    border:1px solid var(--pxui-border);
+    border-radius:var(--pxui-radius);
+    background:none;
+    cursor:pointer;
+}
+
+.pxui-wrap .pxui-color__swatch::-webkit-color-swatch-wrapper { padding:2px; }
+.pxui-wrap .pxui-color__swatch::-webkit-color-swatch { border:0; border-radius:5px; }
+.pxui-wrap .pxui-color__swatch::-moz-color-swatch { border:0; border-radius:5px; }
+
+.pxui-row__content input.pxui-color__hex,
+.pxui-color .pxui-color__hex {
+    flex:0 0 8em;
+    width:8em;
+    font-family:var(--pxui-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+    font-size:12px;
+    text-transform:lowercase;
+}

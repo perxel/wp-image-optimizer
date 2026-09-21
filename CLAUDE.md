@@ -1,6 +1,7 @@
 # CLAUDE.md
 
-Guidance for working on this repository.
+Guidance for working on this repository. This is the **only** agent/maintainer
+document (see "Documentation rules" below).
 
 ## What this is
 
@@ -18,7 +19,7 @@ The bulk run has **two drivers**, chosen on the prepare form (`Runner`'s
   `vendor/action-scheduler/`): WP-Cron plus AS's own async loopback, so the
   plugin is no longer "no cron". Close the tab, it keeps going. Slow on shared
   hosting where the loopback is blocked (one ~90s chunk per cron tick).
-- **`fast`** - pumped by the browser: `assets/admin.js` (`bindFastRunner`) calls
+- **`fast`** - pumped by the browser: `assets/js/admin.js` (`bindFastRunner`) calls
   the `…_fast_step` AJAX endpoint in a loop while the Optimization tab is open,
   each call doing a time-boxed batch synchronously. No AS, no cron. `Throttle`
   owns the pacing: intensity profiles (gentle/balanced/turbo = batch budget +
@@ -32,20 +33,45 @@ cursor and never reverts converted files. See
 `.claude/plans/webp-bulk-conversion-redesign.md` and
 `.claude/plans/fast-mode.md` for the full design.
 
-Slug / text domain `perxel-image-optimizer`, namespace `Perxel\ImageOptimizer\`,
+Slug / text domain `perxel-image-optimizer`, namespace `Perxel_Image_Optimizer\`,
 prefix `perxel_image_optimizer_` / `PERXEL_IMAGE_OPTIMIZER_`.
+
+## Documentation rules
+
+Every Perxel plugin follows these; they are owned by the starter.
+
+- **`README.md` is public-facing only**: what the plugin does, screenshots,
+  install, requirements, what data it stores / external services, license. No
+  architecture, folder layout, build/lint/release steps, or "how to extend" -
+  none of that belongs on the public page.
+- **`CLAUDE.md` is the one and only file for developers and agents**:
+  architecture, conventions, compliance, releasing. There is **no `AGENTS.md`**
+  (and no second "playbook" file) - do not recreate it or duplicate content
+  across the two. Claude Code reads `CLAUDE.md`; other agents can be pointed at it.
+- `readme.txt` is the WordPress.org listing, `CHANGELOG.md` (optional) the
+  changelog. Neither carries developer guidance.
+- Master/source art for `.wordpress-org/` lives in `.claude/assets-src/`.
+- `.env.local` holds credentials: never commit it (it is in `.gitignore`).
+- `bin/*.sh` derive the slug from the main plugin file, so they are byte-identical
+  across plugins - never hard-code a slug in them. Per-plugin Plugin Check
+  suppressions go in `.plugin-check-ignore`.
+- `languages/` is optional; `.org` auto-loads translations.
 
 ## Layout
 
 ```
-perxel-image-optimizer.php   Main file: constants, autoloader, Action Scheduler + ui/ loaders, boot
+perxel-image-optimizer.php   Main file: constants, autoloader, Action Scheduler + UI-kit loaders, boot
 uninstall.php                Removes options + post meta + .htaccess block on delete
 includes/*.php               One PSR-4-ish class per concern (Ucfirst.php, namespaced)
 includes/views/*.php         Admin screen templates - dumb, fed vars by Admin.php
-assets/                      admin.js (admin pages), media.js (Media library), admin.css
-ui/                          Shared Perxel admin-UI kit - see below
+assets/css, assets/js        admin.css, admin.js (admin pages), media.js (Media library)
+vendor/perxel-ui/            Shared Perxel admin-UI kit - vendored, see below
 vendor/action-scheduler/     Bundled background job runner - see below
 .github/workflows/           lint.yml (PHPCS + Plugin Check), release.yml
+README.md                   Public-facing GitHub page only (see "Documentation rules")
+bin/                        build-zip.sh, plugin-check.sh, update-ui.sh - identical in every plugin
+.plugin-check-ignore        Documented Plugin Check false positives (mirrored in lint.yml)
+.claude/assets-src/         Master/source art for the listing assets - committed, not shipped
 ```
 
 `includes/` classes are loaded by the hand-rolled `spl_autoload_register` in the
@@ -98,46 +124,36 @@ under `perxel-image-optimizer` (Tools → Scheduled Actions filters cleanly).
 
 **To refresh:** download the target tag's tarball, replace the folder contents,
 drop any `CLAUDE.md` / `AGENTS.md` it ships, keep `.gitignore`'s
-`!/vendor/action-scheduler/` and `.distignore`'s per-package dev excludes. Bump
+`!/vendor/action-scheduler/`. Bump
 "Requires at least" if the new AS raises its WP floor. This is the one recurring
 maintenance cost.
 
-## The `ui/` folder - read `ui/README.md` before touching it
+## The `vendor/perxel-ui/` kit
 
-`ui/` is a **standalone, separately-versioned admin-UI kit**, copied verbatim
-into each Perxel plugin. It is NOT specific to this plugin.
+Standalone repo [`perxel/wp-plugin-ui`](https://github.com/perxel/wp-plugin-ui),
+vendored via `bin/update-ui.sh <version>` (curl a tagged tarball into
+`vendor/perxel-ui/`, Action Scheduler style - no Composer). Committed;
+`.gitignore` keeps it out of the general `vendor/` ignore, `.distignore` strips
+only its dev-only `showcase/`. Overwriting it can never change plugin behaviour
+- the `loader.php` "highest version wins" negotiation picks the newest copy
+across every active plugin, and a second copy is inert.
 
-**Rules:**
-- **Overwriting `ui/` must never fatal and never change plugin behaviour.** The
-  loader keeps the highest registered version across active plugins; extra copies
-  are inert (`class_exists` guard).
-- **`ui/loader.php` must stay backwards compatible forever** - it is the fixed
-  entry point (`require __DIR__ . '/ui/loader.php'`) that an old plugin still runs
-  when a newer copy wins.
-- **Public API is additive-only within a major version.** A breaking change =
-  major bump + every plugin must adopt the new copy. Bump `ui/CHANGELOG.md` and
-  `PERXEL_UI_VERSION` (in `loader.php`) when the kit changes - separately from the
-  plugin version.
-- **Server-rendered PHP + minimal vanilla JS. No build step.** `ui/assets/ui.css`
-  stays under ~600 lines: neutral tokens aliased to wp-admin CSS vars, the accent
-  fixed to the Perxel brand blue (`--pxui-brand` `#082ae5`), components layered
-  on native `.wrap` / `.button` / `.notice` / `.form-table`.
-- Prefixes inside `ui/`: `Perxel_UI` / `perxel_ui` / `PERXEL_UI` / `pxui-`.
-  Kit files are plain (no namespace), loaded only by `loader.php`.
-- **What belongs in `ui/`:** anything another Perxel plugin could reuse (layout,
-  row groups, notices, cards, progress bar). Plugin-specific styling/markup stays
-  in `assets/` or inline. Grey area → start plugin-local, promote to `ui/` when a
-  second plugin needs it.
-- Public API: `Perxel_UI_Layout::open()/close()`, `Perxel_UI::notice/
-  progress_bar/card/rows/toggle/checkbox_group/code/spinner`. Details in
-  `ui/README.md`. **`Perxel_UI::stat_grid()` is retired** - don't use it in new
-  code; the Status screen renders every metric as a `rows()` group.
-- The **Perxel UI** showcase page (the review surface after any `ui/` change) is
-  registered by the plugin as its third screen, visible only to `phucbm` /
-  `phucbm.dev@gmail.com`. It lives in `ui/showcase/` and is **stripped from the
-  distributed build** (`.distignore`): `ui/loader.php` (>= 0.15.0) tolerates the
-  missing folder and `Admin::can_see_showcase()` is `false` when the class is
-  absent. Do local `ui/` review from a dev checkout.
+The version passed to `Perxel_UI_Loader::register()` in the main file **and** the
+`vendor/perxel-ui/` contents must match the tag you vendored. Update both when
+you run `bin/update-ui.sh`.
+
+We host the kit's component showcase as a hidden maintainer-only screen
+(`PERXEL_UI_SHOWCASE_HOSTED` + `Admin::can_see_showcase()`), so its own Tools
+page is suppressed.
+
+The kit's component showcase is registered as this plugin's hidden third screen
+(`Admin::can_see_showcase()`, visible only to `phucbm` / `phucbm.dev@gmail.com`).
+`vendor/perxel-ui/showcase/` is stripped from the distributed build
+(`.distignore`); the loader tolerates its absence (>= 0.15.0) and
+`can_see_showcase()` is `false` when the class is absent. Kit development rules
+(backwards-compatible loader, additive API, prefixes) live in the kit's own repo.
+`Perxel_UI::stat_grid()` is retired - the Status screen renders every metric as
+a `rows()` group.
 
 ## Admin screens
 
@@ -156,7 +172,7 @@ shows in WP's menu):
   run it"** radio (`driver`: background / fast). Start / Pause / Cancel / Resume /
   Retry / "Back to summary" are plain form POSTs to `admin_post_*` handlers that
   redirect back (`handle_scan` is now just the completion-screen ack +
-  `Scan::run()`). `assets/admin.js` does the prepare-form arithmetic (image
+  `Scan::run()`). `assets/js/admin.js` does the prepare-form arithmetic (image
   count + ETA, per driver), the background monitor poll
   (`wp_ajax_perxel_image_optimizer_progress` every ~3s; a phase change triggers
   `location.reload()`), and — for a fast run — the `bindFastRunner` pump loop
@@ -197,9 +213,9 @@ composer run lint         # PHPCS
 composer run build        # bin/build-zip.sh - installable zip in dist/
 ```
 
-`vendor/` is partly committed: `vendor/action-scheduler/` ships, everything else
-under `vendor/` is gitignored dev tooling. `.distignore` lists the dev packages
-by name so the build zip keeps only Action Scheduler.
+`vendor/` is partly committed: `vendor/action-scheduler/` and `vendor/perxel-ui/`
+ship, everything else under `vendor/` is gitignored dev tooling, so the build zip
+(committed files minus `.distignore`) never contains it.
 
 Keep the diff focused: `composer run lint:fix` / `phpcbf` will happily reformat
 unrelated files - revert anything you didn't mean to touch.
@@ -213,6 +229,25 @@ filenames, namespace-guard files without an `@package` block, terse
 `@param`-only docblocks, unenforced inline-comment punctuation, full hook
 signatures with unused params). Don't silence a *new* real finding to keep it
 green - fix the code or add a reasoned inline ignore.
+
+## WordPress.org / Plugin Check compliance
+
+Rules that are not obvious and cost real time when re-derived per plugin:
+
+| Rule | Why |
+|---|---|
+| Namespace root = slug in `Ucfirst_Snake` (`Perxel_Image_Optimizer`) | `PrefixAllGlobals` accepts it as the prefix; a `Vendor\Package` namespace is flagged (`NonPrefixedNamespaceFound`) and Plugin Check ignores the `phpcs.xml.dist` prefix list |
+| Custom-table names via `%i`, never string-concatenated | `WordPress.DB.PreparedSQL.NotPrepared` is **error-level** and blocks .org (see "Custom tables") |
+| No `load_plugin_textdomain()` | .org auto-loads translations (slug == text domain); calling it on `plugins_loaded` is "too early" on WP 6.7+ |
+| Prefix any variable you **assign** in a view (`$pxio_url`); vars passed in via `extract()` are fine | `NonPrefixedVariableFound` fires on template-scope assignments |
+| `set_time_limit()` etc.: `function_exists()` guard + inline `// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- <reason>` | discouraged-function warning |
+| Calling another plugin's hooks (WPML `wpml_*`, WooCommerce): scope a `phpcs.xml.dist` exclude to the wrapper file **and** add the code to `lint.yml` -> `ignore-codes` | `NonPrefixedHooknameFound`; the two tools don't share config |
+| `'suppress_filters' => true` in a query: same dual-suppression, code `WordPressVIPMinimum.Performance.WPQueryParams.SuppressFilters_suppress_filters` | deliberate but flagged |
+
+The split that bites: **Plugin Check runs its own ruleset, not `phpcs.xml.dist`.**
+Any suppression for a documented false positive goes in *both* places -
+`phpcs.xml.dist` (for `composer run lint`) and `lint.yml` -> `ignore-codes`
+(mirrored in `.plugin-check-ignore`, which `bin/plugin-check.sh` reads).
 
 ## Releasing
 
@@ -230,12 +265,5 @@ workflow (dry run is the default).
 
 The release / WordPress.org process (first submission, org secrets, dry run,
 gotchas) is owned by the starter, https://github.com/perxel/wp-plugin-starter
-(`CLAUDE.md` -> "Releasing"). This plugin predates it, so its `release.yml` /
-`lint.yml` are earlier variants; if you improve the shared process here, make the
-same change in the starter.
-
-`ui/CHECKLIST-wordpress-org.md` is the shared WordPress.org submission /
-compliance checklist for every Perxel plugin (headers, readme, security,
-direct-DB / filesystem ignore conventions, opt-in server config, PHPCS setup,
-SVN steps). Consult it before a first submission and skim it before each
-release.
+(`CLAUDE.md` -> "Releasing"). `release.yml` / `lint.yml` here match the starter's;
+if you improve the shared process, make the same change in the starter.

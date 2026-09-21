@@ -1,6 +1,6 @@
 <?php
 /**
- * Perxel shared admin UI — render helpers.
+ * Perxel shared admin UI - render helpers.
  *
  * Stateless. Every method returns an HTML string; callers echo it, e.g.
  *
@@ -9,7 +9,7 @@
  * Escaping contract:
  *   - Structural markup and the `title` / `label` fields are escaped here.
  *   - `body`, `actions`, `value`, `content`, `sub` are treated as trusted HTML
- *     — the caller is responsible for escaping their dynamic parts.
+ *     - the caller is responsible for escaping their dynamic parts.
  *
  * @package Perxel_UI
  */
@@ -85,33 +85,32 @@ final class Perxel_UI {
 	}
 
 	/**
-	 * A grid of stat tiles.
+	 * A compact inline meter for a `rows()` value slot: a short track with the
+	 * percentage as its label. Unlike `progress_bar()` (a full-width block that
+	 * stands alone), this keeps the row's height and sits among other figures.
 	 *
-	 * @param array $tiles Each: [ 'label', 'value', 'sub', 'bar' (0-100|null), 'tone' ].
+	 * @param int   $pct  0-100.
+	 * @param array $args ['id' => wrapper id (for live updates: set
+	 *                    `.pxui-meter__fill` width + `.pxui-meter__text` text),
+	 *                    'text' => label before the track, default "N%"; pass ''
+	 *                    to hide it, 'width' => track width in px, default 96,
+	 *                    'tone' => 'good'|'warn'|'bad' fill colour].
 	 * @return string
 	 */
-	public static function stat_grid( $tiles ) {
-		$out = '<div class="pxui-stat-grid">';
+	public static function meter( $pct, $args = array() ) {
+		$pct   = max( 0, min( 100, (int) $pct ) );
+		$id    = ! empty( $args['id'] ) ? ' id="' . esc_attr( $args['id'] ) . '"' : '';
+		$text  = array_key_exists( 'text', $args ) ? (string) $args['text'] : $pct . '%';
+		$width = ! empty( $args['width'] ) ? (int) $args['width'] : 96;
+		$tone  = isset( $args['tone'] ) && in_array( $args['tone'], array( 'good', 'warn', 'bad' ), true ) ? ' pxui-meter--' . $args['tone'] : '';
 
-		foreach ( (array) $tiles as $t ) {
-			$tone = isset( $t['tone'] ) && in_array( $t['tone'], array( 'good', 'warn', 'bad' ), true ) ? ' pxui-stat--' . $t['tone'] : '';
-			$out .= '<div class="pxui-stat' . $tone . '">';
-			$out .= '<div class="pxui-stat__label">' . esc_html( isset( $t['label'] ) ? $t['label'] : '' ) . '</div>';
-			$out .= '<div class="pxui-stat__value">' . ( isset( $t['value'] ) ? $t['value'] : '' ) . '</div>';
-
-			if ( ! empty( $t['sub'] ) ) {
-				$out .= '<div class="pxui-stat__sub">' . $t['sub'] . '</div>';
-			}
-
-			if ( isset( $t['bar'] ) && null !== $t['bar'] ) {
-				$bar  = max( 0, min( 100, (int) $t['bar'] ) );
-				$out .= '<div class="pxui-stat__bar"><span style="width:' . esc_attr( (string) $bar ) . '%"></span></div>';
-			}
-
-			$out .= '</div>';
+		$out = '<span class="pxui-meter' . $tone . '"' . $id . ' role="progressbar" aria-valuenow="' . esc_attr( (string) $pct ) . '" aria-valuemin="0" aria-valuemax="100">';
+		if ( '' !== $text ) {
+			$out .= '<span class="pxui-meter__text">' . esc_html( $text ) . '</span>';
 		}
-
-		$out .= '</div>';
+		$out .= '<span class="pxui-meter__track" style="width:' . esc_attr( (string) $width ) . 'px">';
+		$out .= '<span class="pxui-meter__fill" style="width:' . esc_attr( (string) $pct ) . '%"></span>';
+		$out .= '</span></span>';
 
 		return $out;
 	}
@@ -162,12 +161,12 @@ final class Perxel_UI {
 	 * Pass either a flat list of rows (one implicit group) or a list of
 	 * groups: `[ [ 'title' => 'Group', 'rows' => [ row, row ] ], … ]`.
 	 *
-	 * A group with `'danger' => true` is styled as a destructive zone — red
-	 * title, red hairline card, buttons in the warning colour — for a screen's
+	 * A group with `'danger' => true` is styled as a destructive zone - red
+	 * title, red hairline card, buttons in the warning colour - for a screen's
 	 * cleanup / destructive-action section.
 	 *
 	 * A group with a `note` key renders that trusted HTML (or plain string) as a
-	 * muted footnote below the card — a description, a caveat, a "learn more"
+	 * muted footnote below the card - a description, a caveat, a "learn more"
 	 * link for the whole group. Left-aligned with the title. Groups only; a flat
 	 * row list has nowhere to put one.
 	 *
@@ -175,16 +174,22 @@ final class Perxel_UI {
 	 * line under the label), 'content' => trusted HTML (text, a toggle(), a
 	 * <select> or a button), 'tone' => good|warn|bad, 'icon' => … ]`.
 	 *
+	 * A group takes an optional `title_action` - trusted HTML (a button)
+	 * pinned to the right of the group title. Use it instead of putting an
+	 * action button next to an input inside a row: a row has little room, so
+	 * one action for the whole group belongs on the title line.
+	 *
 	 * `icon` (any row) puts a fixed square left of the label + sub, centred
-	 * against both: `good|warn|bad` draws a filled status dot (✓ / ! / ✕);
+	 * against both: `good|warn|bad` draws a filled status dot (✓ / ! / ✕),
+	 * `muted` draws a neutral grey dot;
 	 * any other non-empty string is trusted HTML (a dashicon, an `<svg>`, an
 	 * emoji) sized to the same frame.
 	 *
 	 * A row with a `summary` key becomes a disclosure instead: the summary text
 	 * sits where the label goes, the chevron takes the right edge (with optional
-	 * `content` trusted HTML — a count, a status — just left of it), and
+	 * `content` trusted HTML - a count, a status - just left of it), and
 	 * `details` (trusted HTML) reveals full-width below when the row is clicked.
-	 * Native `<details>` — no JS. `[ 'summary' => plain text, 'sub' => trusted
+	 * Native `<details>` - no JS. `[ 'summary' => plain text, 'sub' => trusted
 	 * HTML, 'content' => trusted HTML, 'details' => trusted HTML, 'open' => bool,
 	 * 'tone' => good|warn|bad, 'icon' => … ]`.
 	 *
@@ -205,8 +210,16 @@ final class Perxel_UI {
 			$danger = ! empty( $group['danger'] );
 			$out   .= '<div class="pxui-rows__group' . ( $danger ? ' pxui-rows__group--danger' : '' ) . '">';
 
-			if ( ! empty( $group['title'] ) ) {
-				$out .= '<p class="pxui-rows__title">' . esc_html( $group['title'] ) . '</p>';
+			$has_title  = ! empty( $group['title'] );
+			$has_action = isset( $group['title_action'] ) && '' !== trim( (string) $group['title_action'] );
+
+			if ( $has_title || $has_action ) {
+				$out .= '<div class="pxui-rows__titlebar">';
+				$out .= '<p class="pxui-rows__title">' . esc_html( $has_title ? $group['title'] : '' ) . '</p>';
+				if ( $has_action ) {
+					$out .= '<span class="pxui-rows__title-action">' . $group['title_action'] . '</span>';
+				}
+				$out .= '</div>';
 			}
 
 			$out .= '<div class="pxui-rows__card">';
@@ -214,14 +227,14 @@ final class Perxel_UI {
 			foreach ( (array) ( isset( $group['rows'] ) ? $group['rows'] : array() ) as $r ) {
 				$tone = isset( $r['tone'] ) && in_array( $r['tone'], array( 'good', 'warn', 'bad' ), true ) ? ' pxui-row--' . $r['tone'] : '';
 
-				// Optional leading icon — its own fixed square, left of the
+				// Optional leading icon - its own fixed square, left of the
 				// label + sub and centred against both. `icon => good|warn|bad`
-				// draws a filled status dot (✓ / ! / ✕); any other non-empty
-				// string is trusted HTML (a dashicon, an <svg>, an emoji)
-				// dropped into the same frame so every icon lines up.
+				// draws a filled status dot (✓ / ! / ✕), `muted` a neutral grey
+				// dot; any other non-empty string is trusted HTML (a dashicon,
+				// an <svg>, an emoji) dropped into the same frame.
 				$icon = '';
 				if ( ! empty( $r['icon'] ) ) {
-					$preset = in_array( $r['icon'], array( 'good', 'warn', 'bad' ), true );
+					$preset = in_array( $r['icon'], array( 'good', 'warn', 'bad', 'muted' ), true );
 					$icon   = '<span class="pxui-row__icon' . ( $preset ? ' pxui-row__icon--' . $r['icon'] : '' ) . '" aria-hidden="true">'
 						. ( $preset ? '' : $r['icon'] )
 						. '</span>';
@@ -251,6 +264,8 @@ final class Perxel_UI {
 					continue;
 				}
 
+				$content = isset( $r['content'] ) ? (string) $r['content'] : '';
+
 				$out .= '<div class="pxui-row' . $tone . $has_icon . '">';
 				$out .= $icon;
 				$out .= '<span class="pxui-row__label">' . esc_html( isset( $r['label'] ) ? $r['label'] : '' );
@@ -260,7 +275,7 @@ final class Perxel_UI {
 				}
 
 				$out .= '</span>';
-				$out .= '<span class="pxui-row__content">' . ( isset( $r['content'] ) ? $r['content'] : '' ) . '</span>';
+				$out .= '<span class="pxui-row__content">' . $content . '</span>';
 				$out .= '</div>';
 			}
 
@@ -279,9 +294,10 @@ final class Perxel_UI {
 	}
 
 	/**
-	 * A toggle — a checkbox, which the kit CSS renders as an iOS switch.
-	 * Handy as row `content`; a plain `<input type="checkbox">` inside
-	 * `.pxui-wrap` renders identically.
+	 * A toggle - an `<input type="checkbox" class="pxui-toggle">`, which the
+	 * kit CSS renders as an iOS switch. Handy as row `content`. A plain
+	 * checkbox (no class) is a square box with a tick; add `pxui-toggle`
+	 * yourself for the switch look, or call this.
 	 *
 	 * @param array $args [ 'name', 'checked' (bool), 'value', 'id', 'form',
 	 *              'label' (accessible name) ].
@@ -307,18 +323,18 @@ final class Perxel_UI {
 		$attr .= $d['checked'] ? ' checked' : '';
 		$attr .= $d['label'] ? ' aria-label="' . esc_attr( $d['label'] ) . '"' : '';
 
-		return '<input type="checkbox"' . $attr . ' />';
+		return '<input type="checkbox" class="pxui-toggle"' . $attr . ' />';
 	}
 
 	/**
-	 * A checkbox group — a "pick several" list rendered as selectable pills.
+	 * A checkbox group - a "pick several" list rendered as selectable pills.
 	 * Each option keeps a real `<input type="checkbox">` in the DOM (form
-	 * state, keyboard, a11y) but hidden; the pill is the control — hairline
+	 * state, keyboard, a11y) but hidden; the pill is the control - hairline
 	 * border at rest, brand fill when selected. Flows inline and wraps.
 	 * Handy as row `content`.
 	 *
 	 * Each option is `value => label`, or an array with `value`, `label`,
-	 * `sub` (a muted second line under the label — dimensions, a hint),
+	 * `sub` (a muted second line under the label - dimensions, a hint),
 	 * `checked` (overrides `selected`). `label` and `sub` are escaped as
 	 * plain text.
 	 *
@@ -382,7 +398,7 @@ final class Perxel_UI {
 	}
 
 	/**
-	 * A read-only preformatted block — config snippets, generated rules, log
+	 * A read-only preformatted block - config snippets, generated rules, log
 	 * output. Scrolls sideways rather than wrapping. Reads well inside a
 	 * disclosure row's `details`.
 	 *
@@ -397,5 +413,155 @@ final class Perxel_UI {
 			: '';
 
 		return $label . '<pre class="pxui-code"' . $id_attr . '>' . esc_html( (string) $text ) . '</pre>';
+	}
+
+	/**
+	 * A WordPress media-library picker: a hidden `<input>` holding the chosen
+	 * attachment ID (a comma-joined list when `multiple`), a live preview, and
+	 * Choose / Remove controls. `ui.js` drives the native `wp.media` frame, so
+	 * the screen must call `wp_enqueue_media()` itself - core only auto-loads
+	 * the media library on post-edit screens, not a custom admin page.
+	 *
+	 * Stores bare attachment IDs. Read them back with
+	 * `absint( $_POST[ $name ] )`, or `wp_parse_id_list( $_POST[ $name ] )` for
+	 * a `multiple` field. Handy as row `content`.
+	 *
+	 * @param array $args [
+	 *   'name'         => string        hidden input name,
+	 *   'value'        => int|int[]|string  current ID, or a list / CSV of IDs,
+	 *   'type'         => string        '' | 'image' | 'audio' | 'video' - wp.media library filter,
+	 *   'multiple'     => bool          allow several; the value becomes a CSV (default false),
+	 *   'form'         => string        `form=` attribute for the hidden input,
+	 *   'label'        => string        button text (default "Choose file" / "Add files"),
+	 *   'preview_size' => string        registered image size for thumbnails (default 'thumbnail'),
+	 * ]
+	 * @return string
+	 */
+	public static function media( $args = array() ) {
+		$d = array_merge(
+			array(
+				'name'         => '',
+				'value'        => '',
+				'type'         => '',
+				'multiple'     => false,
+				'form'         => '',
+				'label'        => '',
+				'preview_size' => 'thumbnail',
+			),
+			$args
+		);
+
+		$multiple = ! empty( $d['multiple'] );
+
+		// Normalise the value to a list of positive ints.
+		$ids = is_array( $d['value'] )
+			? $d['value']
+			: preg_split( '/[\s,]+/', (string) $d['value'], -1, PREG_SPLIT_NO_EMPTY );
+		$ids = array_values( array_unique( array_filter( array_map( 'absint', (array) $ids ) ) ) );
+		if ( ! $multiple ) {
+			$ids = $ids ? array( $ids[0] ) : array();
+		}
+
+		$size  = (string) $d['preview_size'];
+		$type  = preg_replace( '/[^a-z]/', '', strtolower( (string) $d['type'] ) );
+		$label = '' !== (string) $d['label']
+			? (string) $d['label']
+			: ( $multiple ? 'Add files' : 'Choose file' );
+
+		$wrap  = '<div class="pxui-media' . ( $multiple ? ' pxui-media--multiple' : '' ) . '"';
+		$wrap .= ' data-preview-size="' . esc_attr( $size ) . '"';
+		$wrap .= '' !== $type ? ' data-type="' . esc_attr( $type ) . '"' : '';
+		$wrap .= $multiple ? ' data-multiple="1"' : '';
+		$wrap .= '>';
+
+		$out  = $wrap;
+		$out .= '<input type="hidden" class="pxui-media__value"'
+			. ( $d['name'] ? ' name="' . esc_attr( $d['name'] ) . '"' : '' )
+			. ( $d['form'] ? ' form="' . esc_attr( $d['form'] ) . '"' : '' )
+			. ' value="' . esc_attr( implode( ',', $ids ) ) . '" />';
+
+		$out .= '<span class="pxui-media__list"' . ( $ids ? '' : ' hidden' ) . '>';
+		foreach ( $ids as $id ) {
+			$out .= self::media_item( $id, $size );
+		}
+		$out .= '</span>';
+
+		$out .= '<span class="pxui-media__actions">';
+		$out .= '<button type="button" class="button button-small pxui-media__choose">' . esc_html( $label ) . '</button>';
+		$out .= '<button type="button" class="pxui-media__clear"' . ( $ids ? '' : ' hidden' ) . '>'
+			. esc_html( $multiple ? 'Remove all' : 'Remove' ) . '</button>';
+		$out .= '</span>';
+
+		$out .= '</div>';
+
+		return $out;
+	}
+
+	/**
+	 * One preview tile for `media()` - a thumbnail for an image, a filename
+	 * chip for anything else, with a per-item remove button. `ui.js` builds
+	 * the same shape when the user picks a new attachment, so keep the two in
+	 * step.
+	 *
+	 * @param int    $id   Attachment ID.
+	 * @param string $size Registered image size for the thumbnail.
+	 * @return string
+	 */
+	private static function media_item( $id, $size = 'thumbnail' ) {
+		$id = absint( $id );
+		if ( ! $id ) {
+			return '';
+		}
+
+		$thumb = wp_get_attachment_image_url( $id, $size );
+		if ( $thumb ) {
+			$inner = '<img src="' . esc_url( $thumb ) . '" alt="" />';
+		} else {
+			$file  = wp_basename( (string) get_attached_file( $id ) );
+			$inner = '<span class="pxui-media__file">' . esc_html( '' !== $file ? $file : get_the_title( $id ) ) . '</span>';
+		}
+
+		return '<span class="pxui-media__item" data-id="' . esc_attr( (string) $id ) . '">'
+			. $inner
+			. '<button type="button" class="pxui-media__drop" aria-label="Remove">&times;</button>'
+			. '</span>';
+	}
+
+	/**
+	 * A colour picker: a native `<input type="color">` swatch beside a hex
+	 * text field. `ui.js` keeps the two in sync; with JS off the swatch alone
+	 * still works. The text field carries the input name, so a typed or pasted
+	 * `#rrggbb` submits. Value is a `#rrggbb` string ('' renders an unset
+	 * control). Handy as row `content`.
+	 *
+	 * @param array $args [ 'name', 'value' => '#rrggbb', 'form', 'label' (accessible name) ].
+	 * @return string
+	 */
+	public static function color( $args = array() ) {
+		$d = array_merge(
+			array(
+				'name'  => '',
+				'value' => '',
+				'form'  => '',
+				'label' => '',
+			),
+			$args
+		);
+
+		$hex   = preg_match( '/^#[0-9a-fA-F]{6}$/', (string) $d['value'] ) ? strtolower( (string) $d['value'] ) : '';
+		$form  = $d['form'] ? ' form="' . esc_attr( $d['form'] ) . '"' : '';
+		$label = $d['label'] ? ' aria-label="' . esc_attr( $d['label'] ) . '"' : '';
+
+		$out  = '<span class="pxui-color">';
+		$out .= '<input type="color" class="pxui-color__swatch" tabindex="-1" aria-hidden="true"'
+			. ' value="' . esc_attr( '' !== $hex ? $hex : '#000000' ) . '" />';
+		$out .= '<input type="text" class="pxui-color__hex" spellcheck="false" autocomplete="off"'
+			. ' maxlength="7" placeholder="#rrggbb"'
+			. ( $d['name'] ? ' name="' . esc_attr( $d['name'] ) . '"' : '' )
+			. $form . $label
+			. ' value="' . esc_attr( $hex ) . '" />';
+		$out .= '</span>';
+
+		return $out;
 	}
 }

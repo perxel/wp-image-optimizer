@@ -1,6 +1,6 @@
 <?php
 
-namespace Perxel\ImageOptimizer;
+namespace Perxel_Image_Optimizer;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -60,7 +60,7 @@ class Ajax {
 
 	/**
 	 * Fast mode: run one browser-pumped conversion batch and return progress.
-	 * Called in a loop by assets/admin.js while the Optimization tab is open.
+	 * Called in a loop by assets/js/admin.js while the Optimization tab is open.
 	 */
 	public function fast_step() {
 		if ( ! check_ajax_referer( self::NONCE, 'nonce', false ) ) {

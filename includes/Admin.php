@@ -1,6 +1,6 @@
 <?php
 
-namespace Perxel\ImageOptimizer;
+namespace Perxel_Image_Optimizer;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -9,10 +9,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Admin pages, asset loading, and Media-library integration.
  *
- * Screens under Media, all rendered inside the shared Perxel UI layout (see ui/):
+ * Screens under Media, all rendered inside the shared Perxel UI layout (see vendor/perxel-ui/):
  *   - Optimization ( upload.php?page=perxel-image-optimizer )       - the glance + the run button.
  *   - Settings ( upload.php?page=perxel-image-optimizer-settings ) - environment, config, serving, cleanup.
- *   - Perxel UI ( upload.php?page=perxel-image-optimizer-ui )      - the ui/ kit showcase, maintainer-only.
+ *   - Perxel UI ( upload.php?page=perxel-image-optimizer-ui )      - the vendor/perxel-ui/ kit showcase, maintainer-only.
  * Only the "WebP" entry shows in WP's Media menu; the sidebar links the rest.
  */
 class Admin {
@@ -106,7 +106,7 @@ class Admin {
 			return false;
 		}
 
-		// The showcase ships only in maintainer builds - `ui/showcase/` is
+		// The showcase ships only in maintainer builds - `vendor/perxel-ui/showcase/` is
 		// stripped from the distributed zip. Absent class => no third screen.
 		if ( ! class_exists( 'Perxel_UI_Showcase' ) ) {
 			return false;
@@ -146,12 +146,12 @@ class Admin {
 			return;
 		}
 
-		$css = PERXEL_IMAGE_OPTIMIZER_DIR . 'assets/admin.css';
+		$css = PERXEL_IMAGE_OPTIMIZER_DIR . 'assets/css/admin.css';
 		$ver = file_exists( $css ) ? (string) filemtime( $css ) : PERXEL_IMAGE_OPTIMIZER_VERSION;
 
 		wp_enqueue_style(
 			'perxel-image-optimizer-admin',
-			PERXEL_IMAGE_OPTIMIZER_URL . 'assets/admin.css',
+			PERXEL_IMAGE_OPTIMIZER_URL . 'assets/css/admin.css',
 			array(),
 			$ver
 		);
@@ -160,7 +160,7 @@ class Admin {
 			\Perxel_UI::enqueue();
 		}
 
-		$script = $on_page ? 'assets/admin.js' : 'assets/media.js';
+		$script = $on_page ? 'assets/js/admin.js' : 'assets/js/media.js';
 		$handle = $on_page ? 'perxel-image-optimizer-admin' : 'perxel-image-optimizer-media';
 		$abs    = PERXEL_IMAGE_OPTIMIZER_DIR . $script;
 		$deps   = $on_page && class_exists( 'Perxel_UI' ) ? array( 'perxel-ui' ) : array();
