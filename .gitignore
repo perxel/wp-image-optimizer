@@ -9,4 +9,3 @@ dist/
 languages/*.mo
 *.log
 
-.env.local
