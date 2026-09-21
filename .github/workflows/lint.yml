@@ -36,3 +36,6 @@ jobs:
         with:
           # The checkout folder is the repo name, not the plugin slug.
           slug: perxel-image-optimizer
+          # Dev-only files that .distignore keeps out of the shipped zip.
+          exclude-files: phpcs.xml.dist
+          exclude-directories: bin
