@@ -8,7 +8,9 @@
 #
 # Trunk = the .distignore-filtered build (bin/build-zip.sh); assets = .wordpress-org/.
 # The SVN working copy lives in dist/svn (gitignored). Requires `svn` and rsync.
-# WPORG_USER is your wordpress.org username for --commit (default: phucbm).
+# Credentials for --commit: WPORG_USER (default: phucbm) and, optionally,
+# WPORG_PASSWORD - read from the environment or a gitignored .env.local in the
+# repo root. With no password set, svn prompts and caches it in the keychain.
 # Also available as `composer svn:stage` / `composer svn:publish`.
 
 set -euo pipefail
@@ -16,6 +18,14 @@ set -euo pipefail
 SLUG="perxel-image-optimizer"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+
+# Optional local credentials (gitignored). Never commit this file.
+if [[ -f "$ROOT/.env.local" ]]; then
+	set -a
+	# shellcheck disable=SC1091
+	source "$ROOT/.env.local"
+	set +a
+fi
 
 command -v svn >/dev/null || { echo "svn not found (macOS: brew install subversion)" >&2; exit 1; }
 
@@ -58,7 +68,11 @@ fi
 ( cd "$WC" && svn status )
 
 if [[ "$COMMIT" -eq 1 ]]; then
-	( cd "$WC" && svn ci --username "${WPORG_USER:-phucbm}" -m "Release $VERSION" )
+	if [[ -n "${WPORG_PASSWORD:-}" ]]; then
+		( cd "$WC" && printf '%s' "$WPORG_PASSWORD" | svn ci --non-interactive --username "${WPORG_USER:-phucbm}" --password-from-stdin -m "Release $VERSION" )
+	else
+		( cd "$WC" && svn ci --username "${WPORG_USER:-phucbm}" -m "Release $VERSION" )
+	fi
 else
 	echo
 	echo "Staged only. Review the status above, then re-run with --commit."
