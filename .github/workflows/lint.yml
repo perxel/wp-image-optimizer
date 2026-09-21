@@ -33,3 +33,6 @@ jobs:
 
       - name: Run Plugin Check
         uses: wordpress/plugin-check-action@v1
+        with:
+          # The checkout folder is the repo name, not the plugin slug.
+          slug: perxel-image-optimizer
