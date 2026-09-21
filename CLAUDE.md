@@ -226,7 +226,13 @@ Publishing a GitHub Release also deploys to WordPress.org: the `deploy` job in
 `tags/<version>` + `.wordpress-org/` (banners, icons, screenshots) to SVN. It needs
 the `SVN_USERNAME` / `SVN_PASSWORD` secrets and fails unless the tag, plugin
 `Version` and readme `Stable tag` all match. Test with Actions -> Release -> Run
-workflow (dry run is the default). See `.claude/wordpress-org-svn-deploy.md`.
+workflow (dry run is the default).
+
+The release / WordPress.org process (first submission, org secrets, dry run,
+gotchas) is owned by the starter, https://github.com/perxel/wp-plugin-starter
+(`CLAUDE.md` -> "Releasing"). This plugin predates it, so its `release.yml` /
+`lint.yml` are earlier variants; if you improve the shared process here, make the
+same change in the starter.
 
 `ui/CHECKLIST-wordpress-org.md` is the shared WordPress.org submission /
 compliance checklist for every Perxel plugin (headers, readme, security,
