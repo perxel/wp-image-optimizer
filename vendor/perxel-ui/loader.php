@@ -1,6 +1,6 @@
 <?php
 /**
- * Perxel shared admin UI — loader.
+ * Perxel shared admin UI - loader.
  *
  * This file is the ONE part of the `ui/` kit that must stay backwards
  * compatible forever. Every plugin that bundles a copy of `ui/` calls

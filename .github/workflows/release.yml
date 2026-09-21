@@ -1,14 +1,26 @@
 name: Release
 
-# When you publish a GitHub Release this workflow (1) builds the installable
-# plugin zip (bin/build-zip.sh — committed files minus .distignore) and attaches
-# it to that release, and (2) deploys the tag to the WordPress.org SVN repo
-# (trunk + tags/<version> + .wordpress-org/ -> /assets/) with the 10up action.
-# Nothing is committed back to the repo.
+# When you publish a GitHub Release this workflow:
+#   1. builds the installable plugin zip (bin/build-zip.sh - committed files
+#      minus .distignore) and attaches it to that release;
+#   2. deploys that tag to the WordPress.org plugin SVN repo with the 10up
+#      action: trunk (.distignore applied), tags/<version>, and everything in
+#      .wordpress-org/ -> SVN assets/ (banners, icons, screenshots).
 #
-# Needs the repo (or org) secrets SVN_USERNAME and SVN_PASSWORD.
-# Manual run: Actions -> Release -> Run workflow. "dry_run" (default on) does
-# everything except the final SVN commit.
+# Nothing is committed back to the repo. The SVN step needs the secrets
+# SVN_USERNAME and SVN_PASSWORD (set them at the GitHub ORG level, shared with
+# selected repos) and refuses to run unless the tag, the plugin `Version:` header
+# and the readme `Stable tag` all agree.
+#
+# The deploy job is gated on a repo *variable* DEPLOY_TO_WPORG=true (Settings ->
+# Secrets and variables -> Actions -> Variables). Set it only once the first
+# .org review is approved (the SVN repo does not exist before that); until then
+# only the zip job runs, so a Release on a not-yet-published plugin stays green.
+#
+# Test it: Actions -> Release -> Run workflow. "dry_run" (default on) runs the
+# version check and stages the SVN deploy WITHOUT committing, and skips the zip
+# upload. A real deploy only ever happens from a published Release.
+# See CLAUDE.md -> "Releasing".
 
 on:
   release:
@@ -37,6 +49,9 @@ jobs:
         with:
           ref: ${{ github.event.release.tag_name || github.event.inputs.tag }}
 
+      - name: Build zip
+        run: bin/build-zip.sh
+
       - name: Check version matches the tag
         run: |
           TAG="${{ github.event.release.tag_name || github.event.inputs.tag }}"
@@ -48,9 +63,6 @@ jobs:
             exit 1
           fi
 
-      - name: Build zip
-        run: bin/build-zip.sh
-
       - name: Upload to the release
         uses: softprops/action-gh-release@v2
         with:
@@ -60,6 +72,8 @@ jobs:
 
   deploy:
     name: Deploy to WordPress.org
+    # Real deploys come only from a published Release; a manual run is dry-run only.
+    if: (github.event_name == 'release' || inputs.dry_run) && vars.DEPLOY_TO_WPORG == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -85,8 +99,12 @@ jobs:
           echo "version=$VER" >> "$GITHUB_OUTPUT"
 
       # Pinned to a commit SHA (v2.3.0): this step receives the wordpress.org
-      # password, so it must not move under us. Bump deliberately.
-      - name: Deploy to the WordPress.org SVN repo
+      # password, so it must not move under us. Bump deliberately:
+      #   gh api repos/10up/action-wordpress-plugin-deploy/releases/latest
+      # then resolve that tag to its commit SHA. It also syncs .wordpress-org/
+      # to SVN assets/, so no separate assets job is needed (two parallel SVN
+      # commits would race).
+      - name: WordPress.org plugin deploy
         uses: 10up/action-wordpress-plugin-deploy@54bd289b8525fd23a5c365ec369185f2966529c2
         with:
           dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}

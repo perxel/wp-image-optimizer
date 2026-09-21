@@ -1,8 +1,8 @@
 <?php
 /**
- * Perxel shared admin UI — component showcase.
+ * Perxel shared admin UI - component showcase.
  *
- * Renders every component in the real layout — the review surface: change a
+ * Renders every component in the real layout - the review surface: change a
  * component, reload this page, see it everywhere. By default it self-registers
  * as a hidden page under Tools ("Perxel UI"). A plugin that would rather host
  * the showcase as one of its own screens defines `PERXEL_UI_SHOWCASE_HOSTED`
@@ -25,7 +25,7 @@ final class Perxel_UI_Showcase {
 
 	/**
 	 * Hook registration. Skipped when a plugin hosts the showcase itself
-	 * (`PERXEL_UI_SHOWCASE_HOSTED`) — no Tools page in that case.
+	 * (`PERXEL_UI_SHOWCASE_HOSTED`) - no Tools page in that case.
 	 */
 	public static function init() {
 		if ( defined( 'PERXEL_UI_SHOWCASE_HOSTED' ) && PERXEL_UI_SHOWCASE_HOSTED ) {
@@ -58,6 +58,7 @@ final class Perxel_UI_Showcase {
 	public static function assets( $hook ) {
 		if ( 'tools_page_' . self::SLUG === $hook ) {
 			Perxel_UI::enqueue();
+			wp_enqueue_media();
 		}
 	}
 
@@ -95,7 +96,7 @@ final class Perxel_UI_Showcase {
 	}
 
 	/**
-	 * Echo just the component showcase — every component in document order, no
+	 * Echo just the component showcase - every component in document order, no
 	 * layout wrapper. A plugin hosting the showcase as one of its own screens
 	 * calls this between its own `Perxel_UI_Layout::open()` / `close()`.
 	 */
@@ -105,31 +106,53 @@ final class Perxel_UI_Showcase {
 		echo '<h2>Progress bar</h2>';
 		echo Perxel_UI::progress_bar( 62, array( 'label' => '1,842 / 4,110 · ETA 4m' ) );
 
-		echo '<h2>Stat grid</h2>';
-		echo Perxel_UI::stat_grid(
+		echo '<h2>Meter (inline, for a rows value slot)</h2>';
+		echo Perxel_UI::rows(
 			array(
 				array(
-					'label' => 'Library',
-					'value' => '1,240',
-					'sub'   => 'images',
+					'label'   => 'Progress',
+					'content' => '1,842 / 4,110 &middot; ' . Perxel_UI::meter( 45 ),
 				),
 				array(
-					'label' => 'Converted',
-					'value' => '7,284',
-					'sub'   => '98% coverage',
-					'bar'   => 98,
+					'label'   => 'Coverage',
+					'content' => Perxel_UI::meter( 92, array( 'tone' => 'good' ) ),
 				),
 				array(
-					'label' => 'Unconverted',
-					'value' => '128',
-					'sub'   => '12 failed',
-					'tone'  => 'warn',
+					'label'   => 'Disk',
+					'content' => Perxel_UI::meter( 78, array( 'tone' => 'warn', 'width' => 140 ) ),
 				),
+			)
+		);
+
+		echo '<h2>Stats (a rows group)</h2>';
+		echo Perxel_UI::rows(
+			array(
 				array(
-					'label' => 'Saved',
-					'value' => '&minus;340 MB',
-					'sub'   => '62% smaller',
-					'tone'  => 'good',
+					'title' => 'At a glance',
+					'rows'  => array(
+						array(
+							'label'   => 'Library',
+							'sub'     => 'images',
+							'content' => '1,240',
+						),
+						array(
+							'label'   => 'Converted',
+							'sub'     => '98% coverage',
+							'content' => '7,284',
+						),
+						array(
+							'label'   => 'Unconverted',
+							'sub'     => '12 failed',
+							'content' => '128',
+							'tone'    => 'warn',
+						),
+						array(
+							'label'   => 'Saved',
+							'sub'     => '62% smaller',
+							'content' => '&minus;340 MB',
+							'tone'    => 'good',
+						),
+					),
 				),
 			)
 		);
@@ -157,7 +180,7 @@ final class Perxel_UI_Showcase {
 						array(
 							'icon'    => 'good',
 							'label'   => 'WebP encoding',
-							'sub'     => 'Preset status dot — centred against label + sub.',
+							'sub'     => 'Preset status dot - centred against label + sub.',
 							'content' => 'Imagick',
 							'tone'    => 'good',
 						),
@@ -176,7 +199,7 @@ final class Perxel_UI_Showcase {
 				),
 				array(
 					'title' => 'Conversion',
-					'note'  => 'A group <code>note</code> — trusted HTML below the card for a description or caveat. <a href="#">Learn more</a> about conversion settings.',
+					'note'  => 'A group <code>note</code> - trusted HTML below the card for a description or caveat. <a href="#">Learn more</a> about conversion settings.',
 					'rows'  => array(
 						array(
 							'label'   => 'Convert new uploads',
@@ -194,7 +217,7 @@ final class Perxel_UI_Showcase {
 						),
 						array(
 							'label'   => 'Sizes to convert',
-							'sub'     => 'A "pick several" list — real checkboxes, not toggles.',
+							'sub'     => 'A "pick several" list - selectable pills, not a stack of checkboxes.',
 							'content' => Perxel_UI::checkbox_group(
 								array(
 									'name'     => 'demo_sizes',
@@ -221,7 +244,7 @@ final class Perxel_UI_Showcase {
 						),
 						array(
 							'label'   => 'Skip images larger than',
-							'sub'     => 'A number input as row content — sized to its value.',
+							'sub'     => 'A number input as row content - sized to its value.',
 							'content' => '<input type="number" min="1" max="200" value="24" /> megapixels',
 						),
 						array(
@@ -234,18 +257,18 @@ final class Perxel_UI_Showcase {
 						),
 						array(
 							'summary' => 'Managed .htaccess block',
-							'sub'     => 'A disclosure row — click to reveal.',
+							'sub'     => 'A disclosure row - click to reveal.',
 							'details' => Perxel_UI::code( "# BEGIN Perxel Image Optimizer\n<IfModule mod_rewrite.c>\n  RewriteEngine On\n  RewriteCond %{HTTP_ACCEPT} image/webp\n  RewriteCond %{REQUEST_FILENAME}.webp -f\n  RewriteRule ^(.+)\\.(jpe?g|png)$ $1.$2.webp [T=image/webp,L]\n</IfModule>\n# END Perxel Image Optimizer" ),
 						),
 						array(
 							'summary' => '2025',
-							'sub'     => 'Disclosure with a right-edge value — a count sits just left of the chevron.',
+							'sub'     => 'Disclosure with a right-edge value - a count sits just left of the chevron.',
 							'content' => '8 months &middot; 842 images',
 							'details' => Perxel_UI::code( "08/2025   420 images\n07/2025   180 images\n06/2025   242 images" ),
 						),
 						array(
 							'summary' => 'WebP conversion is supported',
-							'sub'     => 'Disclosure with an icon — the status dot reads pass/fail closed.',
+							'sub'     => 'Disclosure with an icon - the status dot reads pass/fail closed.',
 							'icon'    => 'good',
 							'details' => Perxel_UI::code( "Engine       Imagick - PNG lossless available\nPHP          8.2.0\nMemory limit 256M" ),
 						),
@@ -260,9 +283,53 @@ final class Perxel_UI_Showcase {
 			array( 'label' => 'Build output' )
 		);
 
+		echo '<h2>Media &amp; colour pickers</h2>';
+		echo Perxel_UI::rows(
+			array(
+				array(
+					'title' => 'Assets',
+					'note'  => 'The media picker drives the native <code>wp.media</code> frame - the screen must call <code>wp_enqueue_media()</code> (this showcase does).',
+					'rows'  => array(
+						array(
+							'label'   => 'Featured image',
+							'sub'     => 'Single image - value is one attachment ID.',
+							'content' => Perxel_UI::media(
+								array(
+									'name'  => 'demo_image',
+									'type'  => 'image',
+									'label' => 'Choose image',
+								)
+							),
+						),
+						array(
+							'label'   => 'Gallery',
+							'sub'     => 'multiple - value is a comma-joined list of IDs.',
+							'content' => Perxel_UI::media(
+								array(
+									'name'     => 'demo_gallery',
+									'type'     => 'image',
+									'multiple' => true,
+								)
+							),
+						),
+						array(
+							'label'   => 'Brand colour',
+							'sub'     => 'Native swatch + a hex field, kept in sync.',
+							'content' => Perxel_UI::color(
+								array(
+									'name'  => 'demo_color',
+									'value' => '#082ae5',
+								)
+							),
+						),
+					),
+				),
+			)
+		);
+
 		echo '<h2>Form controls</h2>';
-		echo '<p class="pxui-field"><label><input type="checkbox" checked /> Checkbox renders as a toggle</label></p>';
-		echo '<p class="pxui-field"><label><input type="checkbox" class="pxui-checkbox" checked /> With <code>.pxui-checkbox</code> — a real square box</label></p>';
+		echo '<p class="pxui-field"><label><input type="checkbox" checked /> A checkbox is a square box with a brand tick</label></p>';
+		echo '<p class="pxui-field"><label><input type="checkbox" class="pxui-toggle" checked /> With <code>.pxui-toggle</code> - an iOS switch (what <code>Perxel_UI::toggle()</code> emits)</label></p>';
 		echo '<p class="pxui-field">Checkbox group: ' . Perxel_UI::checkbox_group(
 			array(
 				'name'     => 'demo_group',
@@ -279,6 +346,37 @@ final class Perxel_UI_Showcase {
 			. '<label><input type="radio" name="pxui-demo" /> Radio two</label></p>';
 		echo '<p class="pxui-field"><button type="button" class="button">' . Perxel_UI::spinner() . ' Working</button></p>';
 
+		echo '<h2>Unsaved-changes guard</h2>';
+		echo '<p class="pxui-muted">This form carries <code>data-pxui-dirty-guard</code>. '
+			. 'Edit a field, then try to reload or leave - the browser asks to confirm. '
+			. 'The read-only field and the one marked <code>data-pxui-dirty-ignore</code> do not count.</p>';
+		echo '<form id="pxui-demo-guard" data-pxui-dirty-guard>';
+		echo Perxel_UI::rows(
+			array(
+				array(
+					'title'        => 'Guarded form',
+					'title_action' => '<button type="submit" class="button button-primary" form="pxui-demo-guard">Save</button>',
+					'rows'         => array(
+						array(
+							'label'   => 'Tracked field',
+							'content' => '<input type="text" name="demo_tracked" value="edit me" />',
+						),
+						array(
+							'label'   => 'Read-only field',
+							'sub'     => 'Skipped - [readonly].',
+							'content' => '<input type="text" name="demo_ro" value="fixed" readonly onclick="this.select()" />',
+						),
+						array(
+							'label'   => 'Ignored field',
+							'sub'     => 'Skipped - data-pxui-dirty-ignore.',
+							'content' => '<span data-pxui-dirty-ignore><input type="text" name="demo_ignored" value="scratch" /></span>',
+						),
+					),
+				),
+			)
+		);
+		echo '</form>';
+
 		echo '<h2>Danger row group</h2>';
 		echo Perxel_UI::rows(
 			array(
@@ -290,12 +388,12 @@ final class Perxel_UI_Showcase {
 						array(
 							'label'   => 'Remove all WebP files',
 							'sub'     => 'Deletes every .webp file and resets plugin data.',
-							'content' => '<button type="button" class="button" data-pxui-confirm="Really?">Remove files</button>',
+							'content' => '<button type="button" class="button button-small" data-pxui-confirm="Really?">Remove files</button>',
 						),
 						array(
 							'label'   => 'Remove .htaccess block',
 							'sub'     => 'Deletes the managed rewrite rules.',
-							'content' => '<button type="button" class="button">Remove block</button>',
+							'content' => '<button type="button" class="button button-small">Remove block</button>',
 						),
 					),
 				),

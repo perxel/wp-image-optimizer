@@ -31,11 +31,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Check what actually ships, not the repo: the build strips vendor dev
+      # tooling, composer.json, .github, etc. (see .distignore). Checking the
+      # raw checkout makes Plugin Check flag those as "application files".
+      - name: Build the shippable plugin
+        run: bin/build-zip.sh
+
+      - name: Unpack the build
+        run: unzip -q dist/perxel-image-optimizer.zip -d build
+
       - name: Run Plugin Check
         uses: wordpress/plugin-check-action@v1
         with:
-          # The checkout folder is the repo name, not the plugin slug.
+          build-dir: ./build/perxel-image-optimizer
+          # The repo is github.com/perxel/wp-image-optimizer but the WordPress.org
+          # slug (and text domain) is perxel-image-optimizer. Without this, every
+          # __() call reads as a text-domain mismatch.
           slug: perxel-image-optimizer
-          # Dev-only files that .distignore keeps out of the shipped zip.
-          exclude-files: phpcs.xml.dist
-          exclude-directories: bin
+          # Plugin Check runs its OWN ruleset - it does not read phpcs.xml.dist.
+          # The base template needs no ignores (a slug-shaped namespace is
+          # slug-shaped, tables use %i). When you add code that trips a
+          # *documented* false positive, list the sniff code here AND mirror the
+          # exclusion in phpcs.xml.dist. Common cases:
+          #   WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
+          #     - only if you call another plugin's hooks (WPML wpml_*, etc.)
+          #   WordPressVIPMinimum.Performance.WPQueryParams.SuppressFilters_suppress_filters
+          #     - only if a WP_Query / get_posts uses 'suppress_filters' => true
+          # ignore-codes: |
+          #   WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound

@@ -1,20 +1,25 @@
 #!/usr/bin/env bash
 #
-# Build a distributable plugin zip: only committed files, minus everything
-# listed in .distignore. The folder inside the zip is the plugin slug
-# (perxel-image-optimizer) regardless of the repo name.
+# Build a distributable plugin zip that matches what the WordPress.org deploy
+# workflow ships: only committed files, minus everything listed in .distignore.
 #
 # Usage:
 #   bin/build-zip.sh            # build from HEAD
 #   bin/build-zip.sh --dirty    # build from the working tree (uncommitted changes included)
 #
-# Output: dist/perxel-image-optimizer.zip  and  dist/perxel-image-optimizer-<version>.zip
+# Output: dist/<slug>.zip  and  dist/<slug>-<version>.zip
+#
+# The slug is the main plugin file's name (the root *.php with a "Plugin Name:"
+# header), so this script is byte-identical in every Perxel plugin.
 
 set -euo pipefail
 
-SLUG="perxel-image-optimizer"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+
+MAIN="$(grep -lE '^[[:space:]]*\*?[[:space:]]*Plugin Name:' ./*.php | head -n1 || true)"
+[[ -z "$MAIN" ]] && { echo "No main plugin file (with a Plugin Name: header) in $ROOT" >&2; exit 1; }
+SLUG="$(basename "$MAIN" .php)"
 
 DIRTY=0
 [[ "${1:-}" == "--dirty" ]] && DIRTY=1
@@ -29,6 +34,7 @@ mkdir -p "$DEST"
 
 if [[ "$DIRTY" -eq 1 ]]; then
 	echo "Staging working tree (--dirty)…"
+	# Everything git would track (respects .gitignore), including uncommitted edits.
 	git ls-files --cached --others --exclude-standard -z | rsync -a --files-from=- --from0 ./ "$DEST/"
 else
 	echo "Staging HEAD…"
@@ -39,7 +45,7 @@ fi
 echo "Applying .distignore…"
 while IFS= read -r line; do
 	line="${line%%#*}"
-	line="$(echo "$line" | xargs || true)"
+	line="$(echo "$line" | xargs || true)"   # trim whitespace
 	[[ -z "$line" ]] && continue
 	rm -rf "${DEST:?}/${line#/}"
 done < .distignore

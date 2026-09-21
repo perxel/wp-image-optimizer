@@ -1,6 +1,6 @@
 <?php
 
-namespace Perxel\ImageOptimizer;
+namespace Perxel_Image_Optimizer;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

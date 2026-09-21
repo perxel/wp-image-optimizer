@@ -7,13 +7,13 @@
  * group `note` carries the "safe to close this tab" / activity-log line. Every
  * figure is a row in that same group - no second group, no separate headline.
  *
- * Included by views/status.php; assets/admin.js polls
+ * Included by views/status.php; assets/js/admin.js polls
  * `perxel_image_optimizer_progress`, updates the marked spans in place, and
  * reloads on any phase change (queued -> running -> complete) or stall flip.
  *
  * @package Perxel_Image_Optimizer
  *
- * @var array  $snap  Perxel\ImageOptimizer\Ajax::snapshot().
+ * @var array  $snap  Perxel_Image_Optimizer\Ajax::snapshot().
  * @var string $state  queued|running|stalled|paused|complete.
  * @var array  $job    $snap['job'] (Runner::progress()).
  */
@@ -36,7 +36,7 @@ $log_url   = admin_url( 'tools.php?page=action-scheduler&s=perxel_image_optimize
 
 /**
  * Echo trusted Perxel_UI markup. The kit escapes every structural attribute and
- * the title/label text fields (see ui/class-perxel-ui.php); the `content` /
+ * the title/label text fields (see vendor/perxel-ui/class-perxel-ui.php); the `content` /
  * `sub` / `note` HTML is the caller's to escape, and every dynamic value below
  * is passed through esc_html() / esc_attr() / esc_url() before it gets here.
  * This closure is the one place output escaping is deferred to the kit, so a
@@ -104,7 +104,7 @@ switch ( $state ) {
 				)
 			);
 		if ( ! $cancelled && ! empty( $snap['settings']['email_report'] )
-			&& '' !== \Perxel\ImageOptimizer\Settings::report_recipient() ) {
+			&& '' !== \Perxel_Image_Optimizer\Settings::report_recipient() ) {
 			$sentence .= ' ' . esc_html__( 'A report was emailed.', 'perxel-image-optimizer' );
 		}
 		break;
@@ -190,7 +190,7 @@ if ( $is_done ) {
 /* --- Fast mode: the live speed control (monitor-only, persisted to Settings). --- */
 
 if ( 'fast' === $driver && in_array( $state, array( 'running', 'stalled', 'paused' ), true ) ) {
-	$intensity_now  = \Perxel\ImageOptimizer\Throttle::intensity( $snap['settings']['fast_intensity'] ?? 'balanced' );
+	$intensity_now  = \Perxel_Image_Optimizer\Throttle::intensity( $snap['settings']['fast_intensity'] ?? 'balanced' );
 	$intensity_opts = '';
 	foreach ( array(
 		'gentle'   => __( 'Gentle - easiest on the host', 'perxel-image-optimizer' ),
@@ -274,7 +274,7 @@ $note_lines[] = implode( ' &middot; ', $meta_parts );
 
 /* --- Render. --- */
 
-// Fast runs are pumped by assets/admin.js (bindFastRunner); the 3s progress
+// Fast runs are pumped by assets/js/admin.js (bindFastRunner); the 3s progress
 // poll is for the background driver and for a fast tab that finds itself locked.
 $poll = ( 'fast' !== $driver && in_array( $state, array( 'queued', 'running', 'stalled' ), true ) ) ? '1' : '0';
 

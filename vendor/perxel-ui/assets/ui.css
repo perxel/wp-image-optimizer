@@ -7,7 +7,7 @@
  */
 
 .pxui-wrap {
-    /* Perxel brand blue — fixed, not aliased to the admin colour scheme. */
+    /* Perxel brand blue - fixed, not aliased to the admin colour scheme. */
     --pxui-brand:#082ae5;
     --pxui-accent:var(--pxui-brand);
     --pxui-accent-dark:#0620c9;
@@ -33,7 +33,7 @@
     --pxui-s6:24px;
     --pxui-s8:32px;
 
-    /* Surface treatment — iOS/macOS style: soft radius, near-white hairline
+    /* Surface treatment - iOS/macOS style: soft radius, near-white hairline
      * border, warm off-white fill, diffuse shadow instead of a hard edge.
      * Shared by the sidebar, panels, notices, stat tiles, cards, danger zone. */
     --pxui-radius:8px;
@@ -60,7 +60,7 @@
 }
 
 /* ------------------------------------------------------------------ *
- * Sticky bars — one per column (sidebar brand, main title)
+ * Sticky bars - one per column (sidebar brand, main title)
  * ------------------------------------------------------------------ */
 
 .pxui-sidebar__bar,
@@ -105,7 +105,7 @@
 }
 
 /* ------------------------------------------------------------------ *
- * Buttons — pill corners + brand-blue primary
+ * Buttons - pill corners + brand-blue primary
  * ------------------------------------------------------------------ */
 
 .pxui-wrap .button,
@@ -258,7 +258,7 @@
 }
 
 /* ------------------------------------------------------------------ *
- * Notice — WP `.notice`, restyled as a soft rounded card
+ * Notice - WP `.notice`, restyled as a soft rounded card
  * ------------------------------------------------------------------ */
 
 .pxui-wrap .pxui-notice {
@@ -287,8 +287,7 @@
     margin:var(--pxui-s3) 0 var(--pxui-s1);
 }
 
-.pxui-progress__fill,
-.pxui-stat__bar > span {
+.pxui-progress__fill {
     display:block;
     height:100%;
     background:var(--pxui-accent);
@@ -301,58 +300,39 @@
     color:var(--pxui-fg-muted);
 }
 
-/* ------------------------------------------------------------------ *
- * Stat grid
- * ------------------------------------------------------------------ */
-
-.pxui-stat-grid {
-    display:grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap:var(--pxui-s3);
-    margin:0 0 var(--pxui-s6);
+/* Compact inline meter - lives in a rows() value slot, keeps the row height.
+   Use progress_bar() for a standalone full-width bar. */
+.pxui-meter {
+    display:inline-flex;
+    align-items:center;
+    gap:var(--pxui-s2);
+    vertical-align:middle;
 }
 
-.pxui-stat {
-    background:var(--pxui-surface);
-    border:var(--pxui-surface-border);
-    border-radius:var(--pxui-radius-lg);
-    box-shadow:var(--pxui-shadow);
-    padding:var(--pxui-s4);
-}
-
-.pxui-stat__label {
-    font-size:11px;
-    font-weight:600;
-    text-transform:uppercase;
-    letter-spacing:.04em;
-    color:var(--pxui-fg-muted);
-}
-
-.pxui-stat__value {
-    margin-top:var(--pxui-s1);
-    font-size:22px;
-    font-weight:600;
-    line-height:1.2;
-    font-variant-numeric:tabular-nums;
-}
-
-.pxui-stat__sub {
-    margin-top:2px;
+.pxui-meter__text {
     font-size:12px;
+    font-variant-numeric:tabular-nums;
     color:var(--pxui-fg-muted);
 }
 
-.pxui-stat__bar {
-    margin-top:var(--pxui-s2);
+.pxui-meter__track {
+    flex:0 0 auto;
     height:6px;
-    background:var(--pxui-bg-subtle);
     border-radius:3px;
+    background:var(--pxui-bg-subtle);
     overflow:hidden;
 }
 
-.pxui-stat--good .pxui-stat__value { color:var(--pxui-good); }
-.pxui-stat--warn .pxui-stat__value { color:var(--pxui-warn); }
-.pxui-stat--bad .pxui-stat__value { color:var(--pxui-bad); }
+.pxui-meter__fill {
+    display:block;
+    height:100%;
+    background:var(--pxui-accent);
+    transition:width .3s ease;
+}
+
+.pxui-meter--good .pxui-meter__fill { background:var(--pxui-good); }
+.pxui-meter--warn .pxui-meter__fill { background:var(--pxui-warn); }
+.pxui-meter--bad .pxui-meter__fill { background:var(--pxui-bad); }
 
 /* ------------------------------------------------------------------ *
  * Card
@@ -384,7 +364,7 @@
 }
 
 /* ------------------------------------------------------------------ *
- * Code block — read-only preformatted output (config, rules, logs)
+ * Code block - read-only preformatted output (config, rules, logs)
  * ------------------------------------------------------------------ */
 
 .pxui-code__label {
@@ -400,7 +380,9 @@
 .pxui-code {
     margin:0;
     padding:var(--pxui-s3);
-    overflow-x:auto;
+    max-height:24em;
+    overflow:auto;
+    overscroll-behavior:contain;
     background:var(--pxui-bg-subtle);
     border:1px solid var(--pxui-border);
     border-radius:var(--pxui-radius);
@@ -412,8 +394,8 @@
 }
 
 /* Row groups (including the `danger` group treatment), form controls
- * (checkbox → toggle, radio) and the spinner live in a second sheet,
- * ui-forms.css — loaded right after this one. */
+ * (checkbox, radio, `.pxui-toggle`) and the spinner live in a second sheet,
+ * ui-forms.css - loaded right after this one. */
 
 /* ------------------------------------------------------------------ *
  * Utilities

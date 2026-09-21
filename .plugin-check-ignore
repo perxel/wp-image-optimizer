@@ -1,0 +1,4 @@
+# Documented Plugin Check false positives, one code per line (# comments ok).
+# Read by bin/plugin-check.sh. Mirror every entry in .github/workflows/lint.yml
+# -> ignore-codes (the CI action does not read this file). Empty for the base
+# template.
