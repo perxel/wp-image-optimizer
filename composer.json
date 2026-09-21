@@ -18,7 +18,10 @@
 		"phpcompatibility/phpcompatibility-wp": "^2.1"
 	},
 	"scripts": {
-		"lint": "phpcs",
+		"lint": [
+			"bin/check-suppressions.sh",
+			"phpcs"
+		],
 		"lint:fix": "phpcbf",
 		"build": "bin/build-zip.sh"
 	},
