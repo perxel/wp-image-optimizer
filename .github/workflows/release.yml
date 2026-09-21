@@ -1,8 +1,14 @@
 name: Release
 
-# When you publish a GitHub Release this workflow builds the installable plugin
-# zip (bin/build-zip.sh — committed files minus .distignore) and attaches it to
-# that release. Nothing is committed back to the repo.
+# When you publish a GitHub Release this workflow (1) builds the installable
+# plugin zip (bin/build-zip.sh — committed files minus .distignore) and attaches
+# it to that release, and (2) deploys the tag to the WordPress.org SVN repo
+# (trunk + tags/<version> + .wordpress-org/ -> /assets/) with the 10up action.
+# Nothing is committed back to the repo.
+#
+# Needs the repo (or org) secrets SVN_USERNAME and SVN_PASSWORD.
+# Manual run: Actions -> Release -> Run workflow. "dry_run" (default on) does
+# everything except the final SVN commit.
 
 on:
   release:
@@ -10,8 +16,12 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing tag to build and attach the zip to"
+        description: "Existing tag to build and deploy (e.g. v1.0.2)"
         required: true
+      dry_run:
+        description: "Dry run: check + stage the SVN deploy, do not commit (and do not touch the release zip)"
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -19,6 +29,7 @@ permissions:
 jobs:
   zip:
     name: Attach plugin zip to release
+    if: github.event_name == 'release' || !inputs.dry_run
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -46,3 +57,41 @@ jobs:
           tag_name: ${{ github.event.release.tag_name || github.event.inputs.tag }}
           files: dist/perxel-image-optimizer.zip
           fail_on_unmatched_files: true
+
+  deploy:
+    name: Deploy to WordPress.org
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+
+      - name: Check tag, plugin Version and Stable tag agree
+        id: version
+        env:
+          TAG: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+        run: |
+          TAG="${TAG#v}"
+          VER="$(grep -oE "Version:[[:space:]]*[0-9.]+" perxel-image-optimizer.php | grep -oE "[0-9.]+")"
+          STABLE="$(grep -oE "Stable tag:[[:space:]]*[0-9.]+" readme.txt | grep -oE "[0-9.]+$")"
+          echo "tag=$TAG  plugin version=$VER  stable tag=$STABLE"
+          if [ "$TAG" != "$VER" ] || [ "$VER" != "$STABLE" ]; then
+            echo "::error::Tag ($TAG), plugin Version ($VER) and readme Stable tag ($STABLE) must all match."
+            exit 1
+          fi
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+
+      # Pinned to a commit SHA (v2.3.0): this step receives the wordpress.org
+      # password, so it must not move under us. Bump deliberately.
+      - name: Deploy to the WordPress.org SVN repo
+        uses: 10up/action-wordpress-plugin-deploy@54bd289b8525fd23a5c365ec369185f2966529c2
+        with:
+          dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SLUG: perxel-image-optimizer
+          VERSION: ${{ steps.version.outputs.version }}

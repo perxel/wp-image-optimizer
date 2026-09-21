@@ -221,10 +221,12 @@ and `readme.txt` (`Stable tag`), add a changelog entry, tag, create a GitHub
 Release. `release.yml` builds the zip and (with SVN secrets) pushes to
 WordPress.org. `dist/` is never committed.
 
-To publish to WordPress.org SVN run `composer svn:stage` (checks out, syncs trunk +
-`.wordpress-org/` assets + tag, prints `svn status`, commits nothing), review, then
-`composer svn:publish` (commits; prompts for the wordpress.org password). Both call
-`bin/svn-publish.sh` and need `svn` installed.
+Publishing a GitHub Release also deploys to WordPress.org: the `deploy` job in
+`release.yml` runs the (SHA-pinned) 10up action, which commits trunk +
+`tags/<version>` + `.wordpress-org/` (banners, icons, screenshots) to SVN. It needs
+the `SVN_USERNAME` / `SVN_PASSWORD` secrets and fails unless the tag, plugin
+`Version` and readme `Stable tag` all match. Test with Actions -> Release -> Run
+workflow (dry run is the default). See `.claude/wordpress-org-svn-deploy.md`.
 
 `ui/CHECKLIST-wordpress-org.md` is the shared WordPress.org submission /
 compliance checklist for every Perxel plugin (headers, readme, security,
