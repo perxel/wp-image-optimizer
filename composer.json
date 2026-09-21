@@ -20,7 +20,15 @@
 	"scripts": {
 		"lint": "phpcs",
 		"lint:fix": "phpcbf",
-		"build": "bin/build-zip.sh"
+		"build": "bin/build-zip.sh",
+		"svn:stage": [
+			"Composer\\Config::disableProcessTimeout",
+			"bin/svn-publish.sh"
+		],
+		"svn:publish": [
+			"Composer\\Config::disableProcessTimeout",
+			"bin/svn-publish.sh --commit"
+		]
 	},
 	"config": {
 		"allow-plugins": {

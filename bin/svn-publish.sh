@@ -8,7 +8,8 @@
 #
 # Trunk = the .distignore-filtered build (bin/build-zip.sh); assets = .wordpress-org/.
 # The SVN working copy lives in dist/svn (gitignored). Requires `svn` and rsync.
-# Set WPORG_USER to your wordpress.org username (used for --commit).
+# WPORG_USER is your wordpress.org username for --commit (default: phucbm).
+# Also available as `composer svn:stage` / `composer svn:publish`.
 
 set -euo pipefail
 
@@ -57,7 +58,7 @@ fi
 ( cd "$WC" && svn status )
 
 if [[ "$COMMIT" -eq 1 ]]; then
-	( cd "$WC" && svn ci --username "${WPORG_USER:?set WPORG_USER}" -m "Release $VERSION" )
+	( cd "$WC" && svn ci --username "${WPORG_USER:-phucbm}" -m "Release $VERSION" )
 else
 	echo
 	echo "Staged only. Review the status above, then re-run with --commit."
