@@ -1,5 +1,9 @@
 # Perxel Image Optimizer
 
+![Perxel Image Optimizer](.wordpress-org/banner-1544x500.png)
+
+[**WordPress.org plugin page**](https://wordpress.org/plugins/perxel-image-optimizer/)
+
 Local WebP conversion for your media library — entirely from an admin page,
 built for shared hosting. No third-party CDN or external service, no API key or
 account, free. Your images never leave your host.
@@ -19,7 +23,18 @@ account, free. Your images never leave your host.
   table and the attachment detail panel.
 - **New uploads** — converted automatically, shortly after upload.
 
+## Screenshots
+
+![Optimization: prepare screen with image count, estimated time and Background / Fast run choice](.wordpress-org/screenshot-1.png)
+
+![Settings: quality, sizes to convert, serving and completion email](.wordpress-org/screenshot-2.png)
+
 ## Install
+
+**From WordPress.org:** Plugins → Add New → search "Perxel Image Optimizer", or
+open the [plugin page](https://wordpress.org/plugins/perxel-image-optimizer/).
+
+**Manually:**
 
 1. Copy this folder to `wp-content/plugins/perxel-image-optimizer/` (or install
    the release zip).
