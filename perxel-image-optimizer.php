@@ -58,7 +58,9 @@ if ( is_readable( __DIR__ . '/vendor/action-scheduler/action-scheduler.php' ) ) 
  * across active plugins and a second copy is inert. We host the kit's component
  * showcase as our 3rd screen; see Admin::render_ui().
  */
-define( 'PERXEL_UI_SHOWCASE_HOSTED', true );
+if ( ! defined( 'PERXEL_UI_SHOWCASE_HOSTED' ) ) {
+	define( 'PERXEL_UI_SHOWCASE_HOSTED', true );
+}
 
 if ( is_readable( __DIR__ . '/vendor/perxel-ui/loader.php' ) ) {
 	require_once __DIR__ . '/vendor/perxel-ui/loader.php';
