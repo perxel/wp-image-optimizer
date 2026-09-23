@@ -4,7 +4,7 @@
 # workflow ships: only committed files, minus everything listed in .distignore.
 #
 # Usage:
-#   bin/build-zip.sh            # build from HEAD
+#   bin/build-zip.sh            # build from HEAD (version read from HEAD too)
 #   bin/build-zip.sh --dirty    # build from the working tree (uncommitted changes included)
 #
 # Output: dist/<slug>.zip  and  dist/<slug>-<version>.zip
@@ -24,7 +24,19 @@ SLUG="$(basename "$MAIN" .php)"
 DIRTY=0
 [[ "${1:-}" == "--dirty" ]] && DIRTY=1
 
-VERSION="$(grep -oE "Version:[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+" "$SLUG.php" | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" || true)"
+# Read the version from the same source that gets zipped, so the file name can
+# never disagree with the code inside it (a HEAD build of an uncommitted bump
+# used to come out as <new version>.zip holding the old code).
+if [[ "$DIRTY" -eq 1 ]]; then
+	MAIN_SRC="$(cat "$SLUG.php")"
+else
+	MAIN_SRC="$(git show "HEAD:$SLUG.php")"
+	if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
+		echo "Warning: uncommitted changes are NOT in this build (it packs HEAD). Commit first, or use --dirty." >&2
+	fi
+fi
+
+VERSION="$(printf '%s\n' "$MAIN_SRC" | grep -oE "Version:[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+" | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" || true)"
 [[ -z "$VERSION" ]] && { echo "Could not read Version from $SLUG.php" >&2; exit 1; }
 
 STAGE="$(mktemp -d)"
