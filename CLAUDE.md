@@ -239,6 +239,7 @@ Rules that are not obvious and cost real time when re-derived per plugin:
 | Custom-table names via `%i`, never string-concatenated | `WordPress.DB.PreparedSQL.NotPrepared` is **error-level** and blocks .org (see "Custom tables") |
 | No `load_plugin_textdomain()` | .org auto-loads translations (slug == text domain); calling it on `plugins_loaded` is "too early" on WP 6.7+ |
 | Prefix any variable you **assign** in a view (`$pxio_url`); vars passed in via `extract()` are fine | `NonPrefixedVariableFound` fires on template-scope assignments |
+| No `phpcs:disable WordPress.Security.*` in `includes/` or the main file; echo kit markup through one delegated `$render()`/`kit()` point and use per-line `phpcs:ignore` with a reason | Reviewers flag file-wide security disables as escaping/nonce failures (hit this plugin 2026-09-06 and perxel-ai-translate 2026-09-22); `bin/check-suppressions.sh` (run by `composer run lint`, so CI) enforces it |
 | `set_time_limit()` etc.: `function_exists()` guard + inline `// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- <reason>` | discouraged-function warning |
 | Calling another plugin's hooks (WPML `wpml_*`, WooCommerce): scope a `phpcs.xml.dist` exclude to the wrapper file **and** add the code to `lint.yml` -> `ignore-codes` | `NonPrefixedHooknameFound`; the two tools don't share config |
 | `'suppress_filters' => true` in a query: same dual-suppression, code `WordPressVIPMinimum.Performance.WPQueryParams.SuppressFilters_suppress_filters` | deliberate but flagged |
