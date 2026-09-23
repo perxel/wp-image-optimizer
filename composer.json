@@ -23,7 +23,8 @@
 			"phpcs"
 		],
 		"lint:fix": "phpcbf",
-		"build": "bin/build-zip.sh"
+		"build": "bin/build-zip.sh",
+		"build:dirty": "bin/build-zip.sh --dirty"
 	},
 	"config": {
 		"allow-plugins": {
