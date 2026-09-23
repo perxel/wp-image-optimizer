@@ -23,6 +23,6 @@ if ( ! $has_title && ! $has_actions ) {
 		<h1 class="pxui-title"><?php echo esc_html( $d['title'] ); ?></h1>
 	<?php endif; ?>
 	<?php if ( $has_actions ) : ?>
-		<div class="pxui-main__actions"><?php echo $d['actions']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted caller-supplied HTML. ?></div>
+		<div class="pxui-main__actions"><?php echo wp_kses( $d['actions'], Perxel_UI::allowed_html() ); ?></div>
 	<?php endif; ?>
 </div>

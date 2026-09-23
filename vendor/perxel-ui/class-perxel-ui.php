@@ -2,14 +2,17 @@
 /**
  * Perxel shared admin UI - render helpers.
  *
- * Stateless. Every method returns an HTML string; callers echo it, e.g.
+ * Stateless. Every method returns an HTML string; callers escape it late with
+ * the kit's allowlist when they echo it, e.g.
  *
- *     echo Perxel_UI::rows( $groups ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Perxel_UI escapes internally.
+ *     echo wp_kses( Perxel_UI::rows( $groups ), Perxel_UI::allowed_html() );
  *
  * Escaping contract:
  *   - Structural markup and the `title` / `label` fields are escaped here.
  *   - `body`, `actions`, `value`, `content`, `sub` are treated as trusted HTML
  *     - the caller is responsible for escaping their dynamic parts.
+ *   - The final echo still goes through `wp_kses()` + `allowed_html()`, so
+ *     nothing outside the kit's own tag set reaches the page.
  *
  * @package Perxel_UI
  */
@@ -35,6 +38,221 @@ final class Perxel_UI {
 		wp_enqueue_style( 'perxel-ui', PERXEL_UI_URL . '/assets/ui.css', array(), PERXEL_UI_VERSION );
 		wp_enqueue_style( 'perxel-ui-forms', PERXEL_UI_URL . '/assets/ui-forms.css', array( 'perxel-ui' ), PERXEL_UI_VERSION );
 		wp_enqueue_script( 'perxel-ui', PERXEL_UI_URL . '/assets/ui.js', array(), PERXEL_UI_VERSION, true );
+	}
+
+	/**
+	 * The `wp_kses()` allowlist for kit markup: everything `wp_kses_post()`
+	 * allows, plus the form controls, disclosure / dialog elements and inline
+	 * SVG icons that kit components and their trusted-HTML slots carry. Every
+	 * tag also accepts `data-*`, the ARIA attributes the kit uses, `hidden`,
+	 * `tabindex` and `style`. No `<script>`, `<style>` or `on*` handlers.
+	 * Use it as `echo wp_kses( $html, Perxel_UI::allowed_html() );`.
+	 *
+	 * @return array
+	 */
+	public static function allowed_html() {
+		static $allowed = null;
+
+		if ( null !== $allowed ) {
+			return $allowed;
+		}
+
+		$global = array(
+			'class'            => true,
+			'id'               => true,
+			'style'            => true,
+			'title'            => true,
+			'role'             => true,
+			'hidden'           => true,
+			'tabindex'         => true,
+			'lang'             => true,
+			'dir'              => true,
+			'data-*'           => true,
+			'aria-busy'        => true,
+			'aria-checked'     => true,
+			'aria-controls'    => true,
+			'aria-current'     => true,
+			'aria-describedby' => true,
+			'aria-disabled'    => true,
+			'aria-expanded'    => true,
+			'aria-hidden'      => true,
+			'aria-label'       => true,
+			'aria-labelledby'  => true,
+			'aria-live'        => true,
+			'aria-modal'       => true,
+			'aria-pressed'     => true,
+			'aria-selected'    => true,
+			'aria-valuemax'    => true,
+			'aria-valuemin'    => true,
+			'aria-valuenow'    => true,
+		);
+
+		$field = array(
+			'name'         => true,
+			'value'        => true,
+			'form'         => true,
+			'disabled'     => true,
+			'required'     => true,
+			'readonly'     => true,
+			'autocomplete' => true,
+			'autofocus'    => true,
+			'placeholder'  => true,
+			'spellcheck'   => true,
+		);
+
+		$svg_paint = array(
+			'fill'              => true,
+			'fill-rule'         => true,
+			'clip-rule'         => true,
+			'stroke'            => true,
+			'stroke-width'      => true,
+			'stroke-linecap'    => true,
+			'stroke-linejoin'   => true,
+			'stroke-dasharray'  => true,
+			'stroke-dashoffset' => true,
+			'opacity'           => true,
+			'transform'         => true,
+		);
+
+		$extra = array(
+			'form'     => array(
+				'action'       => true,
+				'method'       => true,
+				'enctype'      => true,
+				'target'       => true,
+				'name'         => true,
+				'novalidate'   => true,
+				'autocomplete' => true,
+			),
+			'input'    => $field + array(
+				'type'      => true,
+				'checked'   => true,
+				'min'       => true,
+				'max'       => true,
+				'step'      => true,
+				'minlength' => true,
+				'maxlength' => true,
+				'size'      => true,
+				'pattern'   => true,
+				'list'      => true,
+				'multiple'  => true,
+				'accept'    => true,
+				'inputmode' => true,
+			),
+			'select'   => $field + array(
+				'multiple' => true,
+				'size'     => true,
+			),
+			'option'   => array(
+				'value'    => true,
+				'selected' => true,
+				'disabled' => true,
+				'label'    => true,
+			),
+			'optgroup' => array(
+				'label'    => true,
+				'disabled' => true,
+			),
+			'textarea' => $field + array(
+				'rows'      => true,
+				'cols'      => true,
+				'minlength' => true,
+				'maxlength' => true,
+				'wrap'      => true,
+			),
+			'button'   => $field + array(
+				'type'           => true,
+				'formaction'     => true,
+				'formmethod'     => true,
+				'formnovalidate' => true,
+			),
+			'label'    => array(
+				'for'  => true,
+				'form' => true,
+			),
+			'fieldset' => array(
+				'name'     => true,
+				'form'     => true,
+				'disabled' => true,
+			),
+			'legend'   => array(),
+			'datalist' => array(),
+			'output'   => array(
+				'for'  => true,
+				'form' => true,
+				'name' => true,
+			),
+			'progress' => array(
+				'value' => true,
+				'max'   => true,
+			),
+			'meter'    => array(
+				'value'   => true,
+				'min'     => true,
+				'max'     => true,
+				'low'     => true,
+				'high'    => true,
+				'optimum' => true,
+			),
+			'details'  => array( 'open' => true ),
+			'summary'  => array(),
+			'dialog'   => array( 'open' => true ),
+			'svg'      => $svg_paint + array(
+				'xmlns'               => true,
+				'viewbox'             => true,
+				'width'               => true,
+				'height'              => true,
+				'focusable'           => true,
+				'preserveaspectratio' => true,
+			),
+			'g'        => $svg_paint,
+			'defs'     => array(),
+			'symbol'   => array( 'viewbox' => true ),
+			'use'      => array(
+				'href'       => true,
+				'xlink:href' => true,
+			),
+			'path'     => $svg_paint + array( 'd' => true ),
+			'circle'   => $svg_paint + array(
+				'cx' => true,
+				'cy' => true,
+				'r'  => true,
+			),
+			'ellipse'  => $svg_paint + array(
+				'cx' => true,
+				'cy' => true,
+				'rx' => true,
+				'ry' => true,
+			),
+			'rect'     => $svg_paint + array(
+				'x'      => true,
+				'y'      => true,
+				'width'  => true,
+				'height' => true,
+				'rx'     => true,
+				'ry'     => true,
+			),
+			'line'     => $svg_paint + array(
+				'x1' => true,
+				'y1' => true,
+				'x2' => true,
+				'y2' => true,
+			),
+			'polyline' => $svg_paint + array( 'points' => true ),
+			'polygon'  => $svg_paint + array( 'points' => true ),
+		);
+
+		$allowed = wp_kses_allowed_html( 'post' );
+
+		foreach ( $extra as $tag => $attrs ) {
+			$allowed[ $tag ] = array_merge( isset( $allowed[ $tag ] ) ? $allowed[ $tag ] : array(), $attrs );
+		}
+
+		foreach ( $allowed as $tag => $attrs ) {
+			$allowed[ $tag ] = array_merge( is_array( $attrs ) ? $attrs : array(), $global );
+		}
+
+		return $allowed;
 	}
 
 	/**

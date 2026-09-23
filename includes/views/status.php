@@ -23,18 +23,14 @@ $settings_url = admin_url( 'upload.php?page=' . \Perxel_Image_Optimizer\Admin::P
 $free_disk    = isset( $env['free_disk'] ) ? (int) $env['free_disk'] : 0;
 
 /**
- * Echo trusted Perxel_UI markup. The kit escapes every structural attribute and
- * the title/label text fields (see vendor/perxel-ui/class-perxel-ui.php); the `content` /
- * `sub` / `note` / `value` HTML is the caller's to escape, and every dynamic
- * value below is passed through esc_html() / esc_attr() / esc_url() before it
- * reaches here. This closure is the one place output escaping is deferred to the
- * kit, so a stray unescaped echo added later still trips the sniff.
+ * Echo Perxel_UI markup, escaped late through the kit's own wp_kses()
+ * allowlist. Every dynamic value handed to the kit is also escaped inline.
  *
  * @param string $html Markup from a Perxel_UI:: renderer or the $glance /
  *                      $figure_group closures below.
  */
 $render = static function ( $html ) {
-	echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted Perxel_UI markup; see closure docblock.
+	echo wp_kses( $html, Perxel_UI::allowed_html() );
 };
 
 /**
