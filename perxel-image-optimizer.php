@@ -62,7 +62,7 @@ define( 'PERXEL_UI_SHOWCASE_HOSTED', true );
 
 if ( is_readable( __DIR__ . '/vendor/perxel-ui/loader.php' ) ) {
 	require_once __DIR__ . '/vendor/perxel-ui/loader.php';
-	Perxel_UI_Loader::register( '0.22.2', __DIR__ . '/vendor/perxel-ui', untrailingslashit( plugins_url( 'vendor/perxel-ui', __FILE__ ) ) );
+	Perxel_UI_Loader::register( '0.23.0', __DIR__ . '/vendor/perxel-ui', untrailingslashit( plugins_url( 'vendor/perxel-ui', __FILE__ ) ) );
 }
 
 register_deactivation_hook( __FILE__, array( '\Perxel_Image_Optimizer\Serve', 'on_deactivate' ) );
