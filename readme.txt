@@ -4,7 +4,7 @@ Tags: webp, convert to webp, image optimization, media library, webp images
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -62,6 +62,9 @@ The `.htaccess` swap is Apache-only. On nginx the plugin rewrites `<img>` tags t
 `<picture>` with a WebP source instead.
 
 == Changelog ==
+
+= 1.0.2 =
+* Housekeeping only, no behaviour change. Plugin URI now points to the product page on perxel.com instead of the GitHub repo.
 
 = 1.0.1 =
 * Tightened output-escaping suppressions in the admin views to per-file
