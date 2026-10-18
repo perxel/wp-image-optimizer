@@ -136,6 +136,36 @@ foreach ( (array) $snap['sizes'] as $name ) {
 	$markup = Perxel_UI::rows(
 		array(
 			array(
+				'title' => __( 'Image size', 'perxel-image-optimizer' ),
+				'rows'  => array(
+					array(
+						'label'   => __( 'Maximum image size', 'perxel-image-optimizer' ),
+						'sub'     => esc_html__( 'New uploads bigger than this are scaled down on their longest side. WordPress uses 2560 px; 1920 px is plenty for most sites. 0 = no limit.', 'perxel-image-optimizer' ),
+						'content' => '<input type="number" id="pxio-max-size" name="max_size" min="0" max="10000" step="10" value="'
+							. esc_attr( (int) $cfg['max_size'] ) . '" /> ' . esc_html__( 'px', 'perxel-image-optimizer' ),
+					),
+					array(
+						'label'   => __( 'Delete originals of scaled uploads', 'perxel-image-optimizer' ),
+						'sub'     => esc_html__( 'WordPress keeps the full-size original beside the scaled copy, though the site never shows it. Off keeps it, e.g. for a photographer who needs the full file.', 'perxel-image-optimizer' ),
+						'content' => Perxel_UI::toggle(
+							array(
+								'name'    => 'delete_originals',
+								'checked' => ! empty( $cfg['delete_originals'] ),
+								'label'   => __( 'Delete originals of scaled uploads', 'perxel-image-optimizer' ),
+							)
+						),
+					),
+					array(
+						'label'   => __( 'Shrink existing images', 'perxel-image-optimizer' ),
+						'sub'     => esc_html__( 'Once, for images uploaded before: deletes the kept originals and scales every full-size image over the maximum down, in place, so links keep working. Save settings first. Cannot be undone.', 'perxel-image-optimizer' ),
+						'content' => '<button type="button" class="button" id="pxio-shrink" data-pxui-confirm="'
+							. esc_attr__( 'Delete the kept originals and scale down every image over the maximum size? This cannot be undone.', 'perxel-image-optimizer' ) . '">'
+							. esc_html__( 'Shrink images', 'perxel-image-optimizer' ) . '</button>'
+							. '<p id="pxio-shrink-out" class="pxui-muted"></p>',
+					),
+				),
+			),
+			array(
 				'title' => __( 'Conversion', 'perxel-image-optimizer' ),
 				'rows'  => array(
 					array(

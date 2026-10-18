@@ -41,12 +41,22 @@ class Plugin {
 		Runner::register();
 		( new Catchup() )->register();
 
+		// Deleting an image deletes its WebP copies, even while soft-disabled.
+		add_action( 'delete_attachment', array( Converter::class, 'on_delete' ) );
+
 		if ( Settings::get( 'disabled' ) ) {
 			return;
 		}
 
 		// Translations: WordPress.org auto-loads them for a hosted plugin since
 		// WP 4.6, so no load_plugin_textdomain() call and no bundled /languages.
+
+		// New uploads: the size limit and dropping the kept original.
+		( new Resizer() )->register();
+
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			\WP_CLI::add_command( 'perxel-image', Cli::class );
+		}
 
 		// Front + admin: serving layer.
 		( new Serve() )->register();

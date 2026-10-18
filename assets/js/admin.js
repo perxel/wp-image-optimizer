@@ -501,6 +501,32 @@
 				} )();
 			} );
 		} );
+
+		on( 'pxio-shrink', 'click', function () {
+			var out = byId( 'pxio-shrink-out' );
+			var btn = byId( 'pxio-shrink' );
+			var report = function ( d ) {
+				return 'Checked ' + d.checked + ' / ' + d.total + ' · originals deleted ' + d.original
+					+ ' · scaled down ' + d.resized + ( d.failed ? ' · failed ' + d.failed : '' ) + ' · freed ' + bytes( d.freed );
+			};
+			btn.disabled = true;
+			out.textContent = 'Starting…';
+			post( 'perxel_image_optimizer_shrink_start', {} ).then( function ( r ) {
+				if ( ! r.json || ! r.json.success ) {
+					out.textContent = ( r.json && r.json.data && r.json.data.reason ) || 'Could not start.';
+					btn.disabled = false;
+					return;
+				}
+				( function step() {
+					post( 'perxel_image_optimizer_shrink_step', {} ).then( function ( res ) {
+						var d = res.json.data;
+						if ( d.status === 'running' ) { out.textContent = report( d ); step(); return; }
+						out.textContent = d.status === 'done' ? 'Done. ' + report( d ) : 'Stopped.';
+						btn.disabled = false;
+					} );
+				} )();
+			} );
+		} );
 	}
 
 	/* ---- boot ---------------------------------------------------- */
@@ -509,7 +535,7 @@
 		bindPrepare();
 		bindMonitor();
 		bindFastRunner();
-		if ( byId( 'pxio-settings-form' ) || byId( 'pxio-purge' ) ) { bindSettings(); }
+		if ( byId( 'pxio-settings-form' ) || byId( 'pxio-purge' ) || byId( 'pxio-shrink' ) ) { bindSettings(); }
 	}
 
 	if ( document.readyState === 'loading' ) {

@@ -27,6 +27,7 @@ $options = array(
 	'perxel_image_optimizer_failures',
 	'perxel_image_optimizer_serve_mode',
 	'perxel_image_optimizer_purge',
+	'perxel_image_optimizer_shrink',
 );
 
 foreach ( $options as $option ) {

@@ -515,6 +515,7 @@ class Admin {
 		$jpeg_quality    = isset( $_POST['jpeg_quality'] ) ? absint( $_POST['jpeg_quality'] ) : 80;
 		$png_quality     = isset( $_POST['png_quality'] ) ? absint( $_POST['png_quality'] ) : 90;
 		$skip_megapixels = isset( $_POST['skip_megapixels'] ) ? absint( $_POST['skip_megapixels'] ) : 0;
+		$max_size        = isset( $_POST['max_size'] ) ? absint( $_POST['max_size'] ) : 0;
 		$email_report_to = isset( $_POST['email_report_to'] ) ? sanitize_email( wp_unslash( $_POST['email_report_to'] ) ) : '';
 
 		Settings::update(
@@ -526,6 +527,8 @@ class Admin {
 				'skip_converted'    => ! empty( $_POST['skip_converted'] ),
 				'serve'             => ! empty( $_POST['serve'] ),
 				'skip_megapixels'   => $skip_megapixels,
+				'max_size'          => $max_size,
+				'delete_originals'  => ! empty( $_POST['delete_originals'] ),
 				'sizes'             => $sizes,
 				'email_report'      => ! empty( $_POST['email_report'] ),
 				'email_report_to'   => $email_report_to,
