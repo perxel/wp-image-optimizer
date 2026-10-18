@@ -32,6 +32,8 @@ class Settings {
 			'serve'             => false, // opt-in: enabled from the prepare form or Settings, never on activation.
 			'skip_megapixels'   => 0, // 0 = auto (Environment::safe_megapixels()).
 			'skip_converted'    => true, // bulk runs skip images that already have a current WebP copy
+			'max_size'          => 1920, // longest side of a full-size image, px; 0 = no limit (Resizer). Not part of signature().
+			'delete_originals'  => true, // drop the original WordPress keeps beside a scaled upload (Resizer). Not part of signature().
 			'email_report'      => false,
 			'email_report_to'   => '',
 			'fast_intensity'    => 'balanced', // fast-mode pacing: gentle|balanced|turbo. Not part of signature().
@@ -83,6 +85,14 @@ class Settings {
 		}
 		if ( isset( $input['skip_megapixels'] ) ) {
 			$clean['skip_megapixels'] = max( 0, min( 200, (int) $input['skip_megapixels'] ) );
+		}
+
+		if ( isset( $input['max_size'] ) ) {
+			$clean['max_size'] = self::sanitize_max_size( $input['max_size'] );
+		}
+
+		if ( array_key_exists( 'delete_originals', $input ) ) {
+			$clean['delete_originals'] = ! empty( $input['delete_originals'] );
 		}
 
 		$clean['convert_png']       = ! empty( $input['convert_png'] );
@@ -199,6 +209,18 @@ class Settings {
 		}
 
 		return $best;
+	}
+
+	/**
+	 * Maximum full-size dimension: 0 (no limit), or 640-10000 px.
+	 *
+	 * @param mixed $value Raw px.
+	 * @return int
+	 */
+	public static function sanitize_max_size( $value ) {
+		$value = (int) $value;
+
+		return $value <= 0 ? 0 : max( 640, min( 10000, $value ) );
 	}
 
 	/**

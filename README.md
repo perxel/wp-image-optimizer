@@ -22,6 +22,11 @@ account, free. Your images never leave your host.
 - **Per-attachment** — Convert / Reconvert / Remove buttons in the Media list
   table and the attachment detail panel.
 - **New uploads** — converted automatically, shortly after upload.
+- **Image size** — new uploads are kept within a maximum size (1920 px by
+  default, adjustable, 0 = no limit), and the full-size original WordPress keeps
+  beside a scaled upload is deleted (can be turned off). "Shrink existing images"
+  does the same once for the existing library, in place, so links keep working.
+- **WP-CLI** — `wp perxel-image status | convert | cleanup | settings` for SSH.
 
 ## Screenshots
 
@@ -68,6 +73,7 @@ open the [plugin page](https://wordpress.org/plugins/perxel-image-optimizer/).
 | `perxel_image_optimizer_state` | option | resumable conversion queue |
 | `perxel_image_optimizer_serve_mode` | option | `apache` / `fallback` / `off` |
 | `perxel_image_optimizer_purge` | option | in-progress purge queue |
+| `perxel_image_optimizer_shrink` | option | in-progress "Shrink existing images" cursor |
 | `_perxel_image_optimizer` | post meta | per-attachment status + per-size sizes |
 | `perxel_image_optimizer_sample` | transient | cached sample estimate |
 

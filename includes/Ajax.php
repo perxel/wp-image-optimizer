@@ -24,13 +24,15 @@ class Ajax {
 	 */
 	public function register() {
 		$map = array(
-			'perxel_image_optimizer_progress'    => 'progress',
-			'perxel_image_optimizer_fast_step'   => 'fast_step',
-			'perxel_image_optimizer_fast_pause'  => 'fast_pause',
-			'perxel_image_optimizer_convert_one' => 'convert_one',
-			'perxel_image_optimizer_remove_one'  => 'remove_one',
-			'perxel_image_optimizer_purge_start' => 'purge_start',
-			'perxel_image_optimizer_purge_step'  => 'purge_step',
+			'perxel_image_optimizer_progress'     => 'progress',
+			'perxel_image_optimizer_fast_step'    => 'fast_step',
+			'perxel_image_optimizer_fast_pause'   => 'fast_pause',
+			'perxel_image_optimizer_convert_one'  => 'convert_one',
+			'perxel_image_optimizer_remove_one'   => 'remove_one',
+			'perxel_image_optimizer_purge_start'  => 'purge_start',
+			'perxel_image_optimizer_purge_step'   => 'purge_step',
+			'perxel_image_optimizer_shrink_start' => 'shrink_start',
+			'perxel_image_optimizer_shrink_step'  => 'shrink_step',
 		);
 
 		foreach ( $map as $action => $method ) {
@@ -190,6 +192,30 @@ class Ajax {
 		$this->guard();
 
 		wp_send_json_success( Purger::step() );
+	}
+
+	/**
+	 * Begin shrinking the existing library.
+	 */
+	public function shrink_start() {
+		$this->guard();
+
+		$state = Resizer::start();
+
+		if ( is_wp_error( $state ) ) {
+			wp_send_json_error( array( 'reason' => $state->get_error_message() ), 409 );
+		}
+
+		wp_send_json_success( $state );
+	}
+
+	/**
+	 * Shrink one time-boxed batch.
+	 */
+	public function shrink_step() {
+		$this->guard();
+
+		wp_send_json_success( Resizer::step( 10.0 ) );
 	}
 
 	/* --------------------------------------------------------------------- */

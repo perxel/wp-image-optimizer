@@ -9,8 +9,10 @@ document (see "Documentation rules" below).
 WebP (PHP `WP_Image_Editor`) and serves it via a managed `.htaccess` block, with
 an `<img>`→`<picture>` fallback. Everything runs from an admin page: a scan-first,
 month-scoped **background** bulk run (Action Scheduler), per-attachment buttons,
-deferred conversion of new uploads. No WP-CLI, no external service - built for
-shared hosting.
+deferred conversion of new uploads, and a size limit with the kept originals
+dropped (`Resizer`). No external service and nothing needs WP-CLI - built for
+shared hosting; `wp perxel-image` (`Cli`) is an extra for SSH, loaded only
+when WP-CLI is.
 
 The bulk run has **two drivers**, chosen on the prepare form (`Runner`'s
 `driver` field, `handle_start` reads it):
@@ -87,7 +89,7 @@ enumeration + per-month pending-ID query - the runner's internal skip signal),
 `Estimator` (scan → "this run" projection: image count + ETA, math mirrored in
 `admin.js`), `Catchup` (deferred new-upload conversion), `Failures`
 (incrementally-maintained failed / too-large index), `Mailer` (completion
-email). There is no `Metrics` class and no "recalculate" - `Scan` replaced both.
+email), `Resizer` (size limit + originals, below), `Cli` (WP-CLI commands). There is no `Metrics` class and no "recalculate" - `Scan` replaced both.
 
 Per-attachment meta written by `Converter` (and read only in SQL, never
 unserialised, to find pending work / sum figures):
@@ -112,6 +114,34 @@ keys for the **exact** library-wide "saved" / "on disk", two indexed `COUNT()`s
 no file reads, no library walk, no per-row meta join. Everything the "At a
 glance" tiles and the prepare screen show comes from the one cached
 `perxel_image_optimizer_scan` option (`Scan::stats()` / `Scan::data()`).
+
+## Image size (`Resizer`)
+
+- **New uploads:** `big_image_size_threshold` returns `max_size` (default
+  1920; 0 = `false`, no scaling), so core's own `-scaled` copy is made at that
+  size. With `delete_originals` (default on), `wp_generate_attachment_metadata`
+  (priority 10, before Catchup's 20) deletes the `original_image` core keeps and
+  unsets it, so core (regenerate, `wp_get_original_image_path`) uses the scaled
+  file from then on. A file core left over the limit is resized in place there
+  too. Silent: no notice.
+- **Existing library:** Settings → "Shrink existing images" (AJAX
+  `shrink_start` / `shrink_step`, 10s steps) or `wp perxel-image cleanup`
+  walk image IDs ascending with a cursor in `perxel_image_optimizer_shrink`.
+  Per image `Resizer::shrink()`: delete the kept original (and its `.webp`),
+  then a full-size file still over `max_size` is resized **in place** (same
+  name, so URLs in content keep working; sub-sizes untouched), its `.webp`,
+  status blob and `_sig` dropped and `Catchup::schedule()` re-converts it. Refused while a bulk
+  run is active; skips an image under a conversion lock. Always deletes
+  originals, whatever `delete_originals` says (that switch is for uploads).
+- `max_size` / `delete_originals` are not in `Settings::signature()`: they
+  change files, not WebP encoding.
+
+## WP-CLI (`Cli`)
+
+`wp perxel-image status | convert [<id>...] [--month=yyyy-mm] [--force] |
+cleanup [--dry-run] [--yes] | settings get [<key>] | settings set <key> <value>`.
+Registered in `Plugin::boot()` only when `WP_CLI` is defined (and the plugin
+is not soft-disabled). Same classes as the admin, no time limit.
 
 ## `vendor/action-scheduler/` - bundled, committed, not Composer-managed
 

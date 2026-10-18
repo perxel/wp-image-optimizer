@@ -4,7 +4,7 @@ Tags: webp, convert to webp, image optimization, media library, webp images
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.2
+Stable tag: 1.1.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -28,12 +28,17 @@ hosting.
   admin tab, so the server works continuously - much quicker on shared hosting
   with no cron. It throttles itself if the host pushes back, and stopping never
   loses work.
-* **Originals are untouched.** `foo.jpg` gets a `foo.jpg.webp` sibling; the
-  source file is never modified.
+* **Your JPEG and PNG files stay.** `foo.jpg` gets a `foo.jpg.webp` sibling;
+  the conversion never modifies the source file.
+* **Image size limit.** New uploads are scaled down to a maximum size (1920 px
+  by default, adjustable), and the unused full-size original WordPress keeps
+  beside a scaled upload is deleted to save disk space (can be turned off).
+  "Shrink existing images" does the same once for images uploaded before.
 * **Serving** through a managed `.htaccess` block on Apache/LiteSpeed, with an
   `<img>` to `<picture>` fallback on nginx or when `.htaccess` is not writable.
 * Per-attachment Convert / Reconvert / Remove buttons in the Media library.
 * New uploads are converted automatically, shortly after upload.
+* WP-CLI commands (`wp perxel-image`) for running it over SSH.
 
 The admin area is two screens under Media > Optimization: an **Optimization** page (scan
 → prepare → live monitor) and a separate **Settings** page (environment,
@@ -48,13 +53,24 @@ conversion options, serving, notifications, cleanup).
 == Screenshots ==
 
 1. Optimization: the prepare screen shows the whole-library image count, an estimated time, and a choice of Background or Fast run.
-2. Settings: JPEG/PNG quality, sizes to convert, serving, and completion-email options.
+2. Settings: image size limit, JPEG/PNG quality, sizes to convert, serving, and completion-email options.
 
 == Frequently Asked Questions ==
 
 = Does it modify my original images? =
 
-No. Every converted file is written as a new `.webp` sibling next to the original.
+The WebP conversion never does: every converted file is a new `.webp` sibling
+next to the original. The image size limit does, by design: a new upload
+bigger than the maximum (1920 px by default) is scaled down, and the full-size
+original WordPress keeps beside the scaled copy is deleted. Set the maximum to
+0 for no limit, or turn off "Delete originals of scaled uploads" to keep them.
+"Shrink existing images" (or `wp perxel-image cleanup`) changes images already
+uploaded only when you run it, and cannot be undone.
+
+= Can I run it over SSH? =
+
+Yes, with WP-CLI: `wp perxel-image status`, `wp perxel-image convert`,
+`wp perxel-image cleanup --dry-run` and `wp perxel-image settings get|set`.
 
 = What happens on nginx? =
 
@@ -62,6 +78,13 @@ The `.htaccess` swap is Apache-only. On nginx the plugin rewrites `<img>` tags t
 `<picture>` with a WebP source instead.
 
 == Changelog ==
+
+= 1.1.0 =
+* New: image size limit. New uploads bigger than the maximum (1920 px by default, adjustable in Settings, 0 = no limit) are scaled down on their longest side.
+* New: the full-size original WordPress keeps beside a scaled upload is deleted, to save disk space. On by default; turn off "Delete originals of scaled uploads" to keep them.
+* New: "Shrink existing images" in Settings deletes the kept originals of images uploaded before and scales full-size images over the maximum down, in place, so links keep working. Their WebP copies are redone automatically.
+* Fix: deleting an image now deletes its WebP copies too (they were left on disk).
+* New: WP-CLI commands: `wp perxel-image status`, `convert`, `cleanup` (with `--dry-run`) and `settings`.
 
 = 1.0.2 =
 * Housekeeping only, no behaviour change. Plugin URI now points to the product page on perxel.com instead of the GitHub repo.

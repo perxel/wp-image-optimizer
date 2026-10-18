@@ -226,6 +226,22 @@ class Converter {
 	}
 
 	/**
+	 * An attachment is being deleted: remove its .webp siblings too. Core
+	 * deletes the source files after this, but never ours.
+	 *
+	 * @param int $post_id Post ID.
+	 */
+	public static function on_delete( $post_id ) {
+		if ( ! in_array( get_post_mime_type( $post_id ), array( 'image/jpeg', 'image/png' ), true ) ) {
+			return;
+		}
+
+		self::remove_attachment( $post_id );
+		Failures::clear_one( $post_id );
+		Scan::mark_stale();
+	}
+
+	/**
 	 * Convert one file to WebP with an atomic write and a size gate.
 	 *
 	 * @param string $source  Absolute source path.
