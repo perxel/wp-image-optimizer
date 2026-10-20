@@ -3,7 +3,7 @@
  * Plugin Name:       Perxel Image Optimizer
  * Plugin URI:        https://perxel.com/products/perxel-image-optimizer
  * Description:        Local WebP conversion for your media library. No third-party CDN or external service, free, and it runs in the background. Serves WebP via a managed .htaccess block with a picture-tag fallback.
- * Version:           1.1.0
+ * Version:           1.2.0
  * Requires at least: 6.5
  * Requires PHP:      7.4
  * Author:            Perxel
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'PERXEL_IMAGE_OPTIMIZER_VERSION', '1.1.0' );
+define( 'PERXEL_IMAGE_OPTIMIZER_VERSION', '1.2.0' );
 define( 'PERXEL_IMAGE_OPTIMIZER_FILE', __FILE__ );
 define( 'PERXEL_IMAGE_OPTIMIZER_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PERXEL_IMAGE_OPTIMIZER_URL', plugin_dir_url( __FILE__ ) );
@@ -64,7 +64,7 @@ if ( ! defined( 'PERXEL_UI_SHOWCASE_HOSTED' ) ) {
 
 if ( is_readable( __DIR__ . '/vendor/perxel-ui/loader.php' ) ) {
 	require_once __DIR__ . '/vendor/perxel-ui/loader.php';
-	Perxel_UI_Loader::register( '0.23.0', __DIR__ . '/vendor/perxel-ui', untrailingslashit( plugins_url( 'vendor/perxel-ui', __FILE__ ) ) );
+	Perxel_UI_Loader::register( '0.24.0', __DIR__ . '/vendor/perxel-ui', untrailingslashit( plugins_url( 'vendor/perxel-ui', __FILE__ ) ) );
 }
 
 register_deactivation_hook( __FILE__, array( '\Perxel_Image_Optimizer\Serve', 'on_deactivate' ) );

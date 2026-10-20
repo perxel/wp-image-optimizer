@@ -340,6 +340,7 @@ if ( '' !== trim( $email_to ) ) {
 <?php
 /* --- Danger zone ------------------------------------------------- */
 
+echo '<div id="danger-zone">';
 $markup = Perxel_UI::rows(
 	array(
 		array(
@@ -370,6 +371,7 @@ $markup = Perxel_UI::rows(
 );
 $render( $markup );
 echo '<p id="pxio-purge-out" class="pxui-muted"></p>';
+echo '</div>';
 
 /* --- Environment --------------------------------------------------- */
 
@@ -425,6 +427,7 @@ if ( 'apache' === $srv['mode'] ) {
 	);
 }
 
+echo '<div id="environment">';
 $markup = Perxel_UI::rows(
 	array(
 		array(
@@ -447,3 +450,4 @@ $markup = Perxel_UI::rows(
 	)
 );
 $render( $markup );
+echo '</div>';

@@ -26,6 +26,7 @@ class Admin {
 	 */
 	public function register() {
 		add_action( 'admin_menu', array( $this, 'menu' ) );
+		add_action( 'admin_init', array( $this, 'register_commands' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'assets' ) );
 		add_action( 'admin_post_perxel_image_optimizer_save_settings', array( $this, 'save_settings' ) );
 		add_action( 'admin_post_perxel_image_optimizer_reset_settings', array( $this, 'reset_settings' ) );
@@ -93,6 +94,71 @@ class Admin {
 		if ( class_exists( 'Perxel_UI_Layout' ) ) {
 			\Perxel_UI_Layout::set_page_titles( $titles, __( 'Image Optimization', 'perxel-image-optimizer' ) );
 		}
+	}
+
+	/**
+	 * Put the screens and the Settings sections in WordPress's command palette
+	 * (Cmd/Ctrl+K, WordPress 6.9+) through the kit's Perxel_UI_Commands (kit
+	 * 0.24.0+). On admin_init: the kit boots on after_setup_theme.
+	 */
+	public function register_commands() {
+		if ( class_exists( 'Perxel_UI_Commands' ) ) {
+			\Perxel_UI_Commands::add( 'Perxel Image Optimizer', array( self::class, 'commands' ) );
+		}
+	}
+
+	/**
+	 * The palette's commands: the Optimization screen and each Settings
+	 * section (its anchor in views/settings.php), searched by the labels of
+	 * what they hold. Only for users who can open the screens.
+	 *
+	 * @return array[]
+	 */
+	public static function commands() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return array();
+		}
+
+		$settings = admin_url( 'upload.php?page=' . self::PAGE_SETTINGS );
+
+		return array(
+			array(
+				'name'     => 'perxel-image-optimizer/optimization',
+				'label'    => __( 'Optimization', 'perxel-image-optimizer' ),
+				'url'      => admin_url( 'upload.php?page=' . self::PAGE ),
+				'keywords' => array( 'WebP', __( 'Start conversion', 'perxel-image-optimizer' ), __( 'Convert images', 'perxel-image-optimizer' ), __( 'Progress', 'perxel-image-optimizer' ) ),
+			),
+			array(
+				'name'     => 'perxel-image-optimizer/settings',
+				'label'    => __( 'Settings: image size and conversion', 'perxel-image-optimizer' ),
+				'url'      => $settings . '#pxio-settings-form',
+				'keywords' => array( 'WebP', __( 'Maximum image size', 'perxel-image-optimizer' ), __( 'Delete originals of scaled uploads', 'perxel-image-optimizer' ), __( 'Shrink existing images', 'perxel-image-optimizer' ), __( 'Quality', 'perxel-image-optimizer' ), __( 'Convert PNG files', 'perxel-image-optimizer' ), __( 'Sizes to convert', 'perxel-image-optimizer' ), __( 'Auto-optimize new uploads', 'perxel-image-optimizer' ) ),
+			),
+			array(
+				'name'     => 'perxel-image-optimizer/serving',
+				'label'    => __( 'Settings: serving', 'perxel-image-optimizer' ),
+				'url'      => $settings . '#serving',
+				'keywords' => array( 'WebP', '.htaccess', __( 'Serve WebP to supported browsers', 'perxel-image-optimizer' ) ),
+			),
+			array(
+				'name'     => 'perxel-image-optimizer/notifications',
+				'label'    => __( 'Settings: notifications', 'perxel-image-optimizer' ),
+				'url'      => $settings . '#notifications',
+				'keywords' => array( __( 'Email a report when a bulk run finishes', 'perxel-image-optimizer' ), __( 'Test email', 'perxel-image-optimizer' ) ),
+			),
+			array(
+				'name'     => 'perxel-image-optimizer/danger-zone',
+				'label'    => __( 'Settings: danger zone', 'perxel-image-optimizer' ),
+				'url'      => $settings . '#danger-zone',
+				'keywords' => array( __( 'Reset settings to defaults', 'perxel-image-optimizer' ), __( 'Remove all WebP files', 'perxel-image-optimizer' ) ),
+			),
+			array(
+				'name'     => 'perxel-image-optimizer/environment',
+				'label'    => __( 'Settings: environment', 'perxel-image-optimizer' ),
+				'url'      => $settings . '#environment',
+				'keywords' => array( 'Imagick', 'GD', __( 'WebP support', 'perxel-image-optimizer' ) ),
+			),
+		);
 	}
 
 	/**
