@@ -4,7 +4,7 @@ Tags: webp, convert to webp, image optimization, media library, webp images
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -78,6 +78,10 @@ The `.htaccess` swap is Apache-only. On nginx the plugin rewrites `<img>` tags t
 `<picture>` with a WebP source instead.
 
 == Changelog ==
+
+= 1.2.0 =
+* New: find the plugin's screens and settings from WordPress's command palette (Cmd/Ctrl+K, WordPress 6.9 and newer, on any admin screen). Type "WebP", "image size", "quality" or "email report" and pick "Perxel Image Optimizer > ..." to open that section.
+* Shared admin UI updated to 0.24.0.
 
 = 1.1.0 =
 * New: image size limit. New uploads bigger than the maximum (1920 px by default, adjustable in Settings, 0 = no limit) are scaled down on their longest side.

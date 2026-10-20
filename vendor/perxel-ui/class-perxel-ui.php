@@ -21,6 +21,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// Required here, not by the loader: an older loader that wins the race
+// still loads this file, and with it the newer kit's command palette.
+require_once __DIR__ . '/class-perxel-ui-commands.php';
+
 /**
  * Component renderers built on top of native wp-admin classes.
  */
