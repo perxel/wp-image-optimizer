@@ -96,7 +96,23 @@ class Environment {
 	public static function is_apache() {
 		$server = isset( $_SERVER['SERVER_SOFTWARE'] ) ? strtolower( sanitize_text_field( wp_unslash( $_SERVER['SERVER_SOFTWARE'] ) ) ) : '';
 
-		return function_exists( 'apache_get_modules' ) || strpos( $server, 'apache' ) !== false || strpos( $server, 'litespeed' ) !== false;
+		if ( function_exists( 'apache_get_modules' ) || strpos( $server, 'apache' ) !== false || strpos( $server, 'litespeed' ) !== false ) {
+			return true;
+		}
+
+		// WP-CLI has no web server to ask: WordPress's own rewrite block in
+		// .htaccess means the site runs on Apache (core writes it only there).
+		return defined( 'WP_CLI' ) && WP_CLI && self::wordpress_htaccess();
+	}
+
+	/**
+	 * @return bool The site's .htaccess holds WordPress's "BEGIN WordPress" block.
+	 */
+	private static function wordpress_htaccess() {
+		$path = self::htaccess_path();
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- a local file.
+		return file_exists( $path ) && false !== strpos( (string) file_get_contents( $path ), '# BEGIN WordPress' );
 	}
 
 	/**
