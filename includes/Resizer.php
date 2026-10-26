@@ -30,6 +30,13 @@ class Resizer {
 	const BATCH  = 100;
 
 	/**
+	 * JPEG quality for a file resized in place: WordPress's own default.
+	 * Set explicitly, so a theme's `jpeg_quality` filter (some force 100)
+	 * can't make the shrunk file bigger than it needs to be.
+	 */
+	const JPEG_QUALITY = 82;
+
+	/**
 	 * Hooks. Only while the plugin is enabled.
 	 */
 	public function register() {
@@ -180,7 +187,12 @@ class Resizer {
 			return $resized;
 		}
 
-		$ext   = pathinfo( $file, PATHINFO_EXTENSION );
+		$ext = pathinfo( $file, PATHINFO_EXTENSION );
+
+		if ( in_array( strtolower( $ext ), array( 'jpg', 'jpeg' ), true ) ) {
+			$editor->set_quality( self::JPEG_QUALITY );
+		}
+
 		$tmp   = trailingslashit( dirname( $file ) ) . '.pxr-tmp-' . wp_generate_password( 10, false ) . '.' . $ext;
 		$saved = $editor->save( $tmp );
 
