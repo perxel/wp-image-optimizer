@@ -81,6 +81,7 @@ The `.htaccess` swap is Apache-only. On nginx the plugin rewrites `<img>` tags t
 
 = 1.2.1 =
 * Fix: "Shrink existing images" (and `wp perxel-image cleanup`) saves the resized JPEG at quality 82, WordPress's default, even when the theme sets a higher JPEG quality (some force 100, which made the shrunk files several times bigger).
+* Fix: `wp perxel-image settings set serve true` now writes the .htaccess block on Apache too (over WP-CLI the server was not recognised, so it fell back to `<picture>` tags until an admin page was opened).
 
 = 1.2.0 =
 * New: find the plugin's screens and settings from WordPress's command palette (Cmd/Ctrl+K, WordPress 6.9 and newer, on any admin screen). Type "WebP", "image size", "quality" or "email report" and pick "Perxel Image Optimizer > ..." to open that section.
